@@ -117,6 +117,7 @@ function createNode(nodeKey, parentNodeKey, text, group) {
 		is_user: is_user,
 		name: name,
 		send_date: send_date,
+		color: isBookmark ? generateUniqueColor() : null, // assuming you have a function to generate unique colors
 	};
 }
 
@@ -190,6 +191,24 @@ async function prepareData(data) {
 	return convertToGoJsTree(chat_dict);
 }
 
+function highlightPathToRoot(node) {
+	if (node === null) return;
+	while (node.parent !== null) {
+		let link = myDiagram.model.findLinkDataForKey(node.parent, node.key);
+		if (link) {
+			link.isHighlight = true;
+		}
+		node = myDiagram.findNodeForKey(node.parent);
+	}
+}
+
+function generateUniqueColor() {
+	const randomRGBValue = () => Math.floor(Math.random() * 256);
+	return `rgb(${randomRGBValue()}, ${randomRGBValue()}, ${randomRGBValue()})`;
+}
+
+
+
 function renderTreeDiagram(nodeData) {
 	console.log(nodeData);
 	let myDiagramDiv = document.getElementById('myDiagramDiv');
@@ -197,8 +216,9 @@ function renderTreeDiagram(nodeData) {
 		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
 		return;
 	}
-	myDiagramDiv.style.width = "800px";  // Set appropriate size
-	myDiagramDiv.style.height = "600px"; // Set appropriate size
+	//dynamic sizing
+	myDiagramDiv.style.width = "1600px";  // Set appropriate size
+	myDiagramDiv.style.height = "1200px"; // Set appropriate size
 	let myDiagram = goMake(go.Diagram, myDiagramDiv, {
 		"undoManager.isEnabled": true,
 		allowMove: true,
@@ -221,7 +241,7 @@ function renderTreeDiagram(nodeData) {
 					return isBookmark ? 3 : 0;
 				}),
 			),
-			
+
 			{  // Tooltip Adornment
 				toolTip:
 					goMake(go.Adornment, "Auto",
@@ -238,20 +258,32 @@ function renderTreeDiagram(nodeData) {
 			}
 		);
 
+	let model = goMake(go.TreeModel);
+	model.nodeDataArray = nodeData;
+	myDiagram.model = model;
 
+	// Highlight paths from bookmark nodes to the root
+	nodeData.forEach(node => {
+		if (node.isBookmark) {
+			let nodeInDiagram = myDiagram.findNodeForKey(node.key);
+			highlightPathToRoot(nodeInDiagram);
+		}
+	});
 
 	myDiagram.layout = goMake(go.TreeLayout, {
 		angle: 90,  // angle to make the tree grow upwards
 		layerSpacing: 35  // you can adjust the spacing to your preference
 	});
+	// in your myDiagram.linkTemplate
 	myDiagram.linkTemplate = goMake(go.Link,
 		{ routing: go.Link.Orthogonal, corner: 5 },
-		goMake(go.Shape, { strokeWidth: 3, stroke: "#555" })  // line properties
+		goMake(go.Shape,
+			{ strokeWidth: 3 },
+			new go.Binding("stroke", "", function (data) { return data.isHighlight ? data.color : "#555"; }),
+			new go.Binding("strokeWidth", "highlightThickness", function (h) { return h ? h : 3; })
+		)
 	);
 
-	let model = goMake(go.TreeModel);
-	model.nodeDataArray = nodeData;
-	myDiagram.model = model;
 
 	function toggleTreeDirection(diagram) {
 		const layout = diagram.layout;
@@ -266,7 +298,33 @@ function renderTreeDiagram(nodeData) {
 		});
 	}
 
+	const myOverviewDiv = document.getElementById('myOverviewDiv');
+	const myOverview = goMake(go.Overview, myOverviewDiv);
+	myOverview.observed = myDiagram; // set the diagram for the overview to be myDiagram
+
+	// in your highlightPathToRoot function
+	function highlightPathToRoot(node) {
+		let currentHighlightThickness = 4; // start from 3.1
+		if (node === null) return;
+		let color = node.data.color;
+		let parentNode = node;
+		while (parentNode !== null) {
+			let link = parentNode.findLinksInto();
+			while (link.next()) {
+				// Use Model.set method to update link data
+				myDiagram.model.set(link.value.data, "isHighlight", true);
+				myDiagram.model.set(link.value.data, "color", color);
+				myDiagram.model.set(link.value.data, "highlightThickness", currentHighlightThickness);
+			}
+			parentNode = parentNode.findTreeParentNode();
+		}
+		currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6); // increase for next highlighted path but do not exceed 4
+	}
+
+
+
 }
+
 
 function handleModalDisplay() {
 	let modal = document.getElementById("myModal");
