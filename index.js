@@ -7,7 +7,7 @@
 
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
-import { characters, getRequestHeaders } from "../../../../script.js";
+import { characters, getRequestHeaders, openCharacterChat } from "../../../../script.js";
 
 
 let goMake = go.GraphObject.make;
@@ -85,11 +85,11 @@ function buildNodes(allChats) {
 	return nodeData;
 }
 
-
 // Group messages by their content
 function groupMessagesByContent(messages) {
 	let groups = {};
-	messages.forEach(({ file_name, index, message }) => {
+	messages.forEach((messageObj, index) => {
+		let { file_name, message } = messageObj;
 		if (!groups[message.mes]) {
 			groups[message.mes] = [];
 		}
@@ -117,11 +117,12 @@ function createNode(nodeKey, parentNodeKey, text, group) {
 		is_user: is_user,
 		name: name,
 		send_date: send_date,
+		messageIndex: group[0].index, // assuming index exists in each group item
 		color: isBookmark ? generateUniqueColor() : null, // assuming you have a function to generate unique colors
+		chat_sessions: group.map(({ file_name }) => file_name), // add chat sessions to the node
 	};
+	
 }
-
-
 
 
 
@@ -191,21 +192,65 @@ async function prepareData(data) {
 	return convertToGoJsTree(chat_dict);
 }
 
-function highlightPathToRoot(node) {
-	if (node === null) return;
-	while (node.parent !== null) {
-		let link = myDiagram.model.findLinkDataForKey(node.parent, node.key);
-		if (link) {
-			link.isHighlight = true;
-		}
-		node = myDiagram.findNodeForKey(node.parent);
-	}
-}
-
 function generateUniqueColor() {
 	const randomRGBValue = () => Math.floor(Math.random() * 256);
 	return `rgb(${randomRGBValue()}, ${randomRGBValue()}, ${randomRGBValue()})`;
 }
+
+function closeOpenDrawers() {
+	var openDrawers = $('.openDrawer').not('.pinnedOpen');
+
+	openDrawers.addClass('resizing').slideToggle(200, "swing", function () {
+		$(this).closest('.drawer-content').removeClass('resizing');
+	});
+
+	$('.openIcon').toggleClass('closedIcon openIcon');
+	openDrawers.toggleClass('closedDrawer openDrawer');
+}
+
+
+async function navigateToMessage(chatSessionName, messageId) {
+	console.log(chatSessionName, messageId);
+	//remove extension from file name
+	chatSessionName = chatSessionName.replace('.jsonl', '');
+	console.log(chatSessionName, messageId);
+	await openCharacterChat(chatSessionName);
+
+	let message = $(`div[mesid=${messageId}]`); // Select the message div by the messageId
+	let chat = $("#chat");
+
+	if (message.length) {
+		// calculate the position by adding the container's current scrollTop to the message's position().top
+		let scrollPosition = chat.scrollTop() + message.position().top;
+		chat.animate({ scrollTop: scrollPosition }, 500);  // scroll over half a second
+	} else {
+		console.log(`Message with id "${messageId}" not found.`);
+	}
+	closeOpenDrawers();
+}
+
+
+function createDynamicContextMenu(chatSessions) {
+	let contextMenuAdornment = goMake(go.Adornment, "Vertical");
+	console.log(chatSessions);
+
+	chatSessions.forEach((chatSession, i) => {
+		contextMenuAdornment.add(
+			goMake("ContextMenuButton",
+				goMake(go.TextBlock, `${chatSession}`),
+				{
+					click: function (e, obj) {
+						navigateToMessage(chatSession, i);
+					}
+				})
+		);
+	});
+
+	return contextMenuAdornment;
+}
+
+
+
 
 
 
@@ -226,8 +271,49 @@ function renderTreeDiagram(nodeData) {
 		allowDelete: false,
 		allowInsert: false,
 	});
+
 	myDiagram.nodeTemplate =
 		goMake(go.Node, "Auto",
+			{
+				click: function (e, obj) {
+					let node = obj.part;
+					let depth = 0;
+					while (node.findTreeParentNode() !== null) {
+						node = node.findTreeParentNode();
+						depth++;
+					}
+
+					let chatSessions = obj.part.data.chat_sessions;
+					if (!(chatSessions && chatSessions.length > 1)) {
+						let chatSessionName = obj.part.data.file_name;
+						navigateToMessage(chatSessionName, depth);
+					}
+				}
+			},
+			{
+				contextMenu: // Adornment that contains context menu buttons
+					goMake(go.Adornment, "Vertical",
+						new go.Binding("itemArray", "chat_sessions"), // Bind the "chat_sessions" array to itemArray
+						{
+							itemTemplate: // Template for each context menu item
+								goMake("ContextMenuButton",
+									goMake(go.TextBlock, new go.Binding("text", "")), // Bind the chat session to the button's text
+									{
+										click: function (e, button) { // Click event handler
+											let chatSession = button.part.data; // Get the chat session data from the clicked button
+											let node = e.diagram.findNodeForData(button.part.adornedPart.data);
+											let depth = 0;
+											while (node.findTreeParentNode() !== null) {
+												node = node.findTreeParentNode();
+												depth++;
+											}
+											navigateToMessage(chatSession.file_name, depth);
+										}
+									}
+								)
+						}
+					)
+			},
 			goMake(go.Shape, "Circle",
 				{ width: 25, height: 25 },
 				new go.Binding("fill", "is_user", function (is_user) {
@@ -252,10 +338,11 @@ function renderTreeDiagram(nodeData) {
 								let fileName = d.file_name ? `\nFile Name: ${d.file_name}` : "";
 								let sendDate = d.send_date ? `\nSend Date: ${d.send_date}` : "";
 								let bookmarkName = d.bookmarkName ? `\nBookmark Name: ${d.bookmarkName}` : "";
-								return text + fileName + sendDate + bookmarkName;
+								let index = d.messageIndex ? `\nIndex: ${d.messageIndex}` : "";
+								return text + fileName + sendDate + bookmarkName + index;
 							}))
 					)
-			}
+			},
 		);
 
 	let model = goMake(go.TreeModel);
@@ -284,13 +371,6 @@ function renderTreeDiagram(nodeData) {
 		)
 	);
 
-
-	function toggleTreeDirection(diagram) {
-		const layout = diagram.layout;
-		layout.angle = layout.angle === 0 ? 90 : 0;
-		layout.doLayout();  // re-layout the tree
-	}
-
 	const toggleButton = document.getElementById('toggleButton');
 	if (toggleButton) {
 		toggleButton.addEventListener('click', function () {
@@ -301,6 +381,16 @@ function renderTreeDiagram(nodeData) {
 	const myOverviewDiv = document.getElementById('myOverviewDiv');
 	const myOverview = goMake(go.Overview, myOverviewDiv);
 	myOverview.observed = myDiagram; // set the diagram for the overview to be myDiagram
+
+function toggleTreeDirection(diagram) {
+    const layout = diagram.layout;
+    if (!layout) {
+        console.error('Diagram layout is undefined');
+        return;
+    }
+    layout.angle = layout.angle === 0 ? 90 : 0;
+}
+
 
 	// in your highlightPathToRoot function
 	function highlightPathToRoot(node) {
@@ -320,10 +410,8 @@ function renderTreeDiagram(nodeData) {
 		}
 		currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6); // increase for next highlighted path but do not exceed 4
 	}
-
-
-
 }
+
 
 
 function handleModalDisplay() {
