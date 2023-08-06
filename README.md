@@ -1,30 +1,29 @@
-# SillyTavern Extension Example
+# SillyTavern Timeline Extension
 
-*Provide a brief description of how your extension works, what problem it aims to solve.*
+A WIP extension to allow for timeline based naviation of chat histories.
 
 ## Features
 
-*Describe some of the main selling points of your extension.*
+Display all chats with the current character. Chat messages with the same content will be shown as a single node on the timeline.
 
 ## Installation and Usage
 
 ### Installation
 
-*In most cases, this should just be using ST's inbuilt extension installer.* 
+Use ST's inbuilt extension installer.
 
 ### Usage
 
-*Explain how to use this extension.*
+Extensions > Tree View > Generate Tree
 
 ## Prerequisites
 
-*Specify the version of ST necessary here.*
+N/A
 
 ## Support and Contributions
 
-*Where should someone ask for support?*
-*How can they help add to this extension?*
+All feedback and issues welcome, though this is being actively deveoped and is expcted to change in the next few days. 
 
 ## License
 
-*Be cool, use an open source license.*
+MIT probably. 
