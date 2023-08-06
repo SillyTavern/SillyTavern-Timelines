@@ -44,10 +44,28 @@
 }
 /* The Close Button */
 .close {
-    color: #aaa;
+    color: #aaaaaa;
     float: right;
     font-size: 28px;
     font-weight: bold;
+    z-index: 3;
+    position: relative;
+    background: none;
+        border: none;
+        padding: 0;
+}
+
+.treeButton {color: #aaaaaa;
+position: absolute;
+    right: 10px;
+    bottom: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    z-index: 3;
+    position: absolute;
+    background: none;
+    border: none;
+    padding: 0;
 }
 
 .close:hover,

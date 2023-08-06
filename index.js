@@ -335,38 +335,48 @@ function highlightPathToRoot(myDiagram, node, currentHighlightThickness = 4) {
     currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6); 
 }
 
-// Main renderTreeDiagram function
+function rotateTree(diagram) {
+	const layout = diagram.layout;
+	if (!layout) {
+		console.error('Diagram layout is undefined');
+		return;
+	}
+	// This rotates the layout by 90 degrees each time it's clicked
+	layout.angle = (layout.angle + 90) % 360;
+	layout.invalidateLayout();  // This is necessary to redraw the diagram
+}
+
+let myDiagram = null;  // Moved the declaration outside of the function
+
 function renderTreeDiagram(nodeData) {
-    console.log(nodeData);
-    let myDiagramDiv = document.getElementById('myDiagramDiv');
-    if (!myDiagramDiv) {
-        console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
-        return;
-    }
-	// Set the dimensions of the diagram to fill its parent element
-	myDiagramDiv.style.width = "100%";
-	myDiagramDiv.style.height = "100%";
+	console.log(nodeData);
+	let myDiagramDiv = document.getElementById('myDiagramDiv');
+	if (!myDiagramDiv) {
+		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
+		return;
+	}
+	// Clear the diagram's contents before rendering a new tree
+	// myDiagramDiv.innerHTML = '';  // You can remove this line
 
 	let goMake = go.GraphObject.make;
-	let myDiagram = goMake(go.Diagram, myDiagramDiv, {
-		"undoManager.isEnabled": true,
-		allowMove: true,
-		allowCopy: false,
-		allowDelete: false,
-		allowInsert: false,
-		allowZoom: true,
-		// Adjusting diagram's initial stretch to fill its container
-		initialAutoScale: go.Diagram.Uniform,
-		// Adjusting diagram's auto scale to resize when its container's size changes
-		//autoScale: go.Diagram.Uniform
-	});
 
-    myDiagram.nodeTemplate = createNodeTemplate(goMake);
-    myDiagram.linkTemplate = createLinkTemplate(goMake);
+	if (myDiagram === null) {
+		myDiagram = goMake(go.Diagram, myDiagramDiv, {
+			"undoManager.isEnabled": true,
+			allowMove: true,
+			allowCopy: false,
+			allowDelete: false,
+			allowInsert: false,
+			allowZoom: true,
+			initialAutoScale: go.Diagram.Uniform
+		});
+		myDiagram.nodeTemplate = createNodeTemplate(goMake);
+		myDiagram.linkTemplate = createLinkTemplate(goMake);
+	}
 
-    let model = goMake(go.TreeModel);
-    model.nodeDataArray = nodeData;
-    myDiagram.model = model;
+	let model = goMake(go.TreeModel);
+	model.nodeDataArray = nodeData;
+	myDiagram.model = model;
 
     nodeData.forEach(node => {
         if (node.isBookmark) {
@@ -374,6 +384,18 @@ function renderTreeDiagram(nodeData) {
             highlightPathToRoot(myDiagram, nodeInDiagram);
         }
     });
+
+	myDiagram.contextMenu =
+		goMake(go.Adornment, "Vertical",
+			goMake("ContextMenuButton",
+				goMake(go.TextBlock, "Rotate Tree"),
+				{
+					click: function (e, obj) {
+						rotateTree(myDiagram);
+					}
+				}
+			)
+		);
 
     myDiagram.layout = createLayout(goMake);
 
@@ -421,27 +443,53 @@ function toggleTreeDirection(diagram) {
 
 
 
+let lastContext = null; // Initialize lastContext to null
+
+// Handle modal display
 function handleModalDisplay() {
 	let modal = document.getElementById("myModal");
-	let span = document.getElementsByClassName("close")[0];
-	span.onclick = function () {
+
+	// Ensure that modal exists
+	if (!modal) {
+		console.error('Modal not found!');
+		return;
+	}
+
+	let closeBtn = modal.getElementsByClassName("close")[0];
+
+	// Ensure that close button exists
+	if (!closeBtn) {
+		console.error('Close button not found!');
+		return;
+	}
+
+	closeBtn.onclick = function () {
 		modal.style.display = "none";
 	}
+
 	window.onclick = function (event) {
 		if (event.target == modal) {
 			modal.style.display = "none";
 		}
 	}
+
 	modal.style.display = "block";
 }
 
+
+// When the user clicks the button
 async function onTreeButtonClick() {
 	const context = getContext();
-	let data = await fetchData(context.characters[context.characterId].avatar);
-	let treeData = await prepareData(data);
-	renderTreeDiagram(treeData);
+	if (!lastContext || lastContext.characterId !== context.characterId) {
+		// If the context has changed, fetch new data and render the tree
+		let data = await fetchData(context.characters[context.characterId].avatar);
+		let treeData = await prepareData(data);
+		renderTreeDiagram(treeData);
+		lastContext = context; // Update the lastContext to the current context
+	}
 	handleModalDisplay();
 }
+
 
 // This function is called when the extension is loaded
 jQuery(async () => {
