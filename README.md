@@ -1,4 +1,4 @@
-# SillyTavern Extension Example
+# SillyTavern Timeline Extension
 
 A WIP extension to allow for timeline based naviation of chat histories.
 
