@@ -335,6 +335,32 @@ function highlightPathToRoot(myDiagram, node, currentHighlightThickness = 4) {
     currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6); 
 }
 
+function createLegend(goMake) {
+	let legend = goMake(go.Diagram, "legendDiv");
+
+	// Create a simple node template for the legend
+	legend.nodeTemplateMap.add("", goMake(go.Node, "Auto",
+		goMake(go.Shape, "Circle", { width: 25, height: 25 },
+			new go.Binding("fill", "color"),
+		),
+		goMake(go.TextBlock,
+			new go.Binding("text", "text"),
+		)
+	));
+
+	legend.model = new go.GraphLinksModel(
+		[  // specify the contents of the Palette
+			{ color: "lightblue", text: "User" },
+			{ color: "white", text: "Non-user" },
+			{ color: "gold", text: "Bookmark" }
+		]
+	);
+
+	return legend;
+}
+
+
+
 function rotateTree(diagram) {
 	const layout = diagram.layout;
 	if (!layout) {
@@ -345,6 +371,24 @@ function rotateTree(diagram) {
 	layout.angle = (layout.angle + 90) % 360;
 	layout.invalidateLayout();  // This is necessary to redraw the diagram
 }
+
+function adjustTreeRotation(diagram) {
+	const layout = diagram.layout;
+	if (!layout) {
+		console.error('Diagram layout is undefined');
+		return;
+	}
+	// Compare the width and height of the viewport
+	if (window.innerWidth > window.innerHeight) {
+		// If the width is greater, set the layout angle to 0
+		layout.angle = 0;
+	} else {
+		// If the height is greater, set the layout angle to 90
+		layout.angle = 90;
+	}
+	layout.invalidateLayout();  // This is necessary to redraw the diagram
+}
+
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
@@ -399,13 +443,16 @@ function renderTreeDiagram(nodeData) {
 
     myDiagram.layout = createLayout(goMake);
 
+	adjustTreeRotation(myDiagram); 
+
+
     const toggleButton = document.getElementById('toggleButton');
     if (toggleButton) {
         toggleButton.addEventListener('click', function () {
             toggleTreeDirection(myDiagram);
         });
     }
-
+	let legend = createLegend(go.GraphObject.make);
     // const myOverviewDiv = document.getElementById('myOverviewDiv');
     // const myOverview = goMake(go.Overview, myOverviewDiv);
     // myOverview.observed = myDiagram; 
@@ -464,17 +511,24 @@ function handleModalDisplay() {
 	}
 
 	closeBtn.onclick = function () {
+		// Append the modal back to its original parent when closed
+		document.querySelector('.tree-view-settings_block').appendChild(modal);
 		modal.style.display = "none";
 	}
 
 	window.onclick = function (event) {
 		if (event.target == modal) {
+			// Append the modal back to its original parent when clicked outside
+			document.querySelector('.tree-view-settings_block').appendChild(modal);
 			modal.style.display = "none";
 		}
 	}
 
+	// Append the modal to the body when showing it
+	document.body.appendChild(modal);
 	modal.style.display = "block";
 }
+
 
 
 // When the user clicks the button

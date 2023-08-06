@@ -9,29 +9,41 @@
 .modal {
     display: none;
     position: fixed;
-    z-index: 1;
+    z-index: 9999;
+    /* Increase this value as needed */
     left: 0;
     top: 0;
     width: 100%;
+    /* covers the entire width of the viewport */
     height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-    overflow: hidden;
+    /* covers the entire height of the viewport */
 }
 
 /* Modal Content */
 .modal-content {
-    background-color: #131313;
-
+    background-color: rgba(255, 255, 255, 0.7);
+    /* Semi-transparent white background */
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    background-color: var(--SmartThemeBlurTintColor);
+    -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    text-shadow: 0px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor);
+    /* Apply blur to the background elements */
     padding: 20px;
     border: 1px solid #888;
-    height: 90vh;
-    width: 90vw;
-    margin: 5vh auto;
-    /* Make sure it can contain children effectively */
-    position: relative;
-    /* Remove the overflow to hide potential scrollbars */
-    overflow: hidden;
+    width: 80vw;
+    /* 80% of the view width */
+    height: 80vh;
+    /* 80% of the view height */
+    position: absolute;
+    /* this is necessary for centering */
+    top: 50%;
+    /* center vertically */
+    left: 50%;
+    /* center horizontally */
+    transform: translate(-50%, -50%);
+    /* shift back by 50% of its width and height */
+    overflow: auto;
+    /* allows scrolling if the content is larger than the modal */
 }
 
 #myDiagramDiv {
