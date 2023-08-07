@@ -1,58 +1,9 @@
-/* All style elements for your extension go here */
-#myOverviewDiv {
-    width: 200px;
-    height: 200px;
-    border: 1px solid black;
-    /* other styling as desired... */
-}
-/* The Modal */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    /* Increase this value as needed */
-    left: 0;
+#cy {
+    position: absolute;
     top: 0;
-    width: 100%;
-    /* covers the entire width of the viewport */
-    height: 100%;
-    /* covers the entire height of the viewport */
-}
-
-/* Modal Content */
-.modal-content {
-    background-color: rgba(255, 255, 255, 0.7);
-    /* Semi-transparent white background */
-    backdrop-filter: blur(var(--SmartThemeBlurStrength));
-    background-color: var(--SmartThemeBlurTintColor);
-    -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
-    text-shadow: 0px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor);
-    /* Apply blur to the background elements */
-    padding: 20px;
-    border: 1px solid #888;
+    left: 0;
     width: 90vw;
-    /* 80% of the view width */
     height: 90vh;
-    /* 80% of the view height */
-    position: absolute;
-    /* this is necessary for centering */
-    top: 50%;
-    /* center vertically */
-    left: 50%;
-    /* center horizontally */
-    transform: translate(-50%, -50%);
-    /* shift back by 50% of its width and height */
-    overflow: auto;
-    /* allows scrolling if the content is larger than the modal */
-}
-
-#myDiagramDiv {
-    /* Make the diagram take the full space of the modal content */
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
 }
 /* The Close Button */
 .close {
