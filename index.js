@@ -3,35 +3,44 @@
 // Branches will be at each bookmarked message
 // The network should not be able to be edited, but should be able to be moved around
 
-// Load cytoscape.min.js
-var script1 = document.createElement('script');
-script1.src = 'scripts/extensions/third-party/st-tree-extension/cytoscape.min.js';
-document.body.appendChild(script1);
 
-// Load elk.bundled.js
-var script2 = document.createElement('script');
-script2.src = 'https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.min.js';
-document.body.appendChild(script2);
+// I don't like this
+function loadFile(src, type, callback) {
+	var elem;
 
-script2.onload = function () {
-	// Load cytoscape-elk.js
-	var script3 = document.createElement('script');
-	script3.src = 'https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/dist/cytoscape-elk.min.js';
-	document.body.appendChild(script3);
+	if (type === "css") {
+		elem = document.createElement("link");
+		elem.rel = "stylesheet";
+		elem.href = src;
+	} else if (type === "js") {
+		elem = document.createElement("script");
+		elem.src = src;
+		elem.onload = function () {
+			if (callback) callback();
+		};
+	}
+
+	if (elem) {
+		document.head.appendChild(elem);
+	}
 }
 
-// Load elk.bundled.js
-var script4 = document.createElement('script');
-script4.src = 'https://cdn.jsdelivr.net/npm/dagrejs@0.2.1/dist/dagre.min.js';
-document.body.appendChild(script4);
-
-script4.onload = function () {
-	var script5 = document.createElement('script');
-	script5.src = 'https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js';
-	document.body.appendChild(script5);
-}
+// Load CSS file
+loadFile("https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.css", "css");
 
 
+// Load JavaScript files
+loadFile('scripts/extensions/third-party/st-tree-extension/cytoscape.min.js', 'js');
+
+loadFile('https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.min.js', 'js', function () {
+	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/dist/cytoscape-elk.min.js', 'js');
+});
+
+loadFile('https://cdn.jsdelivr.net/npm/dagrejs@0.2.1/dist/dagre.min.js', 'js', function () {
+	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js', 'js');
+});
+
+loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.js', 'js');
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { characters, getRequestHeaders, openCharacterChat } from "../../../../script.js";
@@ -145,7 +154,7 @@ function createNode(nodeId, parentNodeId, text, group) {
 		name: name,
 		send_date: send_date,
 		messageIndex: group[0].index, // assuming index exists in each group item
-		color: generateUniqueColor(), // assuming you have a function to generate unique colors
+		color: isBookmark ? generateUniqueColor() : null, // assuming you have a function to generate unique colors
 		chat_sessions: group.map(({ file_name }) => file_name), // add chat sessions to the node data
 	};
 
@@ -272,7 +281,7 @@ async function navigateToMessage(chatSessionName, messageId) {
 	console.log(chatSessionName, messageId);
 	await openCharacterChat(chatSessionName);
 
-	let message = $(`div[mesid=${messageId}]`); // Select the message div by the messageId
+	let message = $(`div[mesid=${messageId-1}]`); // Select the message div by the messageId
 	let chat = $("#chat");
 
 	if (message.length) {
@@ -300,21 +309,21 @@ function createNodeTemplate(goMake) {
 }
 
 // Function to handle click events on nodes
-function nodeClickHandler(e, obj) {
-	let node = obj.part;
+function nodeClickHandler(node) {
 	let depth = getNodeDepth(node);
-	let chatSessions = obj.part.data.chat_sessions;
+	let chatSessions = node.data('chat_sessions');
 	if (!(chatSessions && chatSessions.length > 1)) {
-		let chatSessionName = obj.part.data.file_name;
+		let chatSessionName = node.data('file_name');
 		navigateToMessage(chatSessionName, depth);
 	}
 }
 
+
 // Function to get node depth
 function getNodeDepth(node) {
 	let depth = 0;
-	while (node.findTreeParentNode() !== null) {
-		node = node.findTreeParentNode();
+	while (node.incomers().nodes().length > 0) {
+		node = node.incomers().nodes()[0];  // Assuming the node only has a single parent
 		depth++;
 	}
 	return depth;
@@ -375,21 +384,37 @@ function formatTooltipText(d) {
 }
 
 // Function to highlight path to root
-function highlightPathToRoot(myDiagram, node, currentHighlightThickness = 4) {
-	if (node === null) return;
-	let color = node.data.color;
-	let parentNode = node;
-	while (parentNode !== null) {
-		let link = parentNode.findLinksInto();
-		while (link.next()) {
-			myDiagram.model.set(link.value.data, "isHighlight", true);
-			myDiagram.model.set(link.value.data, "color", color);
-			myDiagram.model.set(link.value.data, "highlightThickness", currentHighlightThickness);
-		}
-		parentNode = parentNode.findTreeParentNode();
+function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4) {
+	let bookmarkNode = Object.values(rawData).find(entry =>
+		entry.group === 'nodes' && entry.data.id === bookmarkNodeId
+	);
+
+	if (!bookmarkNode) {
+		console.error("Bookmark node not found!");
+		return;
 	}
-	currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
+
+	let currentNode = bookmarkNode;
+	while (currentNode) {
+		let incomingEdge = Object.values(rawData).find(entry =>
+			entry.group === 'edges' && entry.data.target === currentNode.data.id
+		);
+
+		if (incomingEdge) {
+			incomingEdge.data.isHighlight = true;
+			incomingEdge.data.color = bookmarkNode.data.color;
+			incomingEdge.data.highlightThickness = currentHighlightThickness;
+
+			currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
+			currentNode = Object.values(rawData).find(entry =>
+				entry.group === 'nodes' && entry.data.id === incomingEdge.data.source
+			);
+		} else {
+			currentNode = null;
+		}
+	}
 }
+
 
 function createLegend(goMake) {
 	console.log('Running createLegend function');  // New console log
@@ -448,6 +473,19 @@ function adjustTreeRotation(diagram) {
 	layout.invalidateLayout();  // This is necessary to redraw the diagram
 }
 
+// Function to close the modal
+function closeModal() {
+	let modal = document.getElementById("myModal");
+
+	if (!modal) {
+		console.error('Modal not found!');
+		return;
+	}
+
+	// Append the modal back to its original parent when closed
+	document.querySelector('.tree-view-settings_block').appendChild(modal);
+	modal.style.display = "none";
+}
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
@@ -458,6 +496,13 @@ function renderCytoscapeDiagram(nodeData) {
 		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
 		return;
 	}
+
+	// Highlight path for every bookmarked node
+	Object.values(nodeData).forEach(entry => {
+		if (entry.group === 'nodes' && entry.data.isBookmark) {
+			highlightPathToRoot(nodeData, entry.data.id);
+		}
+	});
 
 	// Get container dimensions 
 	const width = myDiagramDiv.clientWidth;
@@ -473,21 +518,41 @@ function renderCytoscapeDiagram(nodeData) {
 	
 	const cytoscapeStyles = [
 		{
-			selector: 'node[is_user = "true"]',
+			selector: 'edge',
 			style: {
-				'background-color': 'blue'
+				'curve-style': 'taxi', // orthogonal routing
+				'taxi-direction': 'downward',
+				'segment-distances': [5, 5], // corner radius
+				'line-color': function (ele) {
+					return ele.data('isHighlight') ? ele.data('color') : '#555';
+				},
+				'width': function (ele) {
+					return ele.data('highlightThickness') ? ele.data('highlightThickness') : 3;
+				}
 			}
 		},
 		{
-			selector: 'node[is_user = "false"]',
+			selector: 'node',
 			style: {
-				'background-color': 'red'
+				'width': 25,
+				'height': 25,
+				'shape': 'ellipse', // or 'circle'
+				'background-color': function (ele) {
+					return ele.data('is_user') ? 'lightblue' : 'white';
+				},
+				'border-color': function (ele) {
+					return ele.data('isBookmark') ? 'gold' : 'white';
+				},
+				'border-width': function (ele) {
+					return ele.data('isBookmark') ? 3 : 0;
+				}
 			}
 		}
 	];
 
 	// Create the diagram using elk layout
 	cytoscape.use(cytoscapeDagre);
+	cytoscape.use(cytoscapeContextMenus);
 	const cy = cytoscape({
 		container: myDiagramDiv,
 		elements: nodeData,
@@ -497,42 +562,113 @@ function renderCytoscapeDiagram(nodeData) {
 			nodeDimensionsIncludeLabels: true,
 			// Add any other layout properties you'd like here.
 		},
+		wheelSensitivity: 0.2,  // Adjust as needed.
+
 	});
 
-	cy.on('mouseover', 'node', function (event) {
-		let node = event.target;
-
-		if (!node.tippy) {
-			makePopper(node);
+	var allChatSessions = [];
+	for (let i = 0; i < nodeData.length; i++) {
+		if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
+			allChatSessions.push(...nodeData[i].data.chat_sessions);
 		}
-
-		node.tippy.show();
-	});
-
-	cy.on('mouseout', 'node', function (event) {
-		let node = event.target;
-		if (node.tippy) {
-			node.tippy.hide();
-		}
-	});
-
-
-
-	// Add context menu if needed. (Use Cytoscape extensions like 'cytoscape-cxtmenu' for advanced context menus.)
-	// ... 
-
-	// Add rotation or tree transformations.
-	// (Note: This would be complex and might require adjusting node positions directly or using specific Cytoscape layouts.)
-
-	const toggleButton = document.getElementById('toggleButton');
-	if (toggleButton) {
-		toggleButton.addEventListener('click', function () {
-			toggleCytoscapeTreeDirection(cy);
-		});
 	}
+	allChatSessions = [...new Set(allChatSessions)];
 
-	// Create a legend if needed.
-	// ...
+
+	// Initialize context menu with all chat sessions as hidden items
+	var menuItems = allChatSessions.map((session, index) => {
+		return {
+			id: 'chat-session-' + index,
+			content: 'Open chat session ' + session,
+			selector: 'node',
+			onClickFunction: function (event) {
+				var target = event.target || event.cyTarget;
+				var depth = getNodeDepth(target);  // your function to calculate node depth
+
+				navigateToMessage(session, depth);  // your function to navigate to a message
+			},
+			hasTrailingDivider: true,
+			show: false  // All items are hidden by default
+		};
+	});
+	menuItems.push({
+		id: 'no-chat-session',
+		content: 'No chat sessions available',
+		onClickFunction: function (event) {
+			console.log('No chat sessions available');
+		},
+		hasTrailingDivider: true,
+		show: false  // Hidden by default
+	});
+	console.log(menuItems);
+	var contextMenu = cy.contextMenus({
+		menuItems: menuItems,
+		menuItemClasses: ['custom-menu-item'],
+		contextMenuClasses: ['custom-context-menu'],
+	});
+
+	// On node right click, show relevant menu items
+	cy.on('cxttap', 'node', function (event) {
+		var target = event.target;
+		var chatSessions = target.data('chat_sessions');
+		console.log(chatSessions);
+		console.log(allChatSessions);
+		console.log(allChatSessions.length);
+
+		// First, hide all menu items
+		for (let i = 0; i < allChatSessions.length; i++) {
+			contextMenu.hideMenuItem('chat-session-' + i);
+		}
+		contextMenu.hideMenuItem('no-chat-session');
+
+		// Then, show relevant items
+		if (chatSessions && chatSessions.length > 0) {
+			for (let i = 0; i < allChatSessions.length; i++) {
+				if (chatSessions.includes(allChatSessions[i])) {
+					contextMenu.showMenuItem('chat-session-' + i);
+				}
+			}
+		} else {
+			contextMenu.showMenuItem('no-chat-session');
+		}
+	});
+
+
+
+	// ... Rest of your code ...
+
+	cy.ready(function () {
+		cy.trigger('cxttap', {
+			target: cy.collection()  // An empty collection
+		});
+	});
+
+
+
+// Please implement your own getNodeDepth and navigateToMessage functions.
+
+
+// Please implement your own getNodeDepth and navigateToMessage functions.
+
+	cy.on('layoutstop', function () {
+		cy.maxZoom(2.5);
+		cy.fit();
+		cy.maxZoom(100);
+	});
+	// cy.on('pan', function () {
+	// 	cy.center();
+	// });
+	cy.on('tap', 'node', function (event) {
+		let node = event.target;
+		nodeClickHandler(node);
+		closeModal();
+	});
+
+	// Initialize cytoscapeContextMenus with empty menu items
+
+	// Add a context menu to nodes
+
+
 }
 
 // Function to create layout
