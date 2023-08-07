@@ -385,7 +385,7 @@ function formatTooltipText(d) {
 }
 
 // Function to highlight path to root
-function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4) {
+function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4, startingZIndex = 1000) {
 	let bookmarkNode = Object.values(rawData).find(entry =>
 		entry.group === 'nodes' && entry.data.id === bookmarkNodeId
 	);
@@ -396,6 +396,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 	}
 
 	let currentNode = bookmarkNode;
+	let currentZIndex = startingZIndex;
 	while (currentNode) {
 		let incomingEdge = Object.values(rawData).find(entry =>
 			entry.group === 'edges' && entry.data.target === currentNode.data.id
@@ -406,6 +407,11 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 			incomingEdge.data.color = bookmarkNode.data.color;
 			incomingEdge.data.highlightThickness = currentHighlightThickness;
 
+			// Set the zIndex of the incomingEdge
+			incomingEdge.data.zIndex = currentZIndex;
+			currentNode.data.borderColor = incomingEdge.data.color;
+			currentZIndex++; // Increase the zIndex for the next edge in the path
+
 			currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
 			currentNode = Object.values(rawData).find(entry =>
 				entry.group === 'nodes' && entry.data.id === incomingEdge.data.source
@@ -415,6 +421,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 		}
 	}
 }
+
 
 
 function createLegend(goMake) {
@@ -529,6 +536,9 @@ function renderCytoscapeDiagram(nodeData) {
 				},
 				'width': function (ele) {
 					return ele.data('highlightThickness') ? ele.data('highlightThickness') : 3;
+				},
+				'z-index': function (ele) {
+					return ele.data('zIndex') ? ele.data('zIndex') : 1;
 				}
 			}
 		},
@@ -542,10 +552,10 @@ function renderCytoscapeDiagram(nodeData) {
 					return ele.data('is_user') ? 'lightblue' : 'white';
 				},
 				'border-color': function (ele) {
-					return ele.data('isBookmark') ? 'gold' : 'white';
+					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : '#000';
 				},
 				'border-width': function (ele) {
-					return ele.data('isBookmark') ? 3 : 0;
+					return ele.data('isBookmark') ? 4 : ele.data('borderColor') ? 3 : 0;
 				}
 			}
 		}
@@ -575,8 +585,6 @@ function renderCytoscapeDiagram(nodeData) {
 	}
 	allChatSessions = [...new Set(allChatSessions)];
 
-
-	console.log('All chat sessions:', allChatSessions);  // New console log
 	// Initialize context menu with all chat sessions using the new selector format
 	var menuItems = allChatSessions.map((session, index) => {
 		return {
@@ -616,20 +624,12 @@ function renderCytoscapeDiagram(nodeData) {
 	});
 
 
-	// ... Rest of your code ...
-
 	cy.ready(function () {
 		cy.trigger('cxttap', {
 			target: cy.collection()  // An empty collection
 		});
 	});
 
-
-
-// Please implement your own getNodeDepth and navigateToMessage functions.
-
-
-// Please implement your own getNodeDepth and navigateToMessage functions.
 
 	cy.on('layoutstop', function () {
 		cy.maxZoom(2.5);
