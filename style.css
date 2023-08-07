@@ -30,9 +30,9 @@
     /* Apply blur to the background elements */
     padding: 20px;
     border: 1px solid #888;
-    width: 80vw;
+    width: 90vw;
     /* 80% of the view width */
-    height: 80vh;
+    height: 90vh;
     /* 80% of the view height */
     position: absolute;
     /* this is necessary for centering */
@@ -85,4 +85,11 @@ position: absolute;
     color: black;
     text-decoration: none;
     cursor: pointer;
+}
+
+#legendDiv {
+    width: 200px;
+    /* or any suitable width */
+    height: 200px;
+    /* or any suitable height */
 }
