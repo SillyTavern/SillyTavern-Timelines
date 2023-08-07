@@ -295,8 +295,6 @@ async function navigateToMessage(chatSessionName, messageId) {
 	closeOpenDrawers();
 }
 
-
-
 // Function to create a node template
 function createNodeTemplate(goMake) {
 	return goMake(go.Node, "Auto",
@@ -452,35 +450,6 @@ function createLegend(goMake) {
 }
 
 
-
-function rotateTree(diagram) {
-	const layout = diagram.layout;
-	if (!layout) {
-		console.error('Diagram layout is undefined');
-		return;
-	}
-	// This rotates the layout by 90 degrees each time it's clicked
-	layout.angle = (layout.angle + 90) % 360;
-	layout.invalidateLayout();  // This is necessary to redraw the diagram
-}
-
-function adjustTreeRotation(diagram) {
-	const layout = diagram.layout;
-	if (!layout) {
-		console.error('Diagram layout is undefined');
-		return;
-	}
-	// Compare the width and height of the viewport
-	if (window.innerWidth > window.innerHeight) {
-		// If the width is greater, set the layout angle to 0
-		layout.angle = 0;
-	} else {
-		// If the height is greater, set the layout angle to 90
-		layout.angle = 90;
-	}
-	layout.invalidateLayout();  // This is necessary to redraw the diagram
-}
-
 // Function to close the modal
 function closeModal() {
 	let modal = document.getElementById("myModal");
@@ -511,25 +480,13 @@ function renderCytoscapeDiagram(nodeData) {
 			highlightPathToRoot(nodeData, entry.data.id);
 		}
 	});
-
-	// Get container dimensions 
-	const width = myDiagramDiv.clientWidth;
-	const height = myDiagramDiv.clientHeight;
-
-	console.log('Container dimensions:', width, height);  // New console log
-
-	// Set initial direction
-	let taxiDir = 'downward';
-	if (width > height) {
-		taxiDir = taxiDir;
-	}
 	
 	const cytoscapeStyles = [
 		{
 			selector: 'edge',
 			style: {
 				'curve-style': 'taxi', // orthogonal routing
-				'taxi-direction': 'downward',
+				'taxi-direction': 'rightward',
 				'segment-distances': [5, 5], // corner radius
 				'line-color': function (ele) {
 					return ele.data('isHighlight') ? ele.data('color') : '#555';
@@ -571,6 +528,7 @@ function renderCytoscapeDiagram(nodeData) {
 		layout: {
 			name: 'dagre',
 			nodeDimensionsIncludeLabels: true,
+			rankDir: 'LR',
 			// Add any other layout properties you'd like here.
 		},
 		wheelSensitivity: 0.2,  // Adjust as needed.
@@ -610,13 +568,11 @@ function renderCytoscapeDiagram(nodeData) {
 		hasTrailingDivider: true
 	});
 
-	console.log('Menu items:', menuItems);  // New console log
 	var contextMenu = cy.contextMenus({
 		menuItems: menuItems,
 		menuItemClasses: ['custom-menu-item'],
 		contextMenuClasses: ['custom-context-menu'],
 	});
-
 
 	cy.on('mouseover', 'node', function (event) {
 		var node = event.target;
@@ -636,19 +592,12 @@ function renderCytoscapeDiagram(nodeData) {
 		cy.fit();
 		cy.maxZoom(100);
 	});
-	// cy.on('pan', function () {
-	// 	cy.center();
-	// });
+
 	cy.on('tap', 'node', function (event) {
 		let node = event.target;
 		nodeClickHandler(node);
 		closeModal();
 	});
-
-	// Initialize cytoscapeContextMenus with empty menu items
-
-	// Add a context menu to nodes
-
 
 }
 
@@ -658,18 +607,6 @@ function createLayout(goMake) {
 		angle: 90,
 		layerSpacing: 35
 	});
-}
-
-// Function to create a link template
-function createLinkTemplate(goMake) {
-	return goMake(go.Link,
-		{ routing: go.Link.Orthogonal, corner: 5 },
-		goMake(go.Shape,
-			{ strokeWidth: 3 },
-			new go.Binding("stroke", "", (data) => data.isHighlight ? data.color : "#555"),
-			new go.Binding("strokeWidth", "highlightThickness", (h) => h ? h : 3)
-		)
-	);
 }
 
 // Function to toggle tree direction
