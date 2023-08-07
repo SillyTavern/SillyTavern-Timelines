@@ -156,6 +156,7 @@ function createNode(nodeId, parentNodeId, text, group) {
 		messageIndex: group[0].index, // assuming index exists in each group item
 		color: isBookmark ? generateUniqueColor() : null, // assuming you have a function to generate unique colors
 		chat_sessions: group.map(({ file_name }) => file_name), // add chat sessions to the node data
+		chat_sessions_str: ';' + group.map(({ file_name }) => file_name).join(';') + ';',
 	};
 
 }
@@ -575,64 +576,44 @@ function renderCytoscapeDiagram(nodeData) {
 	allChatSessions = [...new Set(allChatSessions)];
 
 
-	// Initialize context menu with all chat sessions as hidden items
+	console.log('All chat sessions:', allChatSessions);  // New console log
+	// Initialize context menu with all chat sessions using the new selector format
 	var menuItems = allChatSessions.map((session, index) => {
 		return {
 			id: 'chat-session-' + index,
 			content: 'Open chat session ' + session,
-			selector: 'node',
+			selector: `node[chat_sessions_str *= ";${session};"]`,  // Adjusted selector
 			onClickFunction: function (event) {
 				var target = event.target || event.cyTarget;
 				var depth = getNodeDepth(target);  // your function to calculate node depth
-
 				navigateToMessage(session, depth);  // your function to navigate to a message
 			},
-			hasTrailingDivider: true,
-			show: false  // All items are hidden by default
+			hasTrailingDivider: true
 		};
 	});
+
 	menuItems.push({
 		id: 'no-chat-session',
 		content: 'No chat sessions available',
+		selector: 'node[!chat_sessions_str]',  // Adjusted selector to match nodes without the chat_sessions_str attribute
 		onClickFunction: function (event) {
 			console.log('No chat sessions available');
 		},
-		hasTrailingDivider: true,
-		show: false  // Hidden by default
+		hasTrailingDivider: true
 	});
-	console.log(menuItems);
+
+	console.log('Menu items:', menuItems);  // New console log
 	var contextMenu = cy.contextMenus({
 		menuItems: menuItems,
 		menuItemClasses: ['custom-menu-item'],
 		contextMenuClasses: ['custom-context-menu'],
 	});
 
-	// On node right click, show relevant menu items
-	cy.on('cxttap', 'node', function (event) {
-		var target = event.target;
-		var chatSessions = target.data('chat_sessions');
-		console.log(chatSessions);
-		console.log(allChatSessions);
-		console.log(allChatSessions.length);
 
-		// First, hide all menu items
-		for (let i = 0; i < allChatSessions.length; i++) {
-			contextMenu.hideMenuItem('chat-session-' + i);
-		}
-		contextMenu.hideMenuItem('no-chat-session');
-
-		// Then, show relevant items
-		if (chatSessions && chatSessions.length > 0) {
-			for (let i = 0; i < allChatSessions.length; i++) {
-				if (chatSessions.includes(allChatSessions[i])) {
-					contextMenu.showMenuItem('chat-session-' + i);
-				}
-			}
-		} else {
-			contextMenu.showMenuItem('no-chat-session');
-		}
+	cy.on('mouseover', 'node', function (event) {
+		var node = event.target;
+		console.log(node.data());
 	});
-
 
 
 	// ... Rest of your code ...
