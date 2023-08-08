@@ -20,6 +20,23 @@
     /* covers the entire height of the viewport */
 }
 
+#networkContainer {
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    background-color: var(--SmartThemeBlurTintColor);
+    -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    text-shadow: 0px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor);
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90vw;
+    height: 90vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    overflow: auto;
+}
+
 /* Modal Content */
 .modal-content {
     background-color: rgba(255, 255, 255, 0.7);
@@ -55,6 +72,7 @@
     right: 0;
     bottom: 0;
 }
+
 /* The Close Button */
 .close {
     color: #aaaaaa;
@@ -88,9 +106,42 @@ position: absolute;
     cursor: pointer;
 }
 
-#legendDiv {
-    width: 200px;
-    /* or any suitable width */
-    height: 200px;
-    /* or any suitable height */
+.legend-container {
+    border: 1px solid #ccc;
+    padding: 10px;
+    max-width: 200px;
+    background-color: #f9f9f9;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.legend-symbol {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    /* Makes it a circle */
+    margin-right: 10px;
+}
+
+.legend-text {
+    flex: 1;
+}
+
+.graph-container {
+    height: 100%;
+    width: 100%;
+}
+
+.legend-bottom-right {
+    position: absolute;
+    bottom: 10px;
+    /* Offset from the bottom */
+    right: 10px;
+    /* Offset from the right */
+    z-index: 10;
+    /* Ensures it stays on top */
 }

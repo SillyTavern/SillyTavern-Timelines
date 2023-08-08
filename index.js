@@ -172,6 +172,8 @@ function createNode(nodeId, parentNodeId, text, group) {
 
 }
 
+let activeTippies = new Set();
+
 function makeTippy(ele, text) {
 	var ref = ele.popperRef();
 	var dummyDomEle = document.createElement('div');
@@ -188,7 +190,7 @@ function makeTippy(ele, text) {
 		},
 		arrow: true,
 		placement: 'bottom',
-		hideOnClick: false,
+		hideOnClick: true,
 		sticky: "reference",
 		interactive: true,
 		appendTo: document.body
@@ -452,6 +454,35 @@ function closeModal() {
 	modal.style.display = "none";
 }
 
+function createLegend() {
+	const legendData = [
+		{ color: "lightblue", text: "User" },
+		{ color: "white", text: "Non-user" },
+		{ color: "gold", text: "Bookmark" }
+	];
+
+	const legendContainer = document.getElementById('legendDiv');
+
+	legendData.forEach(item => {
+		const legendItem = document.createElement('div');
+		legendItem.className = 'legend-item';
+
+		const legendSymbol = document.createElement('div');
+		legendSymbol.className = 'legend-symbol';
+		legendSymbol.style.backgroundColor = item.color;
+
+		const legendText = document.createElement('div');
+		legendText.className = 'legend-text';
+		legendText.innerText = item.text;
+
+		legendItem.appendChild(legendSymbol);
+		legendItem.appendChild(legendText);
+
+		legendContainer.appendChild(legendItem);
+	});
+}
+
+
 let myDiagram = null;  // Moved the declaration outside of the function
 
 function renderCytoscapeDiagram(nodeData) {
@@ -577,9 +608,8 @@ function renderCytoscapeDiagram(nodeData) {
 
 
 	cy.ready(function () {
-		cy.trigger('cxttap', {
-			target: cy.collection()  // An empty collection
-		});
+		createLegend();
+		cy.fit();
 	});
 
 
@@ -587,6 +617,7 @@ function renderCytoscapeDiagram(nodeData) {
 		cy.maxZoom(2.5);
 		cy.fit();
 		cy.maxZoom(100);
+		cy.resize();
 	});
 
 	cy.on('tap', 'node', function (event) {
@@ -703,10 +734,11 @@ async function onTreeButtonClick() {
 		let data = await fetchData(context.characters[context.characterId].avatar);
 		let treeData = await prepareData(data);
 		console.log(treeData)
+		handleModalDisplay();
 		renderCytoscapeDiagram(treeData);
 		lastContext = context; // Update the lastContext to the current context
 	}
-	handleModalDisplay();
+
 }
 
 
