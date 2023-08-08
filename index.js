@@ -153,13 +153,15 @@ function createNode(nodeId, parentNodeId, text, group) {
 
 	let { is_name, is_user, name, send_date } = group[0].message;  // Assuming these properties exist in every message
 
+	let fileNameForNode = isBookmark ? bookmark.file_name : group[0].file_name;  // Use bookmark's file_name if present, else use the first one
+	console.log(fileNameForNode + " " + group[0].file_name);
+
 	return {
 		id: nodeId,
-		//parent: parentNodeId,
 		msg: text,
 		isBookmark: isBookmark,
 		bookmarkName: bookmarkName,
-		file_name: group[0].file_name,
+		file_name: fileNameForNode,  // Updated this line
 		is_name: is_name,
 		is_user: is_user,
 		name: name,
@@ -169,35 +171,7 @@ function createNode(nodeId, parentNodeId, text, group) {
 		chat_sessions: group.map(({ file_name }) => file_name), // add chat sessions to the node data
 		chat_sessions_str: ';' + group.map(({ file_name }) => file_name).join(';') + ';',
 	};
-
 }
-
-let activeTippies = new Set();
-
-function makeTippy(ele, text) {
-	var ref = ele.popperRef();
-	var dummyDomEle = document.createElement('div');
-
-	var tip = tippy(dummyDomEle, {
-		getReferenceClientRect: ref.getBoundingClientRect,
-		trigger: 'manual',
-		delay: [0, 0], // 0ms delay for both show and hide
-		duration: 0, // No animation duration
-		content: function () {
-			var div = document.createElement('div');
-			div.innerHTML = text;
-			return div;
-		},
-		arrow: true,
-		placement: 'bottom',
-		hideOnClick: true,
-		sticky: "reference",
-		interactive: true,
-		appendTo: document.body
-	});
-
-	return tip;
-};
 
 
 // Group messages by their content
@@ -234,6 +208,32 @@ function convertToCytoscapeElements(channelHistory) {
 	return nodeData;
 }
 
+let activeTippies = new Set();
+
+function makeTippy(ele, text) {
+	var ref = ele.popperRef();
+	var dummyDomEle = document.createElement('div');
+
+	var tip = tippy(dummyDomEle, {
+		getReferenceClientRect: ref.getBoundingClientRect,
+		trigger: 'manual',
+		delay: [0, 0], // 0ms delay for both show and hide
+		duration: 0, // No animation duration
+		content: function () {
+			var div = document.createElement('div');
+			div.innerHTML = text;
+			return div;
+		},
+		arrow: true,
+		placement: 'bottom',
+		hideOnClick: true,
+		sticky: "reference",
+		interactive: true,
+		appendTo: document.body
+	});
+
+	return tip;
+};
 
 async function fetchData(characterAvatar) {
 	const response = await fetch("/getallchatsofcharacter", {
@@ -370,26 +370,6 @@ function createShape(goMake) {
 	);
 }
 
-// Function to create a tooltip adornment
-function createTooltipAdornment(goMake) {
-	return goMake(go.Adornment, "Auto",
-		goMake(go.Shape, { fill: "#EFEFCC" }),
-		goMake(go.TextBlock, { margin: 4 },
-			new go.Binding("text", "", formatTooltipText)
-		)
-	);
-}
-
-// Function to format tooltip text
-function formatTooltipText(d) {
-	let text = `Text: ${d.text ? d.text : "N/A"}`;
-	let fileName = d.file_name ? `\nFile Name: ${d.file_name}` : "";
-	let sendDate = d.send_date ? `\nSend Date: ${d.send_date}` : "";
-	let bookmarkName = d.bookmarkName ? `\nBookmark Name: ${d.bookmarkName}` : "";
-	let index = d.messageIndex ? `\nIndex: ${d.messageIndex}` : "";
-	return text + fileName + sendDate + bookmarkName + index;
-}
-
 // Function to highlight path to root
 function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4, startingZIndex = 1000) {
 	let bookmarkNode = Object.values(rawData).find(entry =>
@@ -416,7 +396,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 		if (incomingEdge) {
 			incomingEdge.data.isHighlight = true;
 			incomingEdge.data.color = bookmarkNode.data.color;
-			incomingEdge.data.bookmarkName = bookmarkNode.data.file_name;
+			incomingEdge.data.bookmarkName = bookmarkNode.data.bookmarkName;
 			incomingEdge.data.highlightThickness = currentHighlightThickness;
 
 			// Set the zIndex of the incomingEdge
@@ -657,7 +637,7 @@ function renderCytoscapeDiagram(nodeData) {
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
 		//let content = JSON.stringify(node.data()); // customize as needed
-		let content = `${node.data('name')}: ${node.data('msg')}`;
+		let content = `${node.data('name')}: ${node.data('msg')} - ${node.data('bookmarkName')} - ${node.data('file_name')}`;
 		let tippy = makeTippy(node, content);
 		tippy.show();
 		node._tippy = tippy; // Store tippy instance on the node
