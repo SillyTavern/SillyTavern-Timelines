@@ -463,6 +463,9 @@ function createLegend() {
 
 	const legendContainer = document.getElementById('legendDiv');
 
+	// Clear existing legend items
+	legendContainer.innerHTML = '';
+
 	legendData.forEach(item => {
 		const legendItem = document.createElement('div');
 		legendItem.className = 'legend-item';
@@ -726,19 +729,24 @@ function handleModalDisplay() {
 
 
 
-// When the user clicks the button
-async function onTreeButtonClick() {
+let lastTreeData = null; // Store the last fetched and prepared tree data
+
+async function updateTreeDataIfNeeded() {
 	const context = getContext();
 	if (!lastContext || lastContext.characterId !== context.characterId) {
-		// If the context has changed, fetch new data and render the tree
+		// If the context has changed, fetch new data and prepare the tree
 		let data = await fetchData(context.characters[context.characterId].avatar);
-		let treeData = await prepareData(data);
-		console.log(treeData)
-		handleModalDisplay();
-		renderCytoscapeDiagram(treeData);
+		lastTreeData = await prepareData(data);
+		console.log(lastTreeData);
 		lastContext = context; // Update the lastContext to the current context
 	}
+}
 
+// When the user clicks the button
+async function onTreeButtonClick() {
+	await updateTreeDataIfNeeded();
+	handleModalDisplay();
+	renderCytoscapeDiagram(lastTreeData);
 }
 
 
