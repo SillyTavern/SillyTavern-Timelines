@@ -27,6 +27,10 @@ function loadFile(src, type, callback) {
 
 // Load CSS file
 loadFile("https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.css", "css");
+loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/light.min.css", "css");
+loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/material.min.css", "css");
+loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/light-border.min.css", "css");
+loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/translucent.min.css", "css");
 
 
 // Load JavaScript files
@@ -40,7 +44,14 @@ loadFile('https://cdn.jsdelivr.net/npm/dagrejs@0.2.1/dist/dagre.min.js', 'js', f
 	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js', 'js');
 });
 
+
+loadFile('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.umd.min.js', 'js', function () {
+	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-popper@2.0.0/cytoscape-popper.min.js', 'js');
+});
+
 loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.js', 'js');
+
+
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { characters, getRequestHeaders, openCharacterChat } from "../../../../script.js";
@@ -145,7 +156,7 @@ function createNode(nodeId, parentNodeId, text, group) {
 	return {
 		id: nodeId,
 		//parent: parentNodeId,
-		//label: text,
+		msg: text,
 		isBookmark: isBookmark,
 		bookmarkName: bookmarkName,
 		file_name: group[0].file_name,
@@ -161,23 +172,30 @@ function createNode(nodeId, parentNodeId, text, group) {
 
 }
 
-function makePopper(node) {
-	let ref = node.popperRef(); // used only for positioning
+function makeTippy(ele, text) {
+	var ref = ele.popperRef();
+	var dummyDomEle = document.createElement('div');
 
-	node.tippy = tippy(document.body, {
+	var tip = tippy(dummyDomEle, {
 		getReferenceClientRect: ref.getBoundingClientRect,
-		content: () => {
-			let content = document.createElement('div');
-
-			content.innerHTML = node.data('name');
-
-			return content;
+		trigger: 'manual',
+		delay: [0, 0], // 0ms delay for both show and hide
+		duration: 0, // No animation duration
+		content: function () {
+			var div = document.createElement('div');
+			div.innerHTML = text;
+			return div;
 		},
-		trigger: 'manual' // probably want manual mode
+		arrow: true,
+		placement: 'bottom',
+		hideOnClick: false,
+		sticky: "reference",
+		interactive: true,
+		appendTo: document.body
 	});
 
-	return node.tippy;
-}
+	return tip;
+};
 
 
 // Group messages by their content
@@ -420,36 +438,6 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 	}
 }
 
-
-
-function createLegend(goMake) {
-	console.log('Running createLegend function');  // New console log
-	let legend = goMake(go.Diagram, "legendDiv");
-
-	// Create a simple node template for the legend
-	legend.nodeTemplateMap.add("", goMake(go.Node, "Auto",
-		goMake(go.Shape, "Circle", { width: 25, height: 25 },
-			new go.Binding("fill", "color"),
-		),
-		goMake(go.TextBlock,
-			new go.Binding("text", "text"),
-		)
-	));
-
-	legend.model = new go.GraphLinksModel(
-		[  // specify the contents of the Palette
-			{ color: "lightblue", text: "User" },
-			{ color: "white", text: "Non-user" },
-			{ color: "gold", text: "Bookmark" }
-		]
-	);
-
-	console.log('Created legend model:', legend.model);  // New console log
-
-	return legend;
-}
-
-
 // Function to close the modal
 function closeModal() {
 	let modal = document.getElementById("myModal");
@@ -521,6 +509,8 @@ function renderCytoscapeDiagram(nodeData) {
 	// Create the diagram using elk layout
 	cytoscape.use(cytoscapeDagre);
 	cytoscape.use(cytoscapeContextMenus);
+	cytoscape.use(cytoscapePopper);
+
 	const cy = cytoscape({
 		container: myDiagramDiv,
 		elements: nodeData,
@@ -568,15 +558,21 @@ function renderCytoscapeDiagram(nodeData) {
 		hasTrailingDivider: true
 	});
 
+	menuItems.push({
+		id: 'rotate-graph',
+		content: 'Rotate Graph',
+		selector: 'core',  // This is for documentation purposes, as this item applies to the core.
+		coreAsWell: true,  // This makes sure the menu item is also available on right-clicking the graph background.
+		onClickFunction: function (event) {
+			toggleGraphOrientation(cy);  // This function toggles between the two orientations.
+		},
+		hasTrailingDivider: true
+	});
+
 	var contextMenu = cy.contextMenus({
 		menuItems: menuItems,
 		menuItemClasses: ['custom-menu-item'],
 		contextMenuClasses: ['custom-context-menu'],
-	});
-
-	cy.on('mouseover', 'node', function (event) {
-		var node = event.target;
-		console.log(node.data());
 	});
 
 
@@ -599,36 +595,63 @@ function renderCytoscapeDiagram(nodeData) {
 		closeModal();
 	});
 
-}
+	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
-// Function to create layout
-function createLayout(goMake) {
-	return goMake(go.TreeLayout, {
-		angle: 90,
-		layerSpacing: 35
+	cy.on('render', function () {
+		if (!hasSetOrientation) {
+			setGraphOrientationBasedOnViewport(cy);
+			hasSetOrientation = true;
+		}
 	});
+	cy.on('mouseover', 'node', function (evt) {
+		let node = evt.target;
+		let content = JSON.stringify(node.data()); // customize as needed
+		let tippy = makeTippy(node, content);
+		tippy.show();
+		node._tippy = tippy; // Store tippy instance on the node
+	});
+
+	cy.on('mouseout', 'node', function (evt) {
+		let node = evt.target;
+		if (node._tippy) {
+			node._tippy.hide();
+		}
+	});
+
+
 }
 
-// Function to toggle tree direction
-function toggleTreeDirection(cy) {
-	// Get viewport width and height 
-	const width = cy.width();
-	const height = cy.height();
+function toggleGraphOrientation(cy) {
+	currentOrientation = (currentOrientation === 'LR') ? 'TB' : 'LR';
 
-	// Set taxi direction based on dimension
-	let taxiDir = 'downward';
-	if (width > height) {
-		taxiDir = 'rightward';
-	}
-
-	cy.style()
-		.selector('edge')
-		.style({
-			'taxi-direction': taxiDir
-		})
-		.update();
+	setOrientation(cy, currentOrientation);
 }
 
+let currentOrientation = 'TB'; // starting orientation
+
+function setGraphOrientationBasedOnViewport(cy) {
+	const viewportWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+	const viewportHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+
+	const orientation = (viewportWidth > viewportHeight) ? 'LR' : 'TB';
+	setOrientation(cy, orientation);
+}
+
+function setOrientation(cy, orientation) {
+	// Update layout
+	cy.layout({
+		name: 'dagre',
+		rankDir: orientation
+	}).run();
+
+	// Update taxi-direction in style
+	const taxiDirection = orientation === 'TB' ? 'downward' : 'rightward';
+	cy.style().selector('edge').style({
+		'taxi-direction': taxiDirection
+	}).update();
+	currentOrientation = orientation;
+
+}
 
 
 let lastContext = null; // Initialize lastContext to null
@@ -681,7 +704,7 @@ async function onTreeButtonClick() {
 		let treeData = await prepareData(data);
 		console.log(treeData)
 		renderCytoscapeDiagram(treeData);
-		//lastContext = context; // Update the lastContext to the current context
+		lastContext = context; // Update the lastContext to the current context
 	}
 	handleModalDisplay();
 }
