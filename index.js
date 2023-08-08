@@ -315,18 +315,6 @@ async function navigateToMessage(chatSessionName, messageId) {
 	closeOpenDrawers();
 }
 
-// Function to create a node template
-function createNodeTemplate(goMake) {
-	return goMake(go.Node, "Auto",
-		{
-			doubleClick: nodeClickHandler,
-			contextMenu: createContextMenuAdornment(goMake),
-		},
-		createShape(goMake),
-		{ toolTip: createTooltipAdornment(goMake) }
-	);
-}
-
 // Function to handle click events on nodes
 function nodeClickHandler(node) {
 	let depth = getNodeDepth(node);
@@ -416,6 +404,11 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 	let currentNode = bookmarkNode;
 	let currentZIndex = startingZIndex;
 	while (currentNode) {
+		// If the current node has the isBookmark attribute and it's not the initial bookmarkNode, stop highlighting
+		if (currentNode !== bookmarkNode && currentNode.data.isBookmark) {
+			break; // exit from the while loop
+		}
+
 		let incomingEdge = Object.values(rawData).find(entry =>
 			entry.group === 'edges' && entry.data.target === currentNode.data.id
 		);
@@ -423,6 +416,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 		if (incomingEdge) {
 			incomingEdge.data.isHighlight = true;
 			incomingEdge.data.color = bookmarkNode.data.color;
+			incomingEdge.data.bookmarkName = bookmarkNode.data.file_name;
 			incomingEdge.data.highlightThickness = currentHighlightThickness;
 
 			// Set the zIndex of the incomingEdge
@@ -440,6 +434,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 	}
 }
 
+
 // Function to close the modal
 function closeModal() {
 	let modal = document.getElementById("myModal");
@@ -454,37 +449,58 @@ function closeModal() {
 	modal.style.display = "none";
 }
 
-function createLegend() {
-	const legendData = [
+function createLegend(cy) {
+	// Nodes Legend
+	const nodeLegendData = [
 		{ color: "lightblue", text: "User" },
 		{ color: "white", text: "Non-user" },
 		{ color: "gold", text: "Bookmark" }
 	];
 
 	const legendContainer = document.getElementById('legendDiv');
-
-	// Clear existing legend items
+	// Clear existing legends
 	legendContainer.innerHTML = '';
 
-	legendData.forEach(item => {
-		const legendItem = document.createElement('div');
-		legendItem.className = 'legend-item';
+	nodeLegendData.forEach(item => createLegendItem(legendContainer, item, 'circle'));
 
-		const legendSymbol = document.createElement('div');
-		legendSymbol.className = 'legend-symbol';
-		legendSymbol.style.backgroundColor = item.color;
+	// Edges Legend
+	let edgeColors = new Map(); // Use a map to avoid duplicate colors and store associated names
 
-		const legendText = document.createElement('div');
-		legendText.className = 'legend-text';
-		legendText.innerText = item.text;
+	cy.edges().forEach(edge => {
+		let color = edge.data('color');
+		let bookmarkName = edge.data('bookmarkName');
 
-		legendItem.appendChild(legendSymbol);
-		legendItem.appendChild(legendText);
-
-		legendContainer.appendChild(legendItem);
+		// If the color is defined and is not yet in the map
+		if (color && !edgeColors.has(color)) {
+			edgeColors.set(color, bookmarkName); // Set the color as key and bookmarkName as its value
+			createLegendItem(legendContainer, { color, text: bookmarkName || `Path of ${color}` }, 'line');
+		}
 	});
 }
 
+function createLegendItem(container, item, type) {
+	const legendItem = document.createElement('div');
+	legendItem.className = 'legend-item';
+
+	const legendSymbol = document.createElement('div');
+	legendSymbol.className = 'legend-symbol';
+	if (type === 'circle') {
+		legendSymbol.style.backgroundColor = item.color;
+	} else if (type === 'line') {
+		legendSymbol.style.borderTop = `3px solid ${item.color}`;
+		legendSymbol.style.height = '5px';  // Adjust as needed for line thickness
+		legendSymbol.style.width = '25px'; // Set width for the line representation
+	}
+
+	const legendText = document.createElement('div');
+	legendText.className = 'legend-text';
+	legendText.innerText = item.text;
+
+	legendItem.appendChild(legendSymbol);
+	legendItem.appendChild(legendText);
+
+	container.appendChild(legendItem);
+}
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
@@ -577,6 +593,7 @@ function renderCytoscapeDiagram(nodeData) {
 				var target = event.target || event.cyTarget;
 				var depth = getNodeDepth(target);  // your function to calculate node depth
 				navigateToMessage(session, depth);  // your function to navigate to a message
+				closeModal();
 			},
 			hasTrailingDivider: true
 		};
@@ -611,7 +628,7 @@ function renderCytoscapeDiagram(nodeData) {
 
 
 	cy.ready(function () {
-		createLegend();
+		createLegend(cy);
 		cy.fit();
 	});
 
@@ -639,7 +656,8 @@ function renderCytoscapeDiagram(nodeData) {
 	});
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
-		let content = JSON.stringify(node.data()); // customize as needed
+		//let content = JSON.stringify(node.data()); // customize as needed
+		let content = `${node.data('name')}: ${node.data('msg')}`;
 		let tippy = makeTippy(node, content);
 		tippy.show();
 		node._tippy = tippy; // Store tippy instance on the node
