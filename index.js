@@ -147,28 +147,50 @@ function buildNodes(allChats) {
 
 // Create a node for Cytoscape
 function createNode(nodeId, parentNodeId, text, group) {
-	let bookmark = group.find(({ message }) => !!message.extra && !!message.extra.bookmark_link);
+	let bookmark = group.find(({ message }) => {
+		// Check if the message is from the system and if it indicates a bookmark
+		if (message.is_system && message.mes.includes("Bookmark created! Click here to open the bookmark chat")) return true;
+
+		// Original bookmark case
+		return !!message.extra && !!message.extra.bookmark_link;
+	});
+
 	let isBookmark = Boolean(bookmark);
-	let bookmarkName = isBookmark ? bookmark.message.extra.bookmark_link : null;
 
-	let { is_name, is_user, name, send_date } = group[0].message;  // Assuming these properties exist in every message
+	// Extract bookmarkName and fileNameForNode depending on bookmark type
+	let bookmarkName, fileNameForNode;
+	if (isBookmark) {
+		if (bookmark.message.extra && bookmark.message.extra.bookmark_link) {
+			bookmarkName = bookmark.message.extra.bookmark_link;
+			fileNameForNode = bookmark.file_name;
+		} else {
+			// Extract file_name from the anchor tag in 'mes'
+			let match = bookmark.message.mes.match(/file_name=\"(.*?)\"/);
+			bookmarkName = match ? match[1] : null;
+			fileNameForNode = bookmarkName;
+		}
+	} else {
+		fileNameForNode = group[0].file_name;
+	}
 
-	let fileNameForNode = isBookmark ? bookmark.file_name : group[0].file_name;  // Use bookmark's file_name if present, else use the first one
 	console.log(fileNameForNode + " " + group[0].file_name);
+
+	let { is_name, is_user, name, send_date, is_system } = group[0].message;  // Added is_system here
 
 	return {
 		id: nodeId,
 		msg: text,
 		isBookmark: isBookmark,
 		bookmarkName: bookmarkName,
-		file_name: fileNameForNode,  // Updated this line
+		file_name: fileNameForNode,
 		is_name: is_name,
 		is_user: is_user,
+		is_system: is_system,  // Added is_system to node properties
 		name: name,
 		send_date: send_date,
-		messageIndex: group[0].index, // assuming index exists in each group item
-		color: isBookmark ? generateUniqueColor() : null, // assuming you have a function to generate unique colors
-		chat_sessions: group.map(({ file_name }) => file_name), // add chat sessions to the node data
+		messageIndex: group[0].index,
+		color: isBookmark ? generateUniqueColor() : null,
+		chat_sessions: group.map(({ file_name }) => file_name),
 		chat_sessions_str: ';' + group.map(({ file_name }) => file_name).join(';') + ';',
 	};
 }
@@ -179,6 +201,8 @@ function groupMessagesByContent(messages) {
 	let groups = {};
 	messages.forEach((messageObj, index) => {
 		let { file_name, message } = messageObj;
+		//System agnostic check for newlines
+		message.mes = message.mes.replace(/\r\n/g, '\n');
 		if (!groups[message.mes]) {
 			groups[message.mes] = [];
 		}
