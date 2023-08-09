@@ -248,8 +248,8 @@ function makeTippy(ele, text) {
 
 	var tip = tippy(dummyDomEle, {
 		getReferenceClientRect: ref.getBoundingClientRect,
-		trigger: 'manual',
-		delay: [100, 0], // 0ms delay for both show and hide
+		trigger: 'mouseenter',
+		delay: [1000, 1000], // 0ms delay for both show and hide
 		duration: 0, // No animation duration
 		content: function () {
 			var div = document.createElement('div');
@@ -714,21 +714,34 @@ function renderCytoscapeDiagram(nodeData) {
 			hasSetOrientation = true;
 		}
 	});
+	let showTimeout;
+
+	//There is likely a better way to do the delay, will look into it later
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
-		//let content = JSON.stringify(node.data()); // customize as needed
 		let content = `${node.data('name')}: ${node.data('msg')} - ${node.data('bookmarkName')} - ${node.data('file_name')}`;
-		let tippy = makeTippy(node, content);
-		tippy.show();
-		node._tippy = tippy; // Store tippy instance on the node
+
+		// Delay the tooltip appearance by 3 seconds (3000 ms)
+		showTimeout = setTimeout(() => {
+			let tippy = makeTippy(node, content);
+			tippy.show();
+			node._tippy = tippy; // Store tippy instance on the node
+		}, 150);
 	});
 
 	cy.on('mouseout', 'node', function (evt) {
 		let node = evt.target;
+
+		// Clear the timeout if mouse is moved out before tooltip appears
+		if (showTimeout) {
+			clearTimeout(showTimeout);
+		}
+
 		if (node._tippy) {
 			node._tippy.hide();
 		}
 	});
+
 
 	document.querySelector('.legend-category1').addEventListener('mouseover', function () {
 		cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
