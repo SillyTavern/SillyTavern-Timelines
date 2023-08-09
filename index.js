@@ -360,40 +360,6 @@ function getNodeDepth(node) {
 	return depth;
 }
 
-// Function to create a context menu adornment
-function createContextMenuAdornment(goMake) {
-	return goMake(go.Adornment, "Vertical",
-		new go.Binding("itemArray", "chat_sessions"),
-		{ itemTemplate: createContextMenuButton(goMake) }
-	);
-}
-
-// Function to create a context menu button
-function createContextMenuButton(goMake) {
-	return goMake("ContextMenuButton",
-		goMake(go.TextBlock, new go.Binding("text", "")),
-		{ click: contextMenuButtonClickHandler }
-	);
-}
-
-// Function to handle click events on context menu buttons
-function contextMenuButtonClickHandler(e, button) {
-	let chatSession = button.part.data;
-	let node = e.diagram.findNodeForData(button.part.adornedPart.data);
-	let depth = getNodeDepth(node);
-	navigateToMessage(chatSession.file_name, depth);
-}
-
-// Function to create a shape
-function createShape(goMake) {
-	return goMake(go.Shape, "Circle",
-		{ width: 25, height: 25 },
-		new go.Binding("fill", "is_user", (is_user) => is_user ? "lightblue" : "white"),
-		new go.Binding("stroke", "isBookmark", (isBookmark) => isBookmark ? "gold" : null),
-		new go.Binding("strokeWidth", "isBookmark", (isBookmark) => isBookmark ? 3 : 0),
-	);
-}
-
 // Function to highlight path to root
 function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4, startingZIndex = 1000) {
 	let bookmarkNode = Object.values(rawData).find(entry =>
@@ -454,18 +420,23 @@ function closeModal() {
 }
 
 function createLegend(cy) {
-	// Nodes Legend
-	const nodeLegendData = [
-		{ color: "lightblue", text: "User" },
-		{ color: "white", text: "Non-user" },
-		{ color: "gold", text: "Bookmark" }
-	];
-
 	const legendContainer = document.getElementById('legendDiv');
 	// Clear existing legends
 	legendContainer.innerHTML = '';
 
-	nodeLegendData.forEach(item => createLegendItem(legendContainer, item, 'circle'));
+	// Nodes Legend
+	let nodeNames = new Set(); // Use a set to avoid duplicate names
+
+	cy.nodes().forEach(node => {
+		let name = node.data('name');
+		let color = node.style('background-color'); // Fetching the node color
+
+		// If the name is defined and is not yet in the set
+		if (name && !nodeNames.has(name)) {
+			nodeNames.add(name);
+			createLegendItem(cy, legendContainer, { color, text: name, class: name.replace(/\s+/g, '-').toLowerCase() }, 'circle');
+		}
+	});
 
 	// Edges Legend
 	let edgeColors = new Map(); // Use a map to avoid duplicate colors and store associated names
@@ -477,17 +448,42 @@ function createLegend(cy) {
 		// If the color is defined and is not yet in the map
 		if (color && !edgeColors.has(color)) {
 			edgeColors.set(color, bookmarkName); // Set the color as key and bookmarkName as its value
-			createLegendItem(legendContainer, { color, text: bookmarkName || `Path of ${color}` }, 'line');
+			createLegendItem(cy, legendContainer, { color, text: bookmarkName || `Path of ${color}`, colorKey: color }, 'line');
 		}
 	});
 }
 
-function createLegendItem(container, item, type) {
+
+// Variable to keep track of the currently highlighted elements
+let currentlyHighlighted = null;
+
+function createLegendItem(cy, container, item, type) {
 	const legendItem = document.createElement('div');
 	legendItem.className = 'legend-item';
 
 	const legendSymbol = document.createElement('div');
 	legendSymbol.className = 'legend-symbol';
+
+	const selector = type === 'circle' ? `node[name="${item.text}"]` : `edge[color="${item.colorKey}"]`;
+
+	legendItem.addEventListener('click', function () {
+		if (currentlyHighlighted === selector) {
+			restoreElements(cy);
+			legendItem.classList.remove('active-legend'); // Remove active class from the legend item
+			currentlyHighlighted = null;
+		} else {
+			if (currentlyHighlighted) {
+				restoreElements(cy);
+				// Remove the active class from any other legend items
+				const activeItems = document.querySelectorAll('.active-legend');
+				activeItems.forEach(item => item.classList.remove('active-legend'));
+			}
+			highlightElements(cy, selector);
+			legendItem.classList.add('active-legend'); // Add active class to the clicked legend item
+			currentlyHighlighted = selector;
+		}
+	});
+
 	if (type === 'circle') {
 		legendSymbol.style.backgroundColor = item.color;
 	} else if (type === 'line') {
@@ -505,6 +501,49 @@ function createLegendItem(container, item, type) {
 
 	container.appendChild(legendItem);
 }
+
+
+// Highlight elements based on selector
+function highlightElements(cy, selector) {
+	cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
+
+	// If it's an edge selector
+	if (selector.startsWith('edge')) {
+		let colorValue = selector.match(/color="([^"]+)"/)[1]; // Extract the color from the selector
+		let nodeSelector = `node[borderColor="${colorValue}"]`; // Construct the node selector
+
+		// Style the associated nodes
+		cy.elements(nodeSelector).style({
+			'opacity': 1,
+			'underlay-color': 'white',
+			'underlay-padding': '2px',
+			'underlay-opacity': 0.5,
+			'underlay-shape': 'ellipse'
+		});
+	}
+
+	// For the initial selector (whether it's node or edge)
+	cy.elements(selector).style({
+		'opacity': 1,
+		'underlay-color': 'white',
+		'underlay-padding': selector.startsWith('edge') ? '2px' : '5px',
+		'underlay-opacity': 0.5,
+		'underlay-shape': selector.startsWith('edge') ? '' : 'ellipse', 
+
+	});
+}
+
+// Restore elements function to restore all elements to their default opacity and remove underlays
+function restoreElements(cy) {
+	cy.elements().style({
+		'opacity': 1,
+		'underlay-color': '',
+		'underlay-padding': '',
+		'underlay-opacity': '',
+		'underlay-shape': ''
+	});
+}
+
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
@@ -556,6 +595,17 @@ function renderCytoscapeDiagram(nodeData) {
 				'border-width': function (ele) {
 					return ele.data('isBookmark') ? 4 : ele.data('borderColor') ? 3 : 0;
 				}
+			}
+		},
+    	{
+			selector: 'node[?is_system]',  // Select nodes with is_system property set to true
+			style: {
+				'background-color': 'grey',
+				'border-style': 'dashed',
+				'border-width': 3,
+				'border-color': function (ele) {
+					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : "black";
+				},
 			}
 		}
 	];
@@ -674,6 +724,13 @@ function renderCytoscapeDiagram(nodeData) {
 		}
 	});
 
+	document.querySelector('.legend-category1').addEventListener('mouseover', function () {
+		cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
+		cy.elements('.category1').style({ 'opacity': 1 }); // Highlight category1 nodes and edges
+	});
+	document.querySelector('.legend-category1').addEventListener('mouseout', function () {
+		cy.elements().style({ 'opacity': 1 }); // Restore original state
+	});
 
 }
 
