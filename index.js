@@ -1,8 +1,17 @@
-// This script is going to use vis.js to create a network diagram
-// The content of the network will be a messages of a conversation, with the root being the first message
-// Branches will be at each bookmarked message
-// The network should not be able to be edited, but should be able to be moved around
-
+/*
+ * TODO: Docs for all the functions
+ * TODO: Split out the functions into separate files
+ * TODO: Add options for layouts/styles
+ * TODO: Add options for searching/filtering
+ * TODO: Allow for toggling of movable nodes
+ * TODO: Edge labels?
+ * TODO: Possible minimap mode
+ * TODO: More context menu options
+ * TODO: Move away from CDNs
+ * TODO: Experimental multi-tree view
+ * TODO: Group support (maybe)
+ * TODO: Don't reset the graph when the modal is closed/opened
+ */
 
 // I don't like this
 function loadFile(src, type, callback) {
@@ -240,8 +249,8 @@ function makeTippy(ele, text) {
 
 	var tip = tippy(dummyDomEle, {
 		getReferenceClientRect: ref.getBoundingClientRect,
-		trigger: 'manual',
-		delay: [0, 0], // 0ms delay for both show and hide
+		trigger: 'mouseenter',
+		delay: [1000, 1000], // 0ms delay for both show and hide
 		duration: 0, // No animation duration
 		content: function () {
 			var div = document.createElement('div');
@@ -706,21 +715,40 @@ function renderCytoscapeDiagram(nodeData) {
 			hasSetOrientation = true;
 		}
 	});
+	let showTimeout;
+
+	const truncateMessage = (msg, length = 100) => {
+		return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
+	}
+
+	//Figure out how to do the deley better later
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
-		//let content = JSON.stringify(node.data()); // customize as needed
-		let content = `${node.data('name')}: ${node.data('msg')} - ${node.data('bookmarkName')} - ${node.data('file_name')}`;
-		let tippy = makeTippy(node, content);
-		tippy.show();
-		node._tippy = tippy; // Store tippy instance on the node
+		let truncatedMsg = truncateMessage(node.data('msg'));
+		let content = `${node.data('name')}: ${truncatedMsg}`;
+
+		// Delay the tooltip appearance by 3 seconds (3000 ms)
+		showTimeout = setTimeout(() => {
+			let tippy = makeTippy(node, content);
+			tippy.show();
+			node._tippy = tippy; // Store tippy instance on the node
+		}, 150);
 	});
+
 
 	cy.on('mouseout', 'node', function (evt) {
 		let node = evt.target;
+
+		// Clear the timeout if mouse is moved out before tooltip appears
+		if (showTimeout) {
+			clearTimeout(showTimeout);
+		}
+
 		if (node._tippy) {
 			node._tippy.hide();
 		}
 	});
+
 
 	document.querySelector('.legend-category1').addEventListener('mouseover', function () {
 		cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
