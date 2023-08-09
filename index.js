@@ -34,7 +34,7 @@ loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/translucent.min.css
 
 
 // Load JavaScript files
-loadFile('scripts/extensions/third-party/st-tree-extension/cytoscape.min.js', 'js');
+loadFile('scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js', 'js');
 
 loadFile('https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.min.js', 'js', function () {
 	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/dist/cytoscape-elk.min.js', 'js');
@@ -59,15 +59,15 @@ import { characters, getRequestHeaders, openCharacterChat } from "../../../../sc
 let defaultSettings = {};
 
 // Keep track of where your extension is located
-const extensionName = "st-tree-extension";
+const extensionName = "SillyTavern-Timelines";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
 const extensionSettings = extension_settings[extensionName];
 
 async function loadSettings() {
 	//Create the settings if they don't exist
-	extension_settings.tree_view = extension_settings.tree_view || {};
-	if (Object.keys(extension_settings.tree_view).length === 0) {
-		Object.assign(extension_settings.tree_view, defaultSettings);
+	extension_settings.timeline = extension_settings.timeline || {};
+	if (Object.keys(extension_settings.timeline).length === 0) {
+		Object.assign(extension_settings.timeline, defaultSettings);
 	}
 
 }
@@ -415,7 +415,7 @@ function closeModal() {
 	}
 
 	// Append the modal back to its original parent when closed
-	document.querySelector('.tree-view-settings_block').appendChild(modal);
+	document.querySelector('.timeline-view-settings_block').appendChild(modal);
 	modal.style.display = "none";
 }
 
@@ -610,7 +610,6 @@ function renderCytoscapeDiagram(nodeData) {
 		}
 	];
 
-	// Create the diagram using elk layout
 	cytoscape.use(cytoscapeDagre);
 	cytoscape.use(cytoscapeContextMenus);
 	cytoscape.use(cytoscapePopper);
@@ -623,7 +622,6 @@ function renderCytoscapeDiagram(nodeData) {
 			name: 'dagre',
 			nodeDimensionsIncludeLabels: true,
 			rankDir: 'LR',
-			// Add any other layout properties you'd like here.
 		},
 		wheelSensitivity: 0.2,  // Adjust as needed.
 
@@ -642,11 +640,11 @@ function renderCytoscapeDiagram(nodeData) {
 		return {
 			id: 'chat-session-' + index,
 			content: 'Open chat session ' + session,
-			selector: `node[chat_sessions_str *= ";${session};"]`,  // Adjusted selector
+			selector: `node[chat_sessions_str *= ";${session};"]`,
 			onClickFunction: function (event) {
 				var target = event.target || event.cyTarget;
-				var depth = getNodeDepth(target);  // your function to calculate node depth
-				navigateToMessage(session, depth);  // your function to navigate to a message
+				var depth = getNodeDepth(target);  
+				navigateToMessage(session, depth);  
 				closeModal();
 			},
 			hasTrailingDivider: true
@@ -666,7 +664,7 @@ function renderCytoscapeDiagram(nodeData) {
 	menuItems.push({
 		id: 'rotate-graph',
 		content: 'Rotate Graph',
-		selector: 'core',  // This is for documentation purposes, as this item applies to the core.
+		selector: 'core',  
 		coreAsWell: true,  // This makes sure the menu item is also available on right-clicking the graph background.
 		onClickFunction: function (event) {
 			toggleGraphOrientation(cy);  // This function toggles between the two orientations.
@@ -789,14 +787,14 @@ function handleModalDisplay() {
 
 	closeBtn.onclick = function () {
 		// Append the modal back to its original parent when closed
-		document.querySelector('.tree-view-settings_block').appendChild(modal);
+		document.querySelector('.timeline-view-settings_block').appendChild(modal);
 		modal.style.display = "none";
 	}
 
 	window.onclick = function (event) {
 		if (event.target == modal) {
 			// Append the modal back to its original parent when clicked outside
-			document.querySelector('.tree-view-settings_block').appendChild(modal);
+			document.querySelector('.timeline-view-settings_block').appendChild(modal);
 			modal.style.display = "none";
 		}
 	}
@@ -808,39 +806,30 @@ function handleModalDisplay() {
 
 
 
-let lastTreeData = null; // Store the last fetched and prepared tree data
+let lastTimelineData = null; // Store the last fetched and prepared timeline data
 
-async function updateTreeDataIfNeeded() {
+async function updateTimelineDataIfNeeded() {
 	const context = getContext();
 	if (!lastContext || lastContext.characterId !== context.characterId) {
-		// If the context has changed, fetch new data and prepare the tree
+		// If the context has changed, fetch new data and prepare the timeline
 		let data = await fetchData(context.characters[context.characterId].avatar);
-		lastTreeData = await prepareData(data);
-		console.log(lastTreeData);
+		lastTimelineData = await prepareData(data);
+		console.log(lastTimelineData);
 		lastContext = context; // Update the lastContext to the current context
 	}
 }
 
 // When the user clicks the button
-async function onTreeButtonClick() {
-	await updateTreeDataIfNeeded();
+async function onTimelineButtonClick() {
+	await updateTimelineDataIfNeeded();
 	handleModalDisplay();
-	renderCytoscapeDiagram(lastTreeData);
+	renderCytoscapeDiagram(lastTimelineData);
 }
 
 
-// This function is called when the extension is loaded
 jQuery(async () => {
-	// This is an example of loading HTML from a file
-	const settingsHtml = await $.get(`${extensionFolderPath}/tree.html`);
-
-	// Append settingsHtml to extensions_settings
-	// extension_settings and extensions_settings2 are the left and right columns of the settings menu
-	// You can append to either one
+	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
-
-	// A button to show the tree view
-	$("#show_tree_view").on("click", onTreeButtonClick);
-	// Load settings when starting things up (if you have any)
+	$("#show_timeline_view").on("click", onTimelineButtonClick);
 	loadSettings();
 });
