@@ -28,3 +28,21 @@ All feedback and issues welcome, though this is being actively deveoped and is e
 ## License
 
 MIT probably. 
+
+## Todos
+```
+/*
+ * TODO: Docs for all the functions
+ * TODO: Split out the functions into separate files
+ * TODO: Add options for layouts/styles
+ * TODO: Add options for searching/filtering
+ * TODO: Allow for toggling of movable nodes
+ * TODO: Edge labels?
+ * TODO: Possible minimap mode
+ * TODO: More context menu options
+ * TODO: Move away from CDNs
+ * TODO: Experimental multi-tree view
+ * TODO: Group support (maybe)
+ * TODO: Don't reset the graph when the modal is closed/opened
+ */
+```
