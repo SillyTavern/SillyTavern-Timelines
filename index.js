@@ -1,8 +1,16 @@
-// This script is going to use vis.js to create a network diagram
-// The content of the network will be a messages of a conversation, with the root being the first message
-// Branches will be at each bookmarked message
-// The network should not be able to be edited, but should be able to be moved around
-
+/*
+ * TODO: Docs for all the functions
+ * TODO: Split out the functions into separate files
+ * TODO: Add options for layouts/styles
+ * TODO: Add options for searching/filtering
+ * TODO: Allow for toggling of movable nodes
+ * TODO: Edge labels?
+ * TODO: Possible minimap mode
+ * TODO: More context menu options
+ * TODO: Move away from CDNs
+ * TODO: Experimental multi-tree view
+ * TODO: Group support (maybe)
+ */
 
 // I don't like this
 function loadFile(src, type, callback) {
@@ -241,7 +249,7 @@ function makeTippy(ele, text) {
 	var tip = tippy(dummyDomEle, {
 		getReferenceClientRect: ref.getBoundingClientRect,
 		trigger: 'manual',
-		delay: [0, 0], // 0ms delay for both show and hide
+		delay: [100, 0], // 0ms delay for both show and hide
 		duration: 0, // No animation duration
 		content: function () {
 			var div = document.createElement('div');
