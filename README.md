@@ -1,6 +1,7 @@
 # SillyTavern Timeline Extension
-
+![STTL](https://github.com/city-unit/SillyTavern-Timelines/assets/140349364/7ef54816-b156-4002-af46-236635b6f0d6)
 A WIP extension to allow for timeline based naviation of chat histories.
+
 
 ## Features
 
