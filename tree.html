@@ -12,12 +12,16 @@
                 <!-- The Modal -->
                 <div id="myModal" class="modal">
                     <!-- Modal content -->
-                    <div class="modal-content">
+                    <div id="networkContainer">
                         <button class="close">&times;</button>
-                        <div id="myDiagramDiv"></div>
+                        <div class="graph-container">
+                            <!-- Relative positioned container -->
+                            <div id="myDiagramDiv"></div>
+                            <div id="legendDiv" class="legend-bottom-right"></div>
+                            <!-- Legend with absolute positioning -->
+                        </div>
                     </div>
                 </div>
-                <div id="legendDiv"></div>
 
                 <div id="myOverviewDiv"></div>
             </div>
