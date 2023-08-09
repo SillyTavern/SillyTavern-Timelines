@@ -15,7 +15,7 @@ Use ST's inbuilt extension installer.
 
 ### Usage
 
-Extensions > Tree View > Generate Tree
+Extensions > Timeline > View Timeline
 
 ## Prerequisites
 
