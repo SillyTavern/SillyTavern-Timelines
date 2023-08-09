@@ -10,6 +10,7 @@
  * TODO: Move away from CDNs
  * TODO: Experimental multi-tree view
  * TODO: Group support (maybe)
+ * TODO: Don't reset the graph when the modal is closed/opened
  */
 
 // I don't like this
