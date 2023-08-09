@@ -716,10 +716,15 @@ function renderCytoscapeDiagram(nodeData) {
 	});
 	let showTimeout;
 
-	//There is likely a better way to do the delay, will look into it later
+	const truncateMessage = (msg, length = 100) => {
+		return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
+	}
+
+	//Figure out how to do the deley better later
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
-		let content = `${node.data('name')}: ${node.data('msg')} - ${node.data('bookmarkName')} - ${node.data('file_name')}`;
+		let truncatedMsg = truncateMessage(node.data('msg'));
+		let content = `${node.data('name')}: ${truncatedMsg}`;
 
 		// Delay the tooltip appearance by 3 seconds (3000 ms)
 		showTimeout = setTimeout(() => {
@@ -728,6 +733,7 @@ function renderCytoscapeDiagram(nodeData) {
 			node._tippy = tippy; // Store tippy instance on the node
 		}, 150);
 	});
+
 
 	cy.on('mouseout', 'node', function (evt) {
 		let node = evt.target;
