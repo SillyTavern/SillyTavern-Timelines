@@ -218,7 +218,7 @@ function groupMessagesByContent(messages) {
 			}
 			groups[message.mes].push({ file_name, index, message });
 		} catch (e) {
-			console.log(`Message Grouping Error: ${e}: ${message}`);
+			console.log(`Message Grouping Error: ${e}: ${JSON.stringify(message, null, 4)}`);
 		}
 	});
 	return groups;
