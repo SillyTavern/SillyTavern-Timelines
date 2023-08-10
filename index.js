@@ -10,7 +10,7 @@
 // TODO Move away from CDNs
 // TODO Experimental multi-tree view
 // TODO Group support (maybe)
-// TODO Don't reset the graph when the modal is closed/opened
+// TODO Mobile taps on iOS
 
 
 // I don't like this
@@ -211,11 +211,16 @@ function groupMessagesByContent(messages) {
 	messages.forEach((messageObj, index) => {
 		let { file_name, message } = messageObj;
 		//System agnostic check for newlines
-		message.mes = message.mes.replace(/\r\n/g, '\n');
-		if (!groups[message.mes]) {
-			groups[message.mes] = [];
+		try {
+			message.mes = message.mes.replace(/\r\n/g, '\n');
+			if (!groups[message.mes]) {
+				groups[message.mes] = [];
+			}
+			groups[message.mes].push({ file_name, index, message });
+		} catch (e) {
+			console.log(e);
+			console.log(message);
 		}
-		groups[message.mes].push({ file_name, index, message });
 	});
 	return groups;
 }
@@ -329,10 +334,9 @@ function closeOpenDrawers() {
 
 
 async function navigateToMessage(chatSessionName, messageId) {
-	console.log(chatSessionName, messageId);
+
 	//remove extension from file name
 	chatSessionName = chatSessionName.replace('.jsonl', '');
-	console.log(chatSessionName, messageId);
 	await openCharacterChat(chatSessionName);
 
 	let message = $(`div[mesid=${messageId-1}]`); // Select the message div by the messageId
@@ -557,7 +561,6 @@ function restoreElements(cy) {
 let myDiagram = null;  // Moved the declaration outside of the function
 
 function renderCytoscapeDiagram(nodeData) {
-	console.log(nodeData);
 	let myDiagramDiv = document.getElementById('myDiagramDiv');
 	if (!myDiagramDiv) {
 		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
@@ -710,7 +713,6 @@ function renderCytoscapeDiagram(nodeData) {
 	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
 	cy.on('render', function () {
-		console.log('cy.on(render) called');
 		if (!hasSetOrientation) {
 			setGraphOrientationBasedOnViewport(cy);
 			hasSetOrientation = true;
@@ -843,7 +845,6 @@ async function updateTimelineDataIfNeeded() {
 		// If the context has changed, fetch new data and prepare the timeline
 		let data = await fetchData(context.characters[context.characterId].avatar);
 		lastTimelineData = await prepareData(data);
-		console.log(lastTimelineData);
 		lastContext = context; // Update the lastContext to the current context
 		return true; // Data was updated
 	}
