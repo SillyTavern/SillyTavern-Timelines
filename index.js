@@ -1,17 +1,17 @@
-/*
- * TODO: Docs for all the functions
- * TODO: Split out the functions into separate files
- * TODO: Add options for layouts/styles
- * TODO: Add options for searching/filtering
- * TODO: Allow for toggling of movable nodes
- * TODO: Edge labels?
- * TODO: Possible minimap mode
- * TODO: More context menu options
- * TODO: Move away from CDNs
- * TODO: Experimental multi-tree view
- * TODO: Group support (maybe)
- * TODO: Don't reset the graph when the modal is closed/opened
- */
+
+// TODO Docs for all the functions
+// TODO Split out the functions into separate files
+// TODO Add options for layouts/styles
+// TODO Add options for searching/filtering
+// TODO Allow for toggling of movable nodes
+// TODO Edge labels?
+// TODO Possible minimap mode
+// TODO More context menu options
+// TODO Move away from CDNs
+// TODO Experimental multi-tree view
+// TODO Group support (maybe)
+// TODO Don't reset the graph when the modal is closed/opened
+
 
 // I don't like this
 function loadFile(src, type, callback) {
@@ -690,16 +690,16 @@ function renderCytoscapeDiagram(nodeData) {
 
 	cy.ready(function () {
 		createLegend(cy);
-		cy.fit();
 	});
 
 
-	cy.on('layoutstop', function () {
-		cy.maxZoom(2.5);
-		cy.fit();
-		cy.maxZoom(100);
-		cy.resize();
-	});
+	// cy.on('layoutstop', function () {
+	// 	console.log('cy.on(layoutstop) called');
+	// 	cy.maxZoom(2.5);
+	// 	//cy.fit();
+	// 	cy.maxZoom(100);
+	// 	cy.resize();
+	// });
 
 	cy.on('tap', 'node', function (event) {
 		let node = event.target;
@@ -710,6 +710,7 @@ function renderCytoscapeDiagram(nodeData) {
 	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
 	cy.on('render', function () {
+		console.log('cy.on(render) called');
 		if (!hasSetOrientation) {
 			setGraphOrientationBasedOnViewport(cy);
 			hasSetOrientation = true;
@@ -844,14 +845,18 @@ async function updateTimelineDataIfNeeded() {
 		lastTimelineData = await prepareData(data);
 		console.log(lastTimelineData);
 		lastContext = context; // Update the lastContext to the current context
+		return true; // Data was updated
 	}
+	return false; // No update occurred
 }
 
 // When the user clicks the button
 async function onTimelineButtonClick() {
-	await updateTimelineDataIfNeeded();
+	const dataUpdated = await updateTimelineDataIfNeeded();
 	handleModalDisplay();
-	renderCytoscapeDiagram(lastTimelineData);
+	if (dataUpdated) {
+		renderCytoscapeDiagram(lastTimelineData);
+	}
 }
 
 
