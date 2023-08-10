@@ -1,17 +1,17 @@
-/*
- * TODO: Docs for all the functions
- * TODO: Split out the functions into separate files
- * TODO: Add options for layouts/styles
- * TODO: Add options for searching/filtering
- * TODO: Allow for toggling of movable nodes
- * TODO: Edge labels?
- * TODO: Possible minimap mode
- * TODO: More context menu options
- * TODO: Move away from CDNs
- * TODO: Experimental multi-tree view
- * TODO: Group support (maybe)
- * TODO: Don't reset the graph when the modal is closed/opened
- */
+
+// TODO Docs for all the functions
+// TODO Split out the functions into separate files
+// TODO Add options for layouts/styles
+// TODO Add options for searching/filtering
+// TODO Allow for toggling of movable nodes
+// TODO Edge labels?
+// TODO Possible minimap mode
+// TODO More context menu options
+// TODO Move away from CDNs
+// TODO Experimental multi-tree view
+// TODO Group support (maybe)
+// TODO Mobile taps on iOS
+
 
 // I don't like this
 function loadFile(src, type, callback) {
@@ -211,11 +211,16 @@ function groupMessagesByContent(messages) {
 	messages.forEach((messageObj, index) => {
 		let { file_name, message } = messageObj;
 		//System agnostic check for newlines
-		message.mes = message.mes.replace(/\r\n/g, '\n');
-		if (!groups[message.mes]) {
-			groups[message.mes] = [];
+		try {
+			message.mes = message.mes.replace(/\r\n/g, '\n');
+			if (!groups[message.mes]) {
+				groups[message.mes] = [];
+			}
+			groups[message.mes].push({ file_name, index, message });
+		} catch (e) {
+			console.log(e);
+			console.log(message);
 		}
-		groups[message.mes].push({ file_name, index, message });
 	});
 	return groups;
 }
@@ -329,10 +334,9 @@ function closeOpenDrawers() {
 
 
 async function navigateToMessage(chatSessionName, messageId) {
-	console.log(chatSessionName, messageId);
+
 	//remove extension from file name
 	chatSessionName = chatSessionName.replace('.jsonl', '');
-	console.log(chatSessionName, messageId);
 	await openCharacterChat(chatSessionName);
 
 	let message = $(`div[mesid=${messageId-1}]`); // Select the message div by the messageId
@@ -557,7 +561,6 @@ function restoreElements(cy) {
 let myDiagram = null;  // Moved the declaration outside of the function
 
 function renderCytoscapeDiagram(nodeData) {
-	console.log(nodeData);
 	let myDiagramDiv = document.getElementById('myDiagramDiv');
 	if (!myDiagramDiv) {
 		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
@@ -690,16 +693,16 @@ function renderCytoscapeDiagram(nodeData) {
 
 	cy.ready(function () {
 		createLegend(cy);
-		cy.fit();
 	});
 
 
-	cy.on('layoutstop', function () {
-		cy.maxZoom(2.5);
-		cy.fit();
-		cy.maxZoom(100);
-		cy.resize();
-	});
+	// cy.on('layoutstop', function () {
+	// 	console.log('cy.on(layoutstop) called');
+	// 	cy.maxZoom(2.5);
+	// 	//cy.fit();
+	// 	cy.maxZoom(100);
+	// 	cy.resize();
+	// });
 
 	cy.on('tap', 'node', function (event) {
 		let node = event.target;
@@ -842,16 +845,19 @@ async function updateTimelineDataIfNeeded() {
 		// If the context has changed, fetch new data and prepare the timeline
 		let data = await fetchData(context.characters[context.characterId].avatar);
 		lastTimelineData = await prepareData(data);
-		console.log(lastTimelineData);
 		lastContext = context; // Update the lastContext to the current context
+		return true; // Data was updated
 	}
+	return false; // No update occurred
 }
 
 // When the user clicks the button
 async function onTimelineButtonClick() {
-	await updateTimelineDataIfNeeded();
+	const dataUpdated = await updateTimelineDataIfNeeded();
 	handleModalDisplay();
-	renderCytoscapeDiagram(lastTimelineData);
+	if (dataUpdated) {
+		renderCytoscapeDiagram(lastTimelineData);
+	}
 }
 
 
