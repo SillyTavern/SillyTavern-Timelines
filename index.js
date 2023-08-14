@@ -1,7 +1,6 @@
 
 // TODO Docs for all the functions
 // TODO Split out the functions into separate files
-// TODO Add options for layouts/styles
 // TODO Add options for searching/filtering
 // TODO Allow for toggling of movable nodes
 // TODO Edge labels?
@@ -63,9 +62,19 @@ loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-c
 
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
-import { characters, getRequestHeaders, openCharacterChat } from "../../../../script.js";
+import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced } from "../../../../script.js";
 
-let defaultSettings = {};
+let defaultSettings = {
+	nodeWidth: 25,
+	nodeHeight: 25,
+	nodeSeparation: 50,
+	edgeSeparation: 10,
+	rankSeparation: 50,
+	spacingFactor: 1,
+	nodeShape: "ellipse",
+	curveStyle: "taxi",
+	bookmarkColor: "#ff0000",
+};
 
 // Keep track of where your extension is located
 const extensionName = "SillyTavern-Timelines";
@@ -75,9 +84,19 @@ const extensionSettings = extension_settings[extensionName];
 async function loadSettings() {
 	//Create the settings if they don't exist
 	extension_settings.timeline = extension_settings.timeline || {};
-	if (Object.keys(extension_settings.timeline).length === 0) {
+	if (Object.keys(extension_settings.timeline).length === defaultSettings.length) {
 		Object.assign(extension_settings.timeline, defaultSettings);
 	}
+	console.log(extension_settings.timeline);
+	$("#tl_node_width").val(extension_settings.timeline.nodeWidth).trigger("input");
+	$("#tl_node_height").val(extension_settings.timeline.nodeHeight).trigger("input");
+	$("#tl_node_separation").val(extension_settings.timeline.nodeSeparation).trigger("input");
+	$("#tl_edge_separation").val(extension_settings.timeline.edgeSeparation).trigger("input");
+	$("#tl_rank_separation").val(extension_settings.timeline.rankSeparation).trigger("input");
+	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
+	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
+	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
+	
 
 }
 
@@ -556,6 +575,16 @@ function restoreElements(cy) {
 	});
 }
 
+let layout = {
+	name: 'dagre',
+	nodeDimensionsIncludeLabels: true,
+	nodeSep: extension_settings.timeline.nodeSeparation,
+	edgeSep: extension_settings.timeline.edgeSeparation,
+	rankSep: extension_settings.timeline.rankSeparation,
+	rankDir: 'LR',  // Left to Right
+	minLen: function (edge) { return 1; },
+	spacingFactor: extension_settings.timeline.spacingFactor
+		}
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
@@ -572,12 +601,12 @@ function renderCytoscapeDiagram(nodeData) {
 			highlightPathToRoot(nodeData, entry.data.id);
 		}
 	});
-	
+	console.log(extension_settings.timeline.curveStyle)
 	const cytoscapeStyles = [
 		{
 			selector: 'edge',
 			style: {
-				'curve-style': 'taxi', // orthogonal routing
+				'curve-style': extension_settings.timeline.curveStyle,
 				'taxi-direction': 'rightward',
 				'segment-distances': [5, 5], // corner radius
 				'line-color': function (ele) {
@@ -594,9 +623,9 @@ function renderCytoscapeDiagram(nodeData) {
 		{
 			selector: 'node',
 			style: {
-				'width': 25,
-				'height': 25,
-				'shape': 'ellipse', // or 'circle'
+				'width': extension_settings.timeline.nodeWidth,
+				'height': extension_settings.timeline.nodeHeight,
+				'shape': extension_settings.timeline.nodeShape, // or 'circle'
 				'background-color': function (ele) {
 					return ele.data('is_user') ? 'lightblue' : 'white';
 				},
@@ -629,11 +658,7 @@ function renderCytoscapeDiagram(nodeData) {
 		container: myDiagramDiv,
 		elements: nodeData,
 		style: cytoscapeStyles,
-		layout: {
-			name: 'dagre',
-			nodeDimensionsIncludeLabels: true,
-			rankDir: 'LR',
-		},
+		layout: layout,
 		wheelSensitivity: 0.2,  // Adjust as needed.
 
 	});
@@ -780,10 +805,8 @@ function setGraphOrientationBasedOnViewport(cy) {
 
 function setOrientation(cy, orientation) {
 	// Update layout
-	cy.layout({
-		name: 'dagre',
-		rankDir: orientation
-	}).run();
+	layout.rankDir = orientation;
+	cy.layout(layout).run();
 
 	// Update taxi-direction in style
 	const taxiDirection = orientation === 'TB' ? 'downward' : 'rightward';
@@ -845,6 +868,17 @@ async function updateTimelineDataIfNeeded() {
 		let data = await fetchData(context.characters[context.characterId].avatar);
 		lastTimelineData = await prepareData(data);
 		lastContext = context; // Update the lastContext to the current context
+		console.log('Timeline data updated');
+		layout = {
+			name: 'dagre',
+			nodeDimensionsIncludeLabels: true,
+			nodeSep: extension_settings.timeline.nodeSeparation,
+			edgeSep: extension_settings.timeline.edgeSeparation,
+			rankSep: extension_settings.timeline.rankSeparation,
+			rankDir: 'LR',  // Left to Right
+			minLen: function (edge) { return 1; },
+			spacingFactor: extension_settings.timeline.spacingFactor
+		}
 		return true; // Data was updated
 	}
 	return false; // No update occurred
@@ -859,10 +893,53 @@ async function onTimelineButtonClick() {
 	}
 }
 
-
 jQuery(async () => {
 	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
 	$("#show_timeline_view").on("click", onTimelineButtonClick);
+
+    // Bind listeners to the specific inputs
+    const idsToSettingsMap = {
+        'tl_node_width': 'nodeWidth',
+        'tl_node_height': 'nodeHeight',
+        'tl_node_separation': 'nodeSeparation',
+        'tl_edge_separation': 'edgeSeparation',
+        'tl_rank_separation': 'rankSeparation',
+        'tl_spacing_factor': 'spacingFactor',
+        'tl_node_shape': 'nodeShape',
+        'tl_curve_style': 'curveStyle'
+    };
+
+    for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
+        $(`#${id}`).on('input', function() {
+            onInputChange($(this), settingName);
+        });
+    }
+
+	$(document).ready(function () {
+		$("#toggleStyleSettings").click(function () {
+			$("#styleSettingsArea").toggleClass("hidden");
+		});
+	});
+
+	$("#resetSettingsBtn").click(function () {
+		extension_settings.timeline = Object.assign({}, defaultSettings);
+		loadSettings();
+		saveSettingsDebounced();
+	});
+
+
 	loadSettings();
 });
+
+function onInputChange(element, settingName) {
+	const value = element.val();
+	extension_settings.timeline[settingName] = value;
+
+	// Only update the label if the value is numeric
+	if (!isNaN(value)) {
+		$(`#${element.attr('id')}_value`).text(Math.round(value));
+	}
+	lastContext = null; // Invalidate the last context to force a data update
+	saveSettingsDebounced();
+}

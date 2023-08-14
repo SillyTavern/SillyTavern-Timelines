@@ -154,3 +154,7 @@ position: absolute;
     z-index: 10;
     /* Ensures it stays on top */
 }
+
+.hidden {
+    display: none;
+}
