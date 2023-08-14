@@ -6,20 +6,102 @@
         </div>
         <div class="inline-drawer-content">
             <div class="timeline-view-settings_block flex-container">
+                <button class="menu_button" id="toggleStyleSettings">Style Settings</button>
+            </div>
+
+            <!-- The collapsible style settings section -->
+            <div id="styleSettingsArea" class="hidden">
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_node_width">Node Width (<span id="tl_node_width_value"></span>)</label>
+                    <input id="tl_node_width" type="range" min="1" max="100" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_node_height">Node Height (<span id="tl_node_height_value"></span>)</label>
+                    <input id="tl_node_height" type="range" min="1" max="100" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_node_separation"
+                        >Node Separation (<span id="tl_node_separation_value"></span>)</label
+                    >
+                    <input id="tl_node_separation" type="range" min="1" max="100" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_edge_separation"
+                        >Edge Separation (<span id="tl_edge_separation_value"></span>)</label
+                    >
+                    <input id="tl_edge_separation" type="range" min="1" max="100" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_rank_separation"
+                        >Rank Separation (<span id="tl_rank_separation_value"></span>)</label
+                    >
+                    <input id="tl_rank_separation" type="range" min="1" max="100" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_spacing_factor">Spacing Factor (<span id="tl_spacing_factor_value"></span>)</label>
+                    <input id="tl_spacing_factor" type="range" min="1" max="100" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_node_shape">Node Shape (<span id="tl_node_shape_value"></span>)</label>
+                    <select id="tl_node_shape">
+                        <option value="ellipse">Ellipse</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="round-triangle">Round-Triangle</option>
+                        <option value="rectangle">Rectangle</option>
+                        <option value="round-rectangle">Round-Rectangle</option>
+                        <option value="bottom-round-rectangle">Bottom-Round-Rectangle</option>
+                        <option value="cut-rectangle">Cut-Rectangle</option>
+                        <option value="barrel">Barrel</option>
+                        <option value="rhomboid">Rhomboid</option>
+                        <option value="right-rhomboid">Right-Rhomboid</option>
+                        <option value="diamond">Diamond</option>
+                        <option value="round-diamond">Round-Diamond</option>
+                        <option value="pentagon">Pentagon</option>
+                        <option value="round-pentagon">Round-Pentagon</option>
+                        <option value="hexagon">Hexagon</option>
+                        <option value="round-hexagon">Round-Hexagon</option>
+                        <option value="concave-hexagon">Concave-Hexagon</option>
+                        <option value="heptagon">Heptagon</option>
+                        <option value="round-heptagon">Round-Heptagon</option>
+                        <option value="octagon">Octagon</option>
+                        <option value="round-octagon">Round-Octagon</option>
+                        <option value="star">Star</option>
+                        <option value="tag">Tag</option>
+                        <option value="round-tag">Round-Tag</option>
+                        <option value="vee">Vee</option>
+                    </select>
+                </div>
+
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_curve_style">Curve Style (<span id="tl_curve_style_value"></span>)</label>
+                    <select id="tl_curve_style">
+                        <option value="haystack">Haystack</option>
+                        <option value="straight">Straight</option>
+                        <option value="straight-triangle">Straight-Triangle</option>
+                        <option value="bezier">Bezier</option>
+                        <option value="unbundled-bezier">Unbundled-Bezier</option>
+                        <option value="segments">Segments</option>
+                        <option value="taxi">Taxi</option>
+                    </select>
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <button class="menu_button" id="resetSettingsBtn">Reset Settings</button>
+                </div>
+            </div>
+            <div class="timeline-view-settings_block flex-container">
                 <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" />
                 <!-- New button for comparison -->
-
-                <!-- The Modal -->
-                <div id="myModal" class="modal">
-                    <!-- Modal content -->
-                    <div id="networkContainer">
-                        <button class="close">&times;</button>
-                        <div class="graph-container">
-                            <!-- Relative positioned container -->
-                            <div id="myDiagramDiv"></div>
-                            <div id="legendDiv" class="legend-bottom-right"></div>
-                            <!-- Legend with absolute positioning -->
-                        </div>
+            </div>
+            <!-- The Modal -->
+            <div id="myModal" class="modal">
+                <!-- Modal content -->
+                <div id="networkContainer">
+                    <button class="close">&times;</button>
+                    <div class="graph-container">
+                        <!-- Relative positioned container -->
+                        <div id="myDiagramDiv"></div>
+                        <div id="legendDiv" class="legend-bottom-right"></div>
+                        <!-- Legend with absolute positioning -->
                     </div>
                 </div>
             </div>
