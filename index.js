@@ -82,12 +82,19 @@ const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
 const extensionSettings = extension_settings[extensionName];
 
 async function loadSettings() {
-	//Create the settings if they don't exist
-	extension_settings.timeline = extension_settings.timeline || {};
-	if (Object.keys(extension_settings.timeline).length === defaultSettings.length) {
+	// Ensure extension_settings.timeline exists
+	if (!extension_settings.timeline) {
+		console.log("Creating extension_settings.timeline");
+		extension_settings.timeline = {};
+	}
+
+	// Only merge default settings if extension_settings.timeline is empty
+	if (Object.keys(extension_settings.timeline).length === 0) {
+		console.log("Merging default settings");
 		Object.assign(extension_settings.timeline, defaultSettings);
 	}
-	console.log(extension_settings.timeline);
+
+	// Update UI components
 	$("#tl_node_width").val(extension_settings.timeline.nodeWidth).trigger("input");
 	$("#tl_node_height").val(extension_settings.timeline.nodeHeight).trigger("input");
 	$("#tl_node_separation").val(extension_settings.timeline.nodeSeparation).trigger("input");
@@ -96,9 +103,8 @@ async function loadSettings() {
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
-	
-
 }
+
 
 // Part 1: Preprocess chat sessions
 function preprocessChatSessions(channelHistory) {
@@ -132,6 +138,7 @@ function buildNodes(allChats) {
 		data: {
 			id: "root",
 			label: "Start of Conversation", // or any text you prefer
+			name: "Start of Conversation",
 			x: 0,
 			y: 0, 
 		}
@@ -201,7 +208,6 @@ function createNode(nodeId, parentNodeId, text, group) {
 		fileNameForNode = group[0].file_name;
 	}
 
-	console.log(fileNameForNode + " " + group[0].file_name);
 
 	let { is_name, is_user, name, send_date, is_system } = group[0].message;  // Added is_system here
 
@@ -497,20 +503,34 @@ function createLegendItem(cy, container, item, type) {
 
 	const selector = type === 'circle' ? `node[name="${item.text}"]` : `edge[color="${item.colorKey}"]`;
 
+	// Mouseover for a preview
+	legendItem.addEventListener('mouseover', function () {
+		if (currentlyHighlighted !== selector) { // Only preview if the item isn't already clicked
+			highlightElements(cy, selector);
+		}
+	});
+
+	// Mouseout to remove the preview, but keep it if clicked (locked)
+	legendItem.addEventListener('mouseout', function () {
+		if (currentlyHighlighted !== selector) { // Only remove the preview if the item isn't clicked
+			restoreElements(cy);
+		}
+	});
+
+	// Click to lock/unlock the view
 	legendItem.addEventListener('click', function () {
 		if (currentlyHighlighted === selector) {
 			restoreElements(cy);
-			legendItem.classList.remove('active-legend'); // Remove active class from the legend item
+			legendItem.classList.remove('active-legend');
 			currentlyHighlighted = null;
 		} else {
 			if (currentlyHighlighted) {
 				restoreElements(cy);
-				// Remove the active class from any other legend items
 				const activeItems = document.querySelectorAll('.active-legend');
 				activeItems.forEach(item => item.classList.remove('active-legend'));
 			}
 			highlightElements(cy, selector);
-			legendItem.classList.add('active-legend'); // Add active class to the clicked legend item
+			legendItem.classList.add('active-legend');
 			currentlyHighlighted = selector;
 		}
 	});
@@ -519,8 +539,8 @@ function createLegendItem(cy, container, item, type) {
 		legendSymbol.style.backgroundColor = item.color;
 	} else if (type === 'line') {
 		legendSymbol.style.borderTop = `3px solid ${item.color}`;
-		legendSymbol.style.height = '5px';  // Adjust as needed for line thickness
-		legendSymbol.style.width = '25px'; // Set width for the line representation
+		legendSymbol.style.height = '5px';
+		legendSymbol.style.width = '25px';
 	}
 
 	const legendText = document.createElement('div');
@@ -532,6 +552,7 @@ function createLegendItem(cy, container, item, type) {
 
 	container.appendChild(legendItem);
 }
+
 
 
 // Highlight elements based on selector
@@ -575,16 +596,7 @@ function restoreElements(cy) {
 	});
 }
 
-let layout = {
-	name: 'dagre',
-	nodeDimensionsIncludeLabels: true,
-	nodeSep: extension_settings.timeline.nodeSeparation,
-	edgeSep: extension_settings.timeline.edgeSeparation,
-	rankSep: extension_settings.timeline.rankSeparation,
-	rankDir: 'LR',  // Left to Right
-	minLen: function (edge) { return 1; },
-	spacingFactor: extension_settings.timeline.spacingFactor
-		}
+let layout = {}
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
@@ -745,6 +757,9 @@ function renderCytoscapeDiagram(nodeData) {
 	let showTimeout;
 
 	const truncateMessage = (msg, length = 100) => {
+		if (msg === undefined) {
+			return '';
+		}
 		return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
 	}
 
@@ -775,16 +790,6 @@ function renderCytoscapeDiagram(nodeData) {
 			node._tippy.hide();
 		}
 	});
-
-
-	document.querySelector('.legend-category1').addEventListener('mouseover', function () {
-		cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
-		cy.elements('.category1').style({ 'opacity': 1 }); // Highlight category1 nodes and edges
-	});
-	document.querySelector('.legend-category1').addEventListener('mouseout', function () {
-		cy.elements().style({ 'opacity': 1 }); // Restore original state
-	});
-
 }
 
 function toggleGraphOrientation(cy) {
