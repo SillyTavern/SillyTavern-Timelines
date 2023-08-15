@@ -138,7 +138,7 @@ function buildNodes(allChats) {
 		data: {
 			id: "root",
 			label: "Start of Conversation", // or any text you prefer
-			name: "Start of Conversation",
+			//name: "Start of Conversation",
 			x: 0,
 			y: 0, 
 		}
@@ -309,36 +309,66 @@ async function fetchData(characterAvatar) {
 	return response.json();
 }
 
-async function prepareData(data) {
+async function fetchGroupData(groupChats) {
+	// for each chat file name in groupChats, fetch the chat data
+	let chatData = {};
+	for(let i = 0; i < groupChats.length; i++) {
+		const response = await fetch("/getgroupchat", {
+			method: 'POST',
+			body: JSON.stringify({ id: groupChats[i] }),
+			headers: getRequestHeaders(),
+		});
+		if (!response.ok) {
+			return;
+		}
+		chatData[i] = { "file_name": groupChats[i] };
+	}
+	console.log(chatData);	
+
+	return chatData;
+}
+
+async function prepareData(data, isGroupChat) {
 	const context = getContext();
 	let chat_dict = {};
 	let chat_list = Object.values(data).sort((a, b) => a["file_name"].localeCompare(b["file_name"])).reverse();
+
 	for (const { file_name } of chat_list) {
 		try {
-			const fileNameWithoutExtension = file_name.replace('.jsonl', '');
-			const getChatResponse = await fetch('/getchat', {
+			const endpoint = isGroupChat ? '/getgroupchat' : '/getchat';
+			const requestBody = isGroupChat
+				? JSON.stringify({ id: file_name })
+				: JSON.stringify({
+					ch_name: characters[context.characterId].name,
+					file_name: file_name.replace('.jsonl', ''),
+					avatar_url: characters[context.characterId].avatar
+				});
+
+			const chatResponse = await fetch(endpoint, {
 				method: 'POST',
 				headers: getRequestHeaders(),
-				body: JSON.stringify({
-					ch_name: characters[context.characterId].name,
-					file_name: fileNameWithoutExtension,
-					avatar_url: characters[context.characterId].avatar
-				}),
+				body: requestBody,
 				cache: 'no-cache',
 			});
-			if (!getChatResponse.ok) {
+
+			if (!chatResponse.ok) {
 				continue;
 			}
-			const currentChat = await getChatResponse.json();
-			// remove the first message, which is metadata
-			currentChat.shift();
+
+			const currentChat = await chatResponse.json();
+			if (!isGroupChat) {
+				// remove the first message, which is metadata, only for individual chats
+				currentChat.shift();
+			}
 			chat_dict[file_name] = currentChat;
+
 		} catch (error) {
 			console.error(error);
 		}
 	}
 	return convertToCytoscapeElements(chat_dict);
 }
+
 
 function generateUniqueColor() {
 	const randomRGBValue = () => Math.floor(Math.random() * 256);
@@ -607,6 +637,7 @@ function renderCytoscapeDiagram(nodeData) {
 		return;
 	}
 
+	console.log(nodeData);
 	// Highlight path for every bookmarked node
 	Object.values(nodeData).forEach(entry => {
 		if (entry.group === 'nodes' && entry.data.isBookmark) {
@@ -767,7 +798,7 @@ function renderCytoscapeDiagram(nodeData) {
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
 		let truncatedMsg = truncateMessage(node.data('msg'));
-		let content = `${node.data('name')}: ${truncatedMsg}`;
+		let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
 
 		// Delay the tooltip appearance by 3 seconds (3000 ms)
 		showTimeout = setTimeout(() => {
@@ -869,9 +900,26 @@ let lastTimelineData = null; // Store the last fetched and prepared timeline dat
 async function updateTimelineDataIfNeeded() {
 	const context = getContext();
 	if (!lastContext || lastContext.characterId !== context.characterId) {
-		// If the context has changed, fetch new data and prepare the timeline
-		let data = await fetchData(context.characters[context.characterId].avatar);
-		lastTimelineData = await prepareData(data);
+		let data = {};
+
+		if (!context.characterId) {
+			let groupID = context.groupId;
+			if (groupID) {
+				//send the group where the ID within the dict is equal to groupID
+				let group = context.groups.find(group => group.id === groupID);
+				// for each group.chats, we add to a dict with the key being the index and the value being the chat
+				for(let i = 0; i < group.chats.length; i++){
+					console.log(group.chats[i]);
+					data[i]= { "file_name": group.chats[i] };
+				}
+				lastTimelineData = await prepareData(data, true);
+			}
+		}
+		else {
+			data = await fetchData(context.characters[context.characterId].avatar);
+			lastTimelineData = await prepareData(data);
+		}
+
 		lastContext = context; // Update the lastContext to the current context
 		console.log('Timeline data updated');
 		layout = {
