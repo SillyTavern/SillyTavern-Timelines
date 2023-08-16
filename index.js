@@ -63,6 +63,7 @@ loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-c
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from "../../../../script.js";
+import { power_user } from "../../../power-user.js";
 
 let defaultSettings = {
 	nodeWidth: 25,
@@ -75,12 +76,15 @@ let defaultSettings = {
 	curveStyle: "taxi",
 	avatarAsRoot: true,
 	bookmarkColor: "#ff0000",
+	useChatColors: false,
+	charNodeColor: "white",
+	userNodeColor: "lightblue",
+	edgeColor: "#555",
 };
 
 // Keep track of where your extension is located
 const extensionName = "SillyTavern-Timelines";
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
-const extensionSettings = extension_settings[extensionName];
 
 async function loadSettings() {
 	// Ensure extension_settings.timeline exists
@@ -107,6 +111,7 @@ async function loadSettings() {
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
 	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
+	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
 }
 
 
@@ -634,26 +639,35 @@ let layout = {}
 
 let myDiagram = null;  // Moved the declaration outside of the function
 
-function renderCytoscapeDiagram(nodeData) {
+function setupStylesAndData(nodeData) {
 	const context = getContext();
 	let selected_group = context.groupId;
 	let group = context.groups.find(group => group.id === selected_group);
 	let this_chid = context.characterId;
 	const avatarImg = selected_group ? group?.avatar_url : getThumbnailUrl('avatar', characters[this_chid]['avatar']);
-	let myDiagramDiv = document.getElementById('myDiagramDiv');
-	if (!myDiagramDiv) {
-		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
-		return;
+
+	let theme = {};
+	if (extension_settings.timeline.useChatColors) {
+		theme.charNodeColor = power_user.main_text_color;
+		theme.edgeColor = power_user.italics_text_color;
+		theme.userNodeColor = power_user.quote_text_color;
+		power_user.blur_tint_color;
+		power_user.user_mes_blur_tint_color;
+		power_user.bot_mes_blur_tint_color;
+		power_user.shadow_color;
+	}
+	else {
+		theme.charNodeColor = extension_settings.timeline.charNodeColor;
+		theme.edgeColor = extension_settings.timeline.edgeColor;
+		theme.userNodeColor = extension_settings.timeline.userNodeColor;
 	}
 
-	console.log(nodeData);
-	// Highlight path for every bookmarked node
 	Object.values(nodeData).forEach(entry => {
 		if (entry.group === 'nodes' && entry.data.isBookmark) {
 			highlightPathToRoot(nodeData, entry.data.id);
 		}
 	});
-	console.log(extension_settings.timeline)
+
 	const cytoscapeStyles = [
 		{
 			selector: 'edge',
@@ -662,7 +676,7 @@ function renderCytoscapeDiagram(nodeData) {
 				'taxi-direction': 'rightward',
 				'segment-distances': [5, 5], // corner radius
 				'line-color': function (ele) {
-					return ele.data('isHighlight') ? ele.data('color') : '#555';
+					return ele.data('isHighlight') ? ele.data('color') : theme.edgeColor;
 				},
 				'width': function (ele) {
 					return ele.data('highlightThickness') ? ele.data('highlightThickness') : 3;
@@ -679,7 +693,7 @@ function renderCytoscapeDiagram(nodeData) {
 				'height': extension_settings.timeline.nodeHeight,
 				'shape': extension_settings.timeline.nodeShape, // or 'circle'
 				'background-color': function (ele) {
-					return ele.data('is_user') ? 'lightblue' : 'white'
+					return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor
 				},
 				'border-color': function (ele) {
 					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : '#000';
@@ -700,7 +714,7 @@ function renderCytoscapeDiagram(nodeData) {
 			}
 		},
 
-    	{
+		{
 			selector: 'node[?is_system]',  // Select nodes with is_system property set to true
 			style: {
 				'background-color': 'grey',
@@ -713,6 +727,17 @@ function renderCytoscapeDiagram(nodeData) {
 		}
 	];
 	console.log(cytoscapeStyles);
+
+	return cytoscapeStyles;
+}
+
+function initializeCytoscape(nodeData, styles) {
+	let myDiagramDiv = document.getElementById('myDiagramDiv');
+	if (!myDiagramDiv) {
+		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
+		return null;
+	}
+
 	cytoscape.use(cytoscapeDagre);
 	cytoscape.use(cytoscapeContextMenus);
 	cytoscape.use(cytoscapePopper);
@@ -720,12 +745,15 @@ function renderCytoscapeDiagram(nodeData) {
 	const cy = cytoscape({
 		container: myDiagramDiv,
 		elements: nodeData,
-		style: cytoscapeStyles,
+		style: styles,
 		layout: layout,
 		wheelSensitivity: 0.2,  // Adjust as needed.
-
 	});
 
+	return cy;
+}
+
+function setupEventHandlers(cy, nodeData) {
 	var allChatSessions = [];
 	for (let i = 0; i < nodeData.length; i++) {
 		if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
@@ -742,8 +770,8 @@ function renderCytoscapeDiagram(nodeData) {
 			selector: `node[chat_sessions_str *= ";${session};"]`,
 			onClickFunction: function (event) {
 				var target = event.target || event.cyTarget;
-				var depth = getNodeDepth(target);  
-				navigateToMessage(session, depth);  
+				var depth = getNodeDepth(target);
+				navigateToMessage(session, depth);
 				closeModal();
 			},
 			hasTrailingDivider: true
@@ -763,7 +791,7 @@ function renderCytoscapeDiagram(nodeData) {
 	menuItems.push({
 		id: 'rotate-graph',
 		content: 'Rotate Graph',
-		selector: 'core',  
+		selector: 'core',
 		coreAsWell: true,  // This makes sure the menu item is also available on right-clicking the graph background.
 		onClickFunction: function (event) {
 			toggleGraphOrientation(cy);  // This function toggles between the two orientations.
@@ -781,15 +809,6 @@ function renderCytoscapeDiagram(nodeData) {
 	cy.ready(function () {
 		createLegend(cy);
 	});
-
-
-	// cy.on('layoutstop', function () {
-	// 	console.log('cy.on(layoutstop) called');
-	// 	cy.maxZoom(2.5);
-	// 	//cy.fit();
-	// 	cy.maxZoom(100);
-	// 	cy.resize();
-	// });
 
 	cy.on('tap', 'node', function (event) {
 		let node = event.target;
@@ -841,6 +860,15 @@ function renderCytoscapeDiagram(nodeData) {
 			node._tippy.hide();
 		}
 	});
+}
+
+function renderCytoscapeDiagram(nodeData) {
+	const styles = setupStylesAndData(nodeData);
+	const cy = initializeCytoscape(nodeData, styles);
+
+	if (cy) {
+		setupEventHandlers(cy, nodeData);
+	}
 }
 
 function toggleGraphOrientation(cy) {
@@ -982,7 +1010,8 @@ jQuery(async () => {
         'tl_spacing_factor': 'spacingFactor',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
-		'tl_avatar_as_root': 'avatarAsRoot'
+		'tl_avatar_as_root': 'avatarAsRoot',
+		'tl_use_chat_colors': 'useChatColors',
     };
 
     for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
