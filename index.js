@@ -62,7 +62,7 @@ loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-c
 
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
-import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced } from "../../../../script.js";
+import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from "../../../../script.js";
 
 let defaultSettings = {
 	nodeWidth: 25,
@@ -73,6 +73,7 @@ let defaultSettings = {
 	spacingFactor: 1,
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
+	avatarAsRoot: true,
 	bookmarkColor: "#ff0000",
 };
 
@@ -88,10 +89,12 @@ async function loadSettings() {
 		extension_settings.timeline = {};
 	}
 
-	// Only merge default settings if extension_settings.timeline is empty
-	if (Object.keys(extension_settings.timeline).length === 0) {
-		console.log("Merging default settings");
-		Object.assign(extension_settings.timeline, defaultSettings);
+	// Check and merge each default setting if it doesn't exist
+	for (const [key, value] of Object.entries(defaultSettings)) {
+		if (!extension_settings.timeline.hasOwnProperty(key)) {
+			console.log(`Setting default for: ${key}`);
+			extension_settings.timeline[key] = value;
+		}
 	}
 
 	// Update UI components
@@ -103,6 +106,7 @@ async function loadSettings() {
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
+	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
 }
 
 
@@ -137,7 +141,7 @@ function buildNodes(allChats) {
 		group: 'nodes',
 		data: {
 			id: "root",
-			label: "Start of Conversation", // or any text you prefer
+			label: "root", // or any text you prefer
 			//name: "Start of Conversation",
 			x: 0,
 			y: 0, 
@@ -631,6 +635,11 @@ let layout = {}
 let myDiagram = null;  // Moved the declaration outside of the function
 
 function renderCytoscapeDiagram(nodeData) {
+	const context = getContext();
+	let selected_group = context.groupId;
+	let group = context.groups.find(group => group.id === selected_group);
+	let this_chid = context.characterId;
+	const avatarImg = selected_group ? group?.avatar_url : getThumbnailUrl('avatar', characters[this_chid]['avatar']);
 	let myDiagramDiv = document.getElementById('myDiagramDiv');
 	if (!myDiagramDiv) {
 		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
@@ -644,7 +653,7 @@ function renderCytoscapeDiagram(nodeData) {
 			highlightPathToRoot(nodeData, entry.data.id);
 		}
 	});
-	console.log(extension_settings.timeline.curveStyle)
+	console.log(extension_settings.timeline)
 	const cytoscapeStyles = [
 		{
 			selector: 'edge',
@@ -670,7 +679,7 @@ function renderCytoscapeDiagram(nodeData) {
 				'height': extension_settings.timeline.nodeHeight,
 				'shape': extension_settings.timeline.nodeShape, // or 'circle'
 				'background-color': function (ele) {
-					return ele.data('is_user') ? 'lightblue' : 'white';
+					return ele.data('is_user') ? 'lightblue' : 'white'
 				},
 				'border-color': function (ele) {
 					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : '#000';
@@ -680,6 +689,17 @@ function renderCytoscapeDiagram(nodeData) {
 				}
 			}
 		},
+		{
+			selector: 'node[label="root"]',
+			style: {
+				'background-image': extension_settings.timeline.avatarAsRoot ? avatarImg : 'none',
+				'background-fit': extension_settings.timeline.avatarAsRoot ? 'cover' : 'none',
+				'width': extension_settings.timeline.avatarAsRoot ? '40px' : extension_settings.timeline.nodeWidth,
+				'height': extension_settings.timeline.avatarAsRoot ? '50px' : extension_settings.timeline.nodeHeight,
+				'shape': extension_settings.timeline.avatarAsRoot ? 'rectangle' : extension_settings.timeline.nodeShape,
+			}
+		},
+
     	{
 			selector: 'node[?is_system]',  // Select nodes with is_system property set to true
 			style: {
@@ -692,7 +712,7 @@ function renderCytoscapeDiagram(nodeData) {
 			}
 		}
 	];
-
+	console.log(cytoscapeStyles);
 	cytoscape.use(cytoscapeDagre);
 	cytoscape.use(cytoscapeContextMenus);
 	cytoscape.use(cytoscapePopper);
@@ -899,6 +919,7 @@ let lastTimelineData = null; // Store the last fetched and prepared timeline dat
 
 async function updateTimelineDataIfNeeded() {
 	const context = getContext();
+	console.log(context);
 	if (!lastContext || lastContext.characterId !== context.characterId) {
 		let data = {};
 
@@ -960,7 +981,8 @@ jQuery(async () => {
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
         'tl_node_shape': 'nodeShape',
-        'tl_curve_style': 'curveStyle'
+        'tl_curve_style': 'curveStyle',
+		'tl_avatar_as_root': 'avatarAsRoot'
     };
 
     for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
@@ -986,7 +1008,15 @@ jQuery(async () => {
 });
 
 function onInputChange(element, settingName) {
-	const value = element.val();
+	let value;
+
+	// Check if the element is a checkbox
+	if (element.is(":checkbox")) {
+		value = element.prop("checked");
+	} else {
+		value = element.val();
+	}
+
 	extension_settings.timeline[settingName] = value;
 
 	// Only update the label if the value is numeric
