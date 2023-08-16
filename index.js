@@ -1,7 +1,6 @@
 
 // TODO Docs for all the functions
 // TODO Split out the functions into separate files
-// TODO Add options for searching/filtering
 // TODO Allow for toggling of movable nodes
 // TODO Edge labels?
 // TODO Possible minimap mode
@@ -544,14 +543,15 @@ function createLegendItem(cy, container, item, type) {
 
 	// Mouseover for a preview
 	legendItem.addEventListener('mouseover', function () {
-		if (currentlyHighlighted !== selector) { // Only preview if the item isn't already clicked
+		if (!legendItem.classList.contains('active-legend') && currentlyHighlighted !== selector) {
 			highlightElements(cy, selector);
 		}
 	});
 
+
 	// Mouseout to remove the preview, but keep it if clicked (locked)
 	legendItem.addEventListener('mouseout', function () {
-		if (currentlyHighlighted !== selector) { // Only remove the preview if the item isn't clicked
+		if (!legendItem.classList.contains('active-legend') && currentlyHighlighted !== selector) {
 			restoreElements(cy);
 		}
 	});
