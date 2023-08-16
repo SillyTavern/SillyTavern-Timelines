@@ -1,13 +1,11 @@
 
 // TODO Docs for all the functions
 // TODO Split out the functions into separate files
-// TODO Allow for toggling of movable nodes
 // TODO Edge labels?
 // TODO Possible minimap mode
 // TODO More context menu options
 // TODO Move away from CDNs
 // TODO Experimental multi-tree view
-// TODO Group support (maybe)
 // TODO Mobile taps on iOS
 
 
@@ -32,31 +30,26 @@ function loadFile(src, type, callback) {
 	}
 }
 
-// Load CSS file
-loadFile("https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/light.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/material.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/light-border.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/translucent.min.css", "css");
+// Keep track of where your extension is located
+const extensionName = "SillyTavern-Timelines";
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
 
+// Load CSS file
+loadFile(`${extensionFolderPath}cytoscape-context-menus.min.css`, "css");
+loadFile(`${extensionFolderPath}light.min.css`, "css");
+loadFile(`${extensionFolderPath}material.min.css`, "css");
+loadFile(`${extensionFolderPath}light-border.min.css`, "css");
+loadFile(`${extensionFolderPath}translucent.min.css`, "css");
 
 // Load JavaScript files
-loadFile('scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js', 'js');
-
-loadFile('https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.min.js', 'js', function () {
-	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/dist/cytoscape-elk.min.js', 'js');
+loadFile(`scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js`, 'js');
+loadFile(`${extensionFolderPath}dagre.min.js`, 'js', function () {
+	loadFile(`${extensionFolderPath}cytoscape-dagre.min.js`, 'js');
 });
-
-loadFile('https://cdn.jsdelivr.net/npm/dagrejs@0.2.1/dist/dagre.min.js', 'js', function () {
-	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js', 'js');
+loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
+	loadFile(`${extensionFolderPath}cytoscape-popper.min.js`, 'js');
 });
-
-
-loadFile('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.umd.min.js', 'js', function () {
-	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-popper@2.0.0/cytoscape-popper.min.js', 'js');
-});
-
-loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.js', 'js');
+loadFile(`${extensionFolderPath}cytoscape-context-menus.min.js`, 'js');
 
 
 
@@ -79,11 +72,10 @@ let defaultSettings = {
 	charNodeColor: "#FFFFFF",
 	userNodeColor: "#ADD8E6",
 	edgeColor: "#555",
+	lockNodes: true,
 };
 
-// Keep track of where your extension is located
-const extensionName = "SillyTavern-Timelines";
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
+
 
 async function loadSettings() {
 	// Ensure extension_settings.timeline exists
@@ -111,6 +103,7 @@ async function loadSettings() {
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
 	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
 	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
+	$("#tl_lock_nodes").prop("checked", extension_settings.timeline.lockNodes).trigger("input");
 }
 
 
@@ -850,6 +843,11 @@ function setupEventHandlers(cy, nodeData) {
 		if (!hasSetOrientation) {
 			setGraphOrientationBasedOnViewport(cy);
 			hasSetOrientation = true;
+			if (extension_settings.timeline.lockNodes) {
+				cy.nodes().forEach(node => {
+					node.lock();
+				});
+			}
 		}
 	});
 	let showTimeout;
@@ -1041,6 +1039,7 @@ jQuery(async () => {
         'tl_curve_style': 'curveStyle',
 		'tl_avatar_as_root': 'avatarAsRoot',
 		'tl_use_chat_colors': 'useChatColors',
+		'tl_lock_nodes': 'lockNodes',
     };
 
     for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
