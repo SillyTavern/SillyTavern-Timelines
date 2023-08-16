@@ -77,8 +77,8 @@ let defaultSettings = {
 	avatarAsRoot: true,
 	bookmarkColor: "#ff0000",
 	useChatColors: false,
-	charNodeColor: "white",
-	userNodeColor: "lightblue",
+	charNodeColor: "#FFFFFF",
+	userNodeColor: "#ADD8E6",
 	edgeColor: "#555",
 };
 
@@ -584,7 +584,7 @@ function createLegendItem(cy, container, item, type) {
 
 	const legendText = document.createElement('div');
 	legendText.className = 'legend-text';
-	legendText.innerText = item.text;
+	legendText.innerText = item.text.split(' - ')[0];
 
 	legendItem.appendChild(legendSymbol);
 	legendItem.appendChild(legendText);
@@ -753,6 +753,26 @@ function initializeCytoscape(nodeData, styles) {
 	return cy;
 }
 
+function highlightNodesByQuery(cy, query) {
+	// If there's no query, restore elements to their original state.
+	if (!query || query === "") {
+		restoreElements(cy);
+		return;
+	}
+
+	// Create a selector for nodes where the 'msg' property contains the query
+	let selector = `node[msg @*= "${query}"]`;
+	console.log(selector);
+
+	// If no nodes match the selector, restore elements. Otherwise, highlight.
+	if (cy.elements(selector).length === 0) {
+		restoreElements(cy);
+	} else {
+		restoreElements(cy);
+		highlightElements(cy, selector);
+	}
+}
+
 function setupEventHandlers(cy, nodeData) {
 	var allChatSessions = [];
 	for (let i = 0; i < nodeData.length; i++) {
@@ -776,6 +796,14 @@ function setupEventHandlers(cy, nodeData) {
 			},
 			hasTrailingDivider: true
 		};
+	});
+
+	document.getElementById('transparent-search').addEventListener('input', function (e) {
+		let mainSearch = document.getElementById('transparent-search');
+		mainSearch.value = e.target.value;
+
+		let query = e.target.value.toLowerCase();
+		highlightNodesByQuery(cy, query);
 	});
 
 	menuItems.push({
@@ -993,6 +1021,7 @@ async function onTimelineButtonClick() {
 	if (dataUpdated) {
 		renderCytoscapeDiagram(lastTimelineData);
 	}
+	document.getElementById('transparent-search').focus();
 }
 
 jQuery(async () => {
