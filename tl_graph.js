@@ -1,4 +1,4 @@
-
+import { highlightElements, restoreElements } from './tl_style.js';
 let currentOrientation = 'TB'; // starting orientation
 
 
