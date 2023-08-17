@@ -4,7 +4,6 @@
 // TODO Edge labels?
 // TODO Possible minimap mode
 // TODO More context menu options
-// TODO Move away from CDNs
 // TODO Experimental multi-tree view
 // TODO Mobile taps on iOS
 
@@ -50,8 +49,6 @@ loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
 	loadFile(`${extensionFolderPath}cytoscape-popper.min.js`, 'js');
 });
 loadFile(`${extensionFolderPath}cytoscape-context-menus.min.js`, 'js');
-
-
 
 import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
 import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from "../../../../script.js";
@@ -104,6 +101,11 @@ async function loadSettings() {
 	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
 	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
 	$("#tl_lock_nodes").prop("checked", extension_settings.timeline.lockNodes).trigger("input");
+	$("#bookmark-color-picker").attr('color', extension_settings.timeline.bookmarkColor);
+	$("#edge-color-picker").attr('color', extension_settings.timeline.edgeColor);
+	$("#user-node-color-picker").attr('color', extension_settings.timeline.userNodeColor);
+	$("#char-node-color-picker").attr('color', extension_settings.timeline.charNodeColor);
+
 }
 
 
@@ -644,15 +646,17 @@ function setupStylesAndData(nodeData) {
 		theme.charNodeColor = power_user.main_text_color;
 		theme.edgeColor = power_user.italics_text_color;
 		theme.userNodeColor = power_user.quote_text_color;
-		power_user.blur_tint_color;
-		power_user.user_mes_blur_tint_color;
-		power_user.bot_mes_blur_tint_color;
-		power_user.shadow_color;
+		theme.bookmarkColor = 'rgba(255, 215, 0, 1)' // gold
+		// power_user.blur_tint_color;
+		// power_user.user_mes_blur_tint_color;
+		// power_user.bot_mes_blur_tint_color;
+		// power_user.shadow_color;
 	}
 	else {
 		theme.charNodeColor = extension_settings.timeline.charNodeColor;
 		theme.edgeColor = extension_settings.timeline.edgeColor;
 		theme.userNodeColor = extension_settings.timeline.userNodeColor;
+		theme.bookmarkColor = extension_settings.timeline.bookmarkColor;
 	}
 
 	Object.values(nodeData).forEach(entry => {
@@ -671,6 +675,9 @@ function setupStylesAndData(nodeData) {
 				'line-color': function (ele) {
 					return ele.data('isHighlight') ? ele.data('color') : theme.edgeColor;
 				},
+				'line-opacity': function (ele) {
+					return ele.data('isHighlight') ? 1 : getAlphaFromRGBA(theme.edgeColor);
+				},
 				'width': function (ele) {
 					return ele.data('highlightThickness') ? ele.data('highlightThickness') : 3;
 				},
@@ -688,11 +695,17 @@ function setupStylesAndData(nodeData) {
 				'background-color': function (ele) {
 					return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor
 				},
+				'background-opacity': function (ele) {
+					return ele.data('is_user') ? getAlphaFromRGBA(theme.userNodeColor) : getAlphaFromRGBA(theme.charNodeColor);
+				},
 				'border-color': function (ele) {
-					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : '#000';
+					return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : '#000';
 				},
 				'border-width': function (ele) {
 					return ele.data('isBookmark') ? 4 : ele.data('borderColor') ? 3 : 0;
+				},
+				'border-opacity': function (ele) {
+					return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : 0;
 				}
 			}
 		},
@@ -714,7 +727,7 @@ function setupStylesAndData(nodeData) {
 				'border-style': 'dashed',
 				'border-width': 3,
 				'border-color': function (ele) {
-					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : "black";
+					return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "black";
 				},
 			}
 		}
@@ -1040,17 +1053,31 @@ jQuery(async () => {
 		'tl_avatar_as_root': 'avatarAsRoot',
 		'tl_use_chat_colors': 'useChatColors',
 		'tl_lock_nodes': 'lockNodes',
+		'bookmark-color-picker': 'bookmarkColor',
+		'edge-color-picker': 'edgeColor',
+		'user-node-color-picker': 'userNodeColor',
+		'char-node-color-picker': 'charNodeColor',
     };
 
-    for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
-        $(`#${id}`).on('input', function() {
-            onInputChange($(this), settingName);
-        });
-    }
+	for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
+		if (id.includes("color-picker")) { // or a more specific way to identify color pickers if needed
+			$(`#${id}`).on('change', function (evt) {
+				onInputChange($(this), settingName, evt.detail.rgba);
+			});
+		} else {
+			$(`#${id}`).on('input', function () {
+				onInputChange($(this), settingName);
+			});
+		}
+	}
+
 
 	$(document).ready(function () {
 		$("#toggleStyleSettings").click(function () {
 			$("#styleSettingsArea").toggleClass("hidden");
+		});
+		$("#toggleColorSettings").click(function () {
+			$("#colorSettingsArea").toggleClass("hidden");
 		});
 	});
 
@@ -1064,13 +1091,18 @@ jQuery(async () => {
 	loadSettings();
 });
 
-function onInputChange(element, settingName) {
+function onInputChange(element, settingName, rgbaValue = null) {
 	let value;
 
 	// Check if the element is a checkbox
 	if (element.is(":checkbox")) {
 		value = element.prop("checked");
-	} else {
+	}
+	// Check if the element is a color picker
+	else if (element.is("toolcool-color-picker")) {
+		value = rgbaValue;
+	}
+	else {
 		value = element.val();
 	}
 
@@ -1082,4 +1114,9 @@ function onInputChange(element, settingName) {
 	}
 	lastContext = null; // Invalidate the last context to force a data update
 	saveSettingsDebounced();
+}
+
+function getAlphaFromRGBA(rgbaString) {
+	const match = rgbaString.match(/rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*(\d*(?:\.\d+)?)\s*\)/);
+	return match ? parseFloat(match[1]) : null;
 }
