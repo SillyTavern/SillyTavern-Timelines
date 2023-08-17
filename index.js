@@ -414,13 +414,16 @@ function setupEventHandlers(cy, nodeData) {
 		},
 		hasTrailingDivider: true
 	});
-
-	var contextMenu = cy.contextMenus({
-		menuItems: menuItems,
-		menuItemClasses: ['custom-menu-item'],
-		contextMenuClasses: ['custom-context-menu'],
-	});
-
+	try{
+		var contextMenu = cy.contextMenus({
+			menuItems: menuItems,
+			menuItemClasses: ['custom-menu-item'],
+			contextMenuClasses: ['custom-context-menu'],
+		});
+	}catch(e){
+		console.log(e);
+		console.log("contextMenu is likely not allowed on this device.");
+	}
 
 	cy.ready(function () {
 		createLegend(cy);
