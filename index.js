@@ -1,18 +1,18 @@
 
-// TODO Docs for all the functions
-// TODO Split out the functions into separate files
-// TODO Add options for searching/filtering
-// TODO Allow for toggling of movable nodes
 // TODO Edge labels?
 // TODO Possible minimap mode
 // TODO More context menu options
-// TODO Move away from CDNs
 // TODO Experimental multi-tree view
-// TODO Group support (maybe)
 // TODO Mobile taps on iOS
 
 
-// I don't like this
+/**
+ * Loads an external file (CSS or JS) into the document's head.
+ * 
+ * @param {string} src - The source URL or path to the file to load.
+ * @param {string} type - The type of file to load. Accepted values are "css" or "js".
+ * @param {Function} [callback] - Optional callback function to execute once the file is loaded (used only for JS files).
+ */
 function loadFile(src, type, callback) {
 	var elem;
 
@@ -33,36 +33,34 @@ function loadFile(src, type, callback) {
 	}
 }
 
-// Load CSS file
-loadFile("https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/light.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/material.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/light-border.min.css", "css");
-loadFile("https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/themes/translucent.min.css", "css");
+// Keep track of where your extension is located
+const extensionName = "SillyTavern-Timelines";
+const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
 
+// Load CSS file
+loadFile(`${extensionFolderPath}cytoscape-context-menus.min.css`, "css");
+loadFile(`${extensionFolderPath}light.min.css`, "css");
+loadFile(`${extensionFolderPath}material.min.css`, "css");
+loadFile(`${extensionFolderPath}light-border.min.css`, "css");
+loadFile(`${extensionFolderPath}translucent.min.css`, "css");
 
 // Load JavaScript files
-loadFile('scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js', 'js');
-
-loadFile('https://cdn.jsdelivr.net/npm/elkjs@0.8.2/lib/elk.bundled.min.js', 'js', function () {
-	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-elk@2.2.0/dist/cytoscape-elk.min.js', 'js');
+loadFile(`scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js`, 'js');
+loadFile(`${extensionFolderPath}dagre.min.js`, 'js', function () {
+	loadFile(`${extensionFolderPath}cytoscape-dagre.min.js`, 'js');
 });
-
-loadFile('https://cdn.jsdelivr.net/npm/dagrejs@0.2.1/dist/dagre.min.js', 'js', function () {
-	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js', 'js');
+loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
+	loadFile(`${extensionFolderPath}cytoscape-popper.min.js`, 'js');
 });
+loadFile(`${extensionFolderPath}cytoscape-context-menus.min.js`, 'js');
 
+import { extension_settings, getContext, } from "../../../extensions.js";
+import { characters, getRequestHeaders, saveSettingsDebounced, } from "../../../../script.js";
 
-loadFile('https://cdn.jsdelivr.net/npm/tippy.js@6.3.7/dist/tippy.umd.min.js', 'js', function () {
-	loadFile('https://cdn.jsdelivr.net/npm/cytoscape-popper@2.0.0/cytoscape-popper.min.js', 'js');
-});
-
-loadFile('https://cdn.jsdelivr.net/npm/cytoscape-context-menus@4.1.0/cytoscape-context-menus.min.js', 'js');
-
-
-
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
-import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced } from "../../../../script.js";
+import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
+import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
+import { fetchData, prepareData } from './tl_node_data.js';
+import { toggleGraphOrientation, highlightNodesByQuery, getNodeDepth, setGraphOrientationBasedOnViewport } from './tl_graph.js';
 
 let defaultSettings = {
 	nodeWidth: 25,
@@ -73,14 +71,29 @@ let defaultSettings = {
 	spacingFactor: 1,
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
+	avatarAsRoot: true,
 	bookmarkColor: "#ff0000",
+	useChatColors: false,
+	charNodeColor: "#FFFFFF",
+	userNodeColor: "#ADD8E6",
+	edgeColor: "#555",
+	lockNodes: true,
 };
 
-// Keep track of where your extension is located
-const extensionName = "SillyTavern-Timelines";
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}/`;
-const extensionSettings = extension_settings[extensionName];
+// Variable to keep track of the currently highlighted elements
+let currentlyHighlighted = null;
+let lastContext = null; // Initialize lastContext to null
+let layout = {};
+let lastTimelineData = null; // Store the last fetched and prepared timeline data
+let activeTippies = new Set();
 
+/**
+ * Asynchronously loads settings from `extension_settings.timeline`, 
+ * filling in with default settings if some are missing.
+ * 
+ * After loading the settings, it also updates the UI components 
+ * with the appropriate values from the loaded settings.
+ */
 async function loadSettings() {
 	// Ensure extension_settings.timeline exists
 	if (!extension_settings.timeline) {
@@ -88,10 +101,12 @@ async function loadSettings() {
 		extension_settings.timeline = {};
 	}
 
-	// Only merge default settings if extension_settings.timeline is empty
-	if (Object.keys(extension_settings.timeline).length === 0) {
-		console.log("Merging default settings");
-		Object.assign(extension_settings.timeline, defaultSettings);
+	// Check and merge each default setting if it doesn't exist
+	for (const [key, value] of Object.entries(defaultSettings)) {
+		if (!extension_settings.timeline.hasOwnProperty(key)) {
+			console.log(`Setting default for: ${key}`);
+			extension_settings.timeline[key] = value;
+		}
 	}
 
 	// Update UI components
@@ -103,175 +118,23 @@ async function loadSettings() {
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
+	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
+	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
+	$("#tl_lock_nodes").prop("checked", extension_settings.timeline.lockNodes).trigger("input");
+	$("#bookmark-color-picker").attr('color', extension_settings.timeline.bookmarkColor);
+	$("#edge-color-picker").attr('color', extension_settings.timeline.edgeColor);
+	$("#user-node-color-picker").attr('color', extension_settings.timeline.userNodeColor);
+	$("#char-node-color-picker").attr('color', extension_settings.timeline.charNodeColor);
+
 }
 
-
-// Part 1: Preprocess chat sessions
-function preprocessChatSessions(channelHistory) {
-	let allChats = [];
-
-	for (const [file_name, messages] of Object.entries(channelHistory)) {
-		messages.forEach((message, index) => {
-			if (!allChats[index]) {
-				allChats[index] = [];
-			}
-			allChats[index].push({
-				file_name,
-				index,
-				message
-			});
-		});
-	}
-
-	return allChats;
-}
-
-// Part 2: Process each message index and build nodes
-function buildNodes(allChats) {
-	let cyElements = [];
-	let keyCounter = 1;
-	let previousNodes = {};
-
-	// Initialize root node
-	cyElements.push({
-		group: 'nodes',
-		data: {
-			id: "root",
-			label: "Start of Conversation", // or any text you prefer
-			name: "Start of Conversation",
-			x: 0,
-			y: 0, 
-		}
-	});
-
-	// Initialize previousNodes
-	allChats[0].forEach(({ file_name }) => {
-		previousNodes[file_name] = "root";
-	});
-
-	for (let messagesAtIndex = 0; messagesAtIndex < allChats.length; messagesAtIndex++) {
-		let groups = groupMessagesByContent(allChats[messagesAtIndex]);
-
-		for (const [text, group] of Object.entries(groups)) {
-			let nodeId = `message${keyCounter}`;
-			let parentNodeId = previousNodes[group[0].file_name];
-
-			let node = createNode(nodeId, parentNodeId, text, group);
-			cyElements.push({
-				group: 'nodes',
-				data: node
-			});
-			keyCounter += 1;
-
-			// If you wish to create edges between nodes, you can add here
-			cyElements.push({
-				group: 'edges',
-				data: {
-					id: `edge${keyCounter}`,
-					source: parentNodeId,
-					target: nodeId
-				}
-			});
-
-			updatePreviousNodes(previousNodes, nodeId, group);
-		}
-	}
-
-	return cyElements;
-}
-
-// Create a node for Cytoscape
-function createNode(nodeId, parentNodeId, text, group) {
-	let bookmark = group.find(({ message }) => {
-		// Check if the message is from the system and if it indicates a bookmark
-		if (message.is_system && message.mes.includes("Bookmark created! Click here to open the bookmark chat")) return true;
-
-		// Original bookmark case
-		return !!message.extra && !!message.extra.bookmark_link;
-	});
-
-	let isBookmark = Boolean(bookmark);
-
-	// Extract bookmarkName and fileNameForNode depending on bookmark type
-	let bookmarkName, fileNameForNode;
-	if (isBookmark) {
-		if (bookmark.message.extra && bookmark.message.extra.bookmark_link) {
-			bookmarkName = bookmark.message.extra.bookmark_link;
-			fileNameForNode = bookmark.file_name;
-		} else {
-			// Extract file_name from the anchor tag in 'mes'
-			let match = bookmark.message.mes.match(/file_name=\"(.*?)\"/);
-			bookmarkName = match ? match[1] : null;
-			fileNameForNode = bookmarkName;
-		}
-	} else {
-		fileNameForNode = group[0].file_name;
-	}
-
-
-	let { is_name, is_user, name, send_date, is_system } = group[0].message;  // Added is_system here
-
-	return {
-		id: nodeId,
-		msg: text,
-		isBookmark: isBookmark,
-		bookmarkName: bookmarkName,
-		file_name: fileNameForNode,
-		is_name: is_name,
-		is_user: is_user,
-		is_system: is_system,  // Added is_system to node properties
-		name: name,
-		send_date: send_date,
-		messageIndex: group[0].index,
-		color: isBookmark ? generateUniqueColor() : null,
-		chat_sessions: group.map(({ file_name }) => file_name),
-		chat_sessions_str: ';' + group.map(({ file_name }) => file_name).join(';') + ';',
-	};
-}
-
-
-// Group messages by their content
-function groupMessagesByContent(messages) {
-	let groups = {};
-	messages.forEach((messageObj, index) => {
-		let { file_name, message } = messageObj;
-		//System agnostic check for newlines
-		try {
-			message.mes = message.mes.replace(/\r\n/g, '\n');
-			if (!groups[message.mes]) {
-				groups[message.mes] = [];
-			}
-			groups[message.mes].push({ file_name, index, message });
-		} catch (e) {
-			console.log(`Message Grouping Error: ${e}: ${JSON.stringify(message, null, 4)}`);
-		}
-	});
-	return groups;
-}
-
-// Update the last node for each chat in the group
-function updatePreviousNodes(previousNodes, nodeKey, group) {
-	group.forEach(({ file_name }) => {
-		previousNodes[file_name] = nodeKey;
-	});
-}
-
-// Part 3: Postprocess nodes
-function postprocessNodes(nodeData) {
-	// Placeholder for now; add additional steps if needed
-	return nodeData;
-}
-
-// Final function that uses all parts
-function convertToCytoscapeElements(channelHistory) {
-	let allChats = preprocessChatSessions(channelHistory);
-	let nodeData = buildNodes(allChats);
-	nodeData = postprocessNodes(nodeData);
-	return nodeData;
-}
-
-let activeTippies = new Set();
-
+/**
+ * Creates a Tippy tooltip for a given Cytoscape element with specified content.
+ * 
+ * @param {Object} ele - The Cytoscape element (node/edge) to attach the tooltip to.
+ * @param {string} text - The content to be displayed inside the tooltip.
+ * @returns {Object} - Returns the Tippy tooltip instance.
+ */
 function makeTippy(ele, text) {
 	var ref = ele.popperRef();
 	var dummyDomEle = document.createElement('div');
@@ -297,86 +160,17 @@ function makeTippy(ele, text) {
 	return tip;
 };
 
-async function fetchData(characterAvatar) {
-	const response = await fetch("/getallchatsofcharacter", {
-		method: 'POST',
-		body: JSON.stringify({ avatar_url: characterAvatar }),
-		headers: getRequestHeaders(),
-	});
-	if (!response.ok) {
-		return;
-	}
-	return response.json();
-}
-
-async function prepareData(data) {
-	const context = getContext();
-	let chat_dict = {};
-	let chat_list = Object.values(data).sort((a, b) => a["file_name"].localeCompare(b["file_name"])).reverse();
-	for (const { file_name } of chat_list) {
-		try {
-			const fileNameWithoutExtension = file_name.replace('.jsonl', '');
-			const getChatResponse = await fetch('/getchat', {
-				method: 'POST',
-				headers: getRequestHeaders(),
-				body: JSON.stringify({
-					ch_name: characters[context.characterId].name,
-					file_name: fileNameWithoutExtension,
-					avatar_url: characters[context.characterId].avatar
-				}),
-				cache: 'no-cache',
-			});
-			if (!getChatResponse.ok) {
-				continue;
-			}
-			const currentChat = await getChatResponse.json();
-			// remove the first message, which is metadata
-			currentChat.shift();
-			chat_dict[file_name] = currentChat;
-		} catch (error) {
-			console.error(error);
-		}
-	}
-	return convertToCytoscapeElements(chat_dict);
-}
-
-function generateUniqueColor() {
-	const randomRGBValue = () => Math.floor(Math.random() * 256);
-	return `rgb(${randomRGBValue()}, ${randomRGBValue()}, ${randomRGBValue()})`;
-}
-
-function closeOpenDrawers() {
-	var openDrawers = $('.openDrawer').not('.pinnedOpen');
-
-	openDrawers.addClass('resizing').slideToggle(200, "swing", function () {
-		$(this).closest('.drawer-content').removeClass('resizing');
-	});
-
-	$('.openIcon').toggleClass('closedIcon openIcon');
-	openDrawers.toggleClass('closedDrawer openDrawer');
-}
-
-
-async function navigateToMessage(chatSessionName, messageId) {
-
-	//remove extension from file name
-	chatSessionName = chatSessionName.replace('.jsonl', '');
-	await openCharacterChat(chatSessionName);
-
-	let message = $(`div[mesid=${messageId-1}]`); // Select the message div by the messageId
-	let chat = $("#chat");
-
-	if (message.length) {
-		// calculate the position by adding the container's current scrollTop to the message's position().top
-		let scrollPosition = chat.scrollTop() + message.position().top;
-		chat.animate({ scrollTop: scrollPosition }, 500);  // scroll over half a second
-	} else {
-		console.log(`Message with id "${messageId}" not found.`);
-	}
-	closeOpenDrawers();
-}
-
-// Function to handle click events on nodes
+/**
+ * Handles click events on nodes in a Cytoscape graph.
+ * 
+ * This function performs the following tasks:
+ * 1. Determines the depth of the clicked node.
+ * 2. Fetches the associated chat sessions of the node.
+ * 3. If the node is associated with a single chat session, it navigates 
+ *    to the corresponding message within the chat session based on its depth.
+ * 
+ * @param {Object} node - The clicked node from the Cytoscape graph.
+ */
 function nodeClickHandler(node) {
 	let depth = getNodeDepth(node);
 	let chatSessions = node.data('chat_sessions');
@@ -386,76 +180,20 @@ function nodeClickHandler(node) {
 	}
 }
 
-
-// Function to get node depth
-function getNodeDepth(node) {
-	let depth = 0;
-	while (node.incomers().nodes().length > 0) {
-		node = node.incomers().nodes()[0];  // Assuming the node only has a single parent
-		depth++;
-	}
-	return depth;
-}
-
-// Function to highlight path to root
-function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4, startingZIndex = 1000) {
-	let bookmarkNode = Object.values(rawData).find(entry =>
-		entry.group === 'nodes' && entry.data.id === bookmarkNodeId
-	);
-
-	if (!bookmarkNode) {
-		console.error("Bookmark node not found!");
-		return;
-	}
-
-	let currentNode = bookmarkNode;
-	let currentZIndex = startingZIndex;
-	while (currentNode) {
-		// If the current node has the isBookmark attribute and it's not the initial bookmarkNode, stop highlighting
-		if (currentNode !== bookmarkNode && currentNode.data.isBookmark) {
-			break; // exit from the while loop
-		}
-
-		let incomingEdge = Object.values(rawData).find(entry =>
-			entry.group === 'edges' && entry.data.target === currentNode.data.id
-		);
-
-		if (incomingEdge) {
-			incomingEdge.data.isHighlight = true;
-			incomingEdge.data.color = bookmarkNode.data.color;
-			incomingEdge.data.bookmarkName = bookmarkNode.data.bookmarkName;
-			incomingEdge.data.highlightThickness = currentHighlightThickness;
-
-			// Set the zIndex of the incomingEdge
-			incomingEdge.data.zIndex = currentZIndex;
-			currentNode.data.borderColor = incomingEdge.data.color;
-			currentZIndex++; // Increase the zIndex for the next edge in the path
-
-			currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
-			currentNode = Object.values(rawData).find(entry =>
-				entry.group === 'nodes' && entry.data.id === incomingEdge.data.source
-			);
-		} else {
-			currentNode = null;
-		}
-	}
-}
-
-
-// Function to close the modal
-function closeModal() {
-	let modal = document.getElementById("myModal");
-
-	if (!modal) {
-		console.error('Modal not found!');
-		return;
-	}
-
-	// Append the modal back to its original parent when closed
-	document.querySelector('.timeline-view-settings_block').appendChild(modal);
-	modal.style.display = "none";
-}
-
+/**
+ * Creates and populates a legend for nodes and edges in a Cytoscape graph.
+ * 
+ * This function works in the following steps:
+ * 1. Clears any existing legends in the specified container.
+ * 2. Iterates over all nodes in the graph:
+ *    - If a node with a unique name is found, its details (name and color) 
+ *      are added to the legend under the 'Nodes Legend' category.
+ * 3. Iterates over all edges in the graph:
+ *    - If an edge with a unique color is found, its details (bookmark name and color) 
+ *      are added to the legend under the 'Edges Legend' category.
+ * 
+ * @param {Object} cy - The Cytoscape instance where graph operations are performed.
+ */
 function createLegend(cy) {
 	const legendContainer = document.getElementById('legendDiv');
 	// Clear existing legends
@@ -491,9 +229,23 @@ function createLegend(cy) {
 }
 
 
-// Variable to keep track of the currently highlighted elements
-let currentlyHighlighted = null;
-
+/**
+ * Creates and appends a legend item to the provided container based on the item's type and details.
+ * 
+ * This function performs the following tasks:
+ * 1. Constructs the legend item and its corresponding visual symbol.
+ * 2. Binds mouseover, mouseout, and click events to the legend item:
+ *    - `mouseover`: Highlights corresponding elements on the Cytoscape graph to preview the legend item's representation.
+ *    - `mouseout`: Restores graph elements to their original state after the preview unless the legend item is selected (locked).
+ *    - `click`: Toggles the highlighting (locking/unlocking) of graph elements corresponding to the legend item.
+ * 3. Sets visual styles for the legend symbol based on the item type.
+ * 4. Appends the constructed legend item to the provided container.
+ * 
+ * @param {Object} cy - The Cytoscape instance where graph operations are performed.
+ * @param {HTMLElement} container - The container element to which the legend item will be appended.
+ * @param {Object} item - The legend item details with `text` and `color` or `colorKey` properties.
+ * @param {string} type - The type of legend item; can be either 'circle' for nodes or 'line' for edges.
+ */
 function createLegendItem(cy, container, item, type) {
 	const legendItem = document.createElement('div');
 	legendItem.className = 'legend-item';
@@ -505,14 +257,15 @@ function createLegendItem(cy, container, item, type) {
 
 	// Mouseover for a preview
 	legendItem.addEventListener('mouseover', function () {
-		if (currentlyHighlighted !== selector) { // Only preview if the item isn't already clicked
+		if (!legendItem.classList.contains('active-legend') && currentlyHighlighted !== selector) {
 			highlightElements(cy, selector);
 		}
 	});
 
+
 	// Mouseout to remove the preview, but keep it if clicked (locked)
 	legendItem.addEventListener('mouseout', function () {
-		if (currentlyHighlighted !== selector) { // Only remove the preview if the item isn't clicked
+		if (!legendItem.classList.contains('active-legend') && currentlyHighlighted !== selector) {
 			restoreElements(cy);
 		}
 	});
@@ -545,7 +298,7 @@ function createLegendItem(cy, container, item, type) {
 
 	const legendText = document.createElement('div');
 	legendText.className = 'legend-text';
-	legendText.innerText = item.text;
+	legendText.innerText = item.text.split(' - ')[0];
 
 	legendItem.appendChild(legendSymbol);
 	legendItem.appendChild(legendText);
@@ -554,113 +307,25 @@ function createLegendItem(cy, container, item, type) {
 }
 
 
-
-// Highlight elements based on selector
-function highlightElements(cy, selector) {
-	cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
-
-	// If it's an edge selector
-	if (selector.startsWith('edge')) {
-		let colorValue = selector.match(/color="([^"]+)"/)[1]; // Extract the color from the selector
-		let nodeSelector = `node[borderColor="${colorValue}"]`; // Construct the node selector
-
-		// Style the associated nodes
-		cy.elements(nodeSelector).style({
-			'opacity': 1,
-			'underlay-color': 'white',
-			'underlay-padding': '2px',
-			'underlay-opacity': 0.5,
-			'underlay-shape': 'ellipse'
-		});
-	}
-
-	// For the initial selector (whether it's node or edge)
-	cy.elements(selector).style({
-		'opacity': 1,
-		'underlay-color': 'white',
-		'underlay-padding': selector.startsWith('edge') ? '2px' : '5px',
-		'underlay-opacity': 0.5,
-		'underlay-shape': selector.startsWith('edge') ? '' : 'ellipse', 
-
-	});
-}
-
-// Restore elements function to restore all elements to their default opacity and remove underlays
-function restoreElements(cy) {
-	cy.elements().style({
-		'opacity': 1,
-		'underlay-color': '',
-		'underlay-padding': '',
-		'underlay-opacity': '',
-		'underlay-shape': ''
-	});
-}
-
-let layout = {}
-
-let myDiagram = null;  // Moved the declaration outside of the function
-
-function renderCytoscapeDiagram(nodeData) {
+/**
+ * Initializes a Cytoscape instance with given node data and styles.
+ * 
+ * This function does the following:
+ * 1. Locates the container element 'myDiagramDiv' for the Cytoscape graph.
+ * 2. Registers the necessary plugins: 'cytoscapeDagre', 'cytoscapeContextMenus', and 'cytoscapePopper'.
+ * 3. Creates and configures the Cytoscape instance with the provided node data, styles, and layout settings.
+ * 4. Adjusts wheel sensitivity for zooming operations on the graph.
+ * 
+ * @param {Array<Object>} nodeData - Array of node data objects containing information required to render nodes and edges.
+ * @param {Array<Object>} styles - Array of style definitions for nodes, edges, and other graph elements.
+ * @returns {Object|null} Returns the Cytoscape instance if initialization is successful, otherwise returns null.
+ */
+function initializeCytoscape(nodeData, styles) {
 	let myDiagramDiv = document.getElementById('myDiagramDiv');
 	if (!myDiagramDiv) {
 		console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
-		return;
+		return null;
 	}
-
-	// Highlight path for every bookmarked node
-	Object.values(nodeData).forEach(entry => {
-		if (entry.group === 'nodes' && entry.data.isBookmark) {
-			highlightPathToRoot(nodeData, entry.data.id);
-		}
-	});
-	console.log(extension_settings.timeline.curveStyle)
-	const cytoscapeStyles = [
-		{
-			selector: 'edge',
-			style: {
-				'curve-style': extension_settings.timeline.curveStyle,
-				'taxi-direction': 'rightward',
-				'segment-distances': [5, 5], // corner radius
-				'line-color': function (ele) {
-					return ele.data('isHighlight') ? ele.data('color') : '#555';
-				},
-				'width': function (ele) {
-					return ele.data('highlightThickness') ? ele.data('highlightThickness') : 3;
-				},
-				'z-index': function (ele) {
-					return ele.data('zIndex') ? ele.data('zIndex') : 1;
-				}
-			}
-		},
-		{
-			selector: 'node',
-			style: {
-				'width': extension_settings.timeline.nodeWidth,
-				'height': extension_settings.timeline.nodeHeight,
-				'shape': extension_settings.timeline.nodeShape, // or 'circle'
-				'background-color': function (ele) {
-					return ele.data('is_user') ? 'lightblue' : 'white';
-				},
-				'border-color': function (ele) {
-					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : '#000';
-				},
-				'border-width': function (ele) {
-					return ele.data('isBookmark') ? 4 : ele.data('borderColor') ? 3 : 0;
-				}
-			}
-		},
-    	{
-			selector: 'node[?is_system]',  // Select nodes with is_system property set to true
-			style: {
-				'background-color': 'grey',
-				'border-style': 'dashed',
-				'border-width': 3,
-				'border-color': function (ele) {
-					return ele.data('isBookmark') ? 'gold' : ele.data('borderColor') ? ele.data('borderColor') : "black";
-				},
-			}
-		}
-	];
 
 	cytoscape.use(cytoscapeDagre);
 	cytoscape.use(cytoscapeContextMenus);
@@ -669,12 +334,30 @@ function renderCytoscapeDiagram(nodeData) {
 	const cy = cytoscape({
 		container: myDiagramDiv,
 		elements: nodeData,
-		style: cytoscapeStyles,
+		style: styles,
 		layout: layout,
 		wheelSensitivity: 0.2,  // Adjust as needed.
-
 	});
 
+	return cy;
+}
+
+/**
+ * Sets up event handlers for the given Cytoscape instance and node data.
+ * 
+ * This function does the following:
+ * 1. Gathers all chat sessions from the node data.
+ * 2. Initializes the context menu for the Cytoscape instance based on chat sessions, 
+ *    providing options to open specific chat sessions or rotate the graph.
+ * 3. Attaches listeners to the 'input' event of the search field to enable node highlighting based on search query.
+ * 4. Adds an event listener to handle node clicks, triggering actions like node navigation.
+ * 5. Configures the graph's orientation based on the viewport dimensions.
+ * 6. Implements a delay for displaying tooltips on node hover, showcasing truncated node messages.
+ * 
+ * @param {Object} cy - The Cytoscape instance for which the event handlers are being set up.
+ * @param {Array<Object>} nodeData - Array of node data objects containing information like chat sessions.
+ */
+function setupEventHandlers(cy, nodeData) {
 	var allChatSessions = [];
 	for (let i = 0; i < nodeData.length; i++) {
 		if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
@@ -691,12 +374,20 @@ function renderCytoscapeDiagram(nodeData) {
 			selector: `node[chat_sessions_str *= ";${session};"]`,
 			onClickFunction: function (event) {
 				var target = event.target || event.cyTarget;
-				var depth = getNodeDepth(target);  
-				navigateToMessage(session, depth);  
+				var depth = getNodeDepth(target);
+				navigateToMessage(session, depth);
 				closeModal();
 			},
 			hasTrailingDivider: true
 		};
+	});
+
+	document.getElementById('transparent-search').addEventListener('input', function (e) {
+		let mainSearch = document.getElementById('transparent-search');
+		mainSearch.value = e.target.value;
+
+		let query = e.target.value.toLowerCase();
+		highlightNodesByQuery(cy, query);
 	});
 
 	menuItems.push({
@@ -712,10 +403,10 @@ function renderCytoscapeDiagram(nodeData) {
 	menuItems.push({
 		id: 'rotate-graph',
 		content: 'Rotate Graph',
-		selector: 'core',  
+		selector: 'core',
 		coreAsWell: true,  // This makes sure the menu item is also available on right-clicking the graph background.
 		onClickFunction: function (event) {
-			toggleGraphOrientation(cy);  // This function toggles between the two orientations.
+			toggleGraphOrientation(cy, layout);  // This function toggles between the two orientations.
 		},
 		hasTrailingDivider: true
 	});
@@ -729,16 +420,8 @@ function renderCytoscapeDiagram(nodeData) {
 
 	cy.ready(function () {
 		createLegend(cy);
+		closeOpenDrawers();
 	});
-
-
-	// cy.on('layoutstop', function () {
-	// 	console.log('cy.on(layoutstop) called');
-	// 	cy.maxZoom(2.5);
-	// 	//cy.fit();
-	// 	cy.maxZoom(100);
-	// 	cy.resize();
-	// });
 
 	cy.on('tap', 'node', function (event) {
 		let node = event.target;
@@ -750,8 +433,13 @@ function renderCytoscapeDiagram(nodeData) {
 
 	cy.on('render', function () {
 		if (!hasSetOrientation) {
-			setGraphOrientationBasedOnViewport(cy);
+			setGraphOrientationBasedOnViewport(cy, layout);
 			hasSetOrientation = true;
+			if (extension_settings.timeline.lockNodes) {
+				cy.nodes().forEach(node => {
+					node.lock();
+				});
+			}
 		}
 	});
 	let showTimeout;
@@ -767,7 +455,7 @@ function renderCytoscapeDiagram(nodeData) {
 	cy.on('mouseover', 'node', function (evt) {
 		let node = evt.target;
 		let truncatedMsg = truncateMessage(node.data('msg'));
-		let content = `${node.data('name')}: ${truncatedMsg}`;
+		let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
 
 		// Delay the tooltip appearance by 3 seconds (3000 ms)
 		showTimeout = setTimeout(() => {
@@ -792,86 +480,53 @@ function renderCytoscapeDiagram(nodeData) {
 	});
 }
 
-function toggleGraphOrientation(cy) {
-	currentOrientation = (currentOrientation === 'LR') ? 'TB' : 'LR';
+/**
+ * Renders a Cytoscape diagram using the given node data.
+ * It sets up the styles and data, initializes the Cytoscape instance,
+ * and if successful, sets up event handlers for the Cytoscape instance.
+ *
+ * @param {Object} nodeData - The data used to render the nodes and edges of the Cytoscape diagram.
+ */
+function renderCytoscapeDiagram(nodeData) {
+	const styles = setupStylesAndData(nodeData);
+	const cy = initializeCytoscape(nodeData, styles);
 
-	setOrientation(cy, currentOrientation);
+	if (cy) {
+		setupEventHandlers(cy, nodeData);
+	}
 }
 
-let currentOrientation = 'TB'; // starting orientation
-
-function setGraphOrientationBasedOnViewport(cy) {
-	const viewportWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-	const viewportHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-
-	const orientation = (viewportWidth > viewportHeight) ? 'LR' : 'TB';
-	setOrientation(cy, orientation);
-}
-
-function setOrientation(cy, orientation) {
-	// Update layout
-	layout.rankDir = orientation;
-	cy.layout(layout).run();
-
-	// Update taxi-direction in style
-	const taxiDirection = orientation === 'TB' ? 'downward' : 'rightward';
-	cy.style().selector('edge').style({
-		'taxi-direction': taxiDirection
-	}).update();
-	currentOrientation = orientation;
-
-}
-
-
-let lastContext = null; // Initialize lastContext to null
-
-// Handle modal display
-function handleModalDisplay() {
-	let modal = document.getElementById("myModal");
-
-	// Ensure that modal exists
-	if (!modal) {
-		console.error('Modal not found!');
-		return;
-	}
-
-	let closeBtn = modal.getElementsByClassName("close")[0];
-
-	// Ensure that close button exists
-	if (!closeBtn) {
-		console.error('Close button not found!');
-		return;
-	}
-
-	closeBtn.onclick = function () {
-		// Append the modal back to its original parent when closed
-		document.querySelector('.timeline-view-settings_block').appendChild(modal);
-		modal.style.display = "none";
-	}
-
-	window.onclick = function (event) {
-		if (event.target == modal) {
-			// Append the modal back to its original parent when clicked outside
-			document.querySelector('.timeline-view-settings_block').appendChild(modal);
-			modal.style.display = "none";
-		}
-	}
-
-	// Append the modal to the body when showing it
-	document.body.appendChild(modal);
-	modal.style.display = "block";
-}
-
-
-
-let lastTimelineData = null; // Store the last fetched and prepared timeline data
-
+/**
+ * Checks if the timeline data needs to be updated based on the context.
+ * If the current context (representing either a character or a group chat session)
+ * is different from the last known context, it fetches and prepares the required data.
+ * The function then updates the layout configuration based on extension settings.
+ * 
+ * @returns {Promise<boolean>} Returns true if the timeline data was updated, and false otherwise.
+ */
 async function updateTimelineDataIfNeeded() {
 	const context = getContext();
 	if (!lastContext || lastContext.characterId !== context.characterId) {
-		// If the context has changed, fetch new data and prepare the timeline
-		let data = await fetchData(context.characters[context.characterId].avatar);
-		lastTimelineData = await prepareData(data);
+		let data = {};
+
+		if (!context.characterId) {
+			let groupID = context.groupId;
+			if (groupID) {
+				//send the group where the ID within the dict is equal to groupID
+				let group = context.groups.find(group => group.id === groupID);
+				// for each group.chats, we add to a dict with the key being the index and the value being the chat
+				for(let i = 0; i < group.chats.length; i++){
+					console.log(group.chats[i]);
+					data[i]= { "file_name": group.chats[i] };
+				}
+				lastTimelineData = await prepareData(data, true);
+			}
+		}
+		else {
+			data = await fetchData(context.characters[context.characterId].avatar);
+			lastTimelineData = await prepareData(data);
+		}
+
 		lastContext = context; // Update the lastContext to the current context
 		console.log('Timeline data updated');
 		layout = {
@@ -889,15 +544,27 @@ async function updateTimelineDataIfNeeded() {
 	return false; // No update occurred
 }
 
-// When the user clicks the button
+/**
+ * Handler function that is called when the timeline button is clicked.
+ * This function checks if the timeline data needs to be updated, handles modal display,
+ * potentially renders the Cytoscape diagram, and sets the focus on a specific HTML element.
+ *
+ * @returns {Promise<void>}
+ */
 async function onTimelineButtonClick() {
 	const dataUpdated = await updateTimelineDataIfNeeded();
 	handleModalDisplay();
 	if (dataUpdated) {
 		renderCytoscapeDiagram(lastTimelineData);
 	}
+	document.getElementById('transparent-search').focus();
 }
 
+/**
+ * Entry point function for the jQuery script.
+ * It handles adding UI components to the extension settings, binds events to various UI components,
+ * and sets up event handlers for user interactions.
+ */
 jQuery(async () => {
 	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
@@ -912,18 +579,35 @@ jQuery(async () => {
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
         'tl_node_shape': 'nodeShape',
-        'tl_curve_style': 'curveStyle'
+        'tl_curve_style': 'curveStyle',
+		'tl_avatar_as_root': 'avatarAsRoot',
+		'tl_use_chat_colors': 'useChatColors',
+		'tl_lock_nodes': 'lockNodes',
+		'bookmark-color-picker': 'bookmarkColor',
+		'edge-color-picker': 'edgeColor',
+		'user-node-color-picker': 'userNodeColor',
+		'char-node-color-picker': 'charNodeColor',
     };
 
-    for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
-        $(`#${id}`).on('input', function() {
-            onInputChange($(this), settingName);
-        });
-    }
+	for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
+		if (id.includes("color-picker")) { // or a more specific way to identify color pickers if needed
+			$(`#${id}`).on('change', function (evt) {
+				onInputChange($(this), settingName, evt.detail.rgba);
+			});
+		} else {
+			$(`#${id}`).on('input', function () {
+				onInputChange($(this), settingName);
+			});
+		}
+	}
+
 
 	$(document).ready(function () {
 		$("#toggleStyleSettings").click(function () {
 			$("#styleSettingsArea").toggleClass("hidden");
+		});
+		$("#toggleColorSettings").click(function () {
+			$("#colorSettingsArea").toggleClass("hidden");
 		});
 	});
 
@@ -937,8 +621,29 @@ jQuery(async () => {
 	loadSettings();
 });
 
-function onInputChange(element, settingName) {
-	const value = element.val();
+/**
+ * Event handler function that is called when an input element's value is changed.
+ * It updates the value in the `extension_settings.timeline` object based on the input element and the type of the input.
+ *
+ * @param {Object} element - The jQuery object representing the changed input element.
+ * @param {string} settingName - The setting name corresponding to the changed input.
+ * @param {Object|null} rgbaValue - The rgba value for color picker inputs (optional).
+ */
+function onInputChange(element, settingName, rgbaValue = null) {
+	let value;
+
+	// Check if the element is a checkbox
+	if (element.is(":checkbox")) {
+		value = element.prop("checked");
+	}
+	// Check if the element is a color picker
+	else if (element.is("toolcool-color-picker")) {
+		value = rgbaValue;
+	}
+	else {
+		value = element.val();
+	}
+
 	extension_settings.timeline[settingName] = value;
 
 	// Only update the label if the value is numeric

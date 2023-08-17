@@ -8,9 +8,21 @@
             <div class="timeline-view-settings_block flex-container">
                 <button class="menu_button" id="toggleStyleSettings">Style Settings</button>
             </div>
-
+            <div class="timeline-view-settings_block flex-container">
+                <label for="tl_lock_nodes">Lock Nodes</label>
+                <input id="tl_lock_nodes" type="checkbox" />
+            </div>
             <!-- The collapsible style settings section -->
             <div id="styleSettingsArea" class="hidden">
+                <!-- Moved tl_avatar_as_root checkbox -->
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_avatar_as_root">Avatar As Root</label>
+                    <input id="tl_avatar_as_root" type="checkbox" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_use_chat_colors">Use UI Theme</label>
+                    <input id="tl_use_chat_colors" type="checkbox" />
+                </div>
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_node_width">Node Width (<span id="tl_node_width_value"></span>)</label>
                     <input id="tl_node_width" type="range" min="1" max="100" />
@@ -89,6 +101,27 @@
                 </div>
             </div>
             <div class="timeline-view-settings_block flex-container">
+                <button class="menu_button" id="toggleColorSettings">Color Settings</button>
+            </div>
+            <div id="colorSettingsArea" class="hidden">
+                <div class="timeline-view-settings_block flex-container">
+                    <toolcool-color-picker id="bookmark-color-picker" value="#ff0000"></toolcool-color-picker>
+                    <span data-i18n="Bookmark Color">Bookmark Color</span>
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <toolcool-color-picker id="char-node-color-picker" value="#FFFFFF"></toolcool-color-picker>
+                    <span data-i18n="Character Node Color">Character Node Color</span>
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <toolcool-color-picker id="user-node-color-picker" value="#ADD8E6"></toolcool-color-picker>
+                    <span data-i18n="User Node Color">User Node Color</span>
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <toolcool-color-picker id="edge-color-picker" value="#555"></toolcool-color-picker>
+                    <span data-i18n="Edge Color">Edge Color</span>
+                </div>
+            </div>
+            <div class="timeline-view-settings_block flex-container">
                 <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" />
                 <!-- New button for comparison -->
             </div>
@@ -97,6 +130,7 @@
                 <!-- Modal content -->
                 <div id="networkContainer">
                     <button class="close">&times;</button>
+                    <input id="transparent-search" type="text" placeholder="Search..." />
                     <div class="graph-container">
                         <!-- Relative positioned container -->
                         <div id="myDiagramDiv"></div>
