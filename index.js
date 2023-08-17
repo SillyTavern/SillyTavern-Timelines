@@ -176,7 +176,11 @@ function nodeClickHandler(node) {
 	let chatSessions = node.data('chat_sessions');
 	if (!(chatSessions && chatSessions.length > 1)) {
 		let chatSessionName = node.data('file_name');
+		closeModal();
 		navigateToMessage(chatSessionName, depth);
+	}
+	else{
+		
 	}
 }
 
@@ -410,13 +414,16 @@ function setupEventHandlers(cy, nodeData) {
 		},
 		hasTrailingDivider: true
 	});
-
-	var contextMenu = cy.contextMenus({
-		menuItems: menuItems,
-		menuItemClasses: ['custom-menu-item'],
-		contextMenuClasses: ['custom-context-menu'],
-	});
-
+	try{
+		var contextMenu = cy.contextMenus({
+			menuItems: menuItems,
+			menuItemClasses: ['custom-menu-item'],
+			contextMenuClasses: ['custom-context-menu'],
+		});
+	}catch(e){
+		console.log(e);
+		console.log("contextMenu is likely not allowed on this device.");
+	}
 
 	cy.ready(function () {
 		createLegend(cy);
@@ -426,7 +433,6 @@ function setupEventHandlers(cy, nodeData) {
 	cy.on('tap', 'node', function (event) {
 		let node = event.target;
 		nodeClickHandler(node);
-		closeModal();
 	});
 
 	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
@@ -557,6 +563,7 @@ async function onTimelineButtonClick() {
 	if (dataUpdated) {
 		renderCytoscapeDiagram(lastTimelineData);
 	}
+	closeOpenDrawers();
 	document.getElementById('transparent-search').focus();
 }
 
