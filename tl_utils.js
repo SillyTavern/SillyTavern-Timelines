@@ -31,7 +31,7 @@ export async function navigateToMessage(chatSessionName, messageId) {
  * Closes any open drawers that are not pinned.
  * It also toggles the display icons and manages the animation during the transition.
  */
-function closeOpenDrawers() {
+export function closeOpenDrawers() {
     var openDrawers = $('.openDrawer').not('.pinnedOpen');
 
     openDrawers.addClass('resizing').slideToggle(200, "swing", function () {

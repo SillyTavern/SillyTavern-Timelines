@@ -57,7 +57,7 @@ loadFile(`${extensionFolderPath}cytoscape-context-menus.min.js`, 'js');
 import { extension_settings, getContext, } from "../../../extensions.js";
 import { characters, getRequestHeaders, saveSettingsDebounced, } from "../../../../script.js";
 
-import { navigateToMessage, closeModal, handleModalDisplay } from './tl_utils.js';
+import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
 import { toggleGraphOrientation, highlightNodesByQuery, getNodeDepth, setGraphOrientationBasedOnViewport } from './tl_graph.js';
@@ -420,6 +420,7 @@ function setupEventHandlers(cy, nodeData) {
 
 	cy.ready(function () {
 		createLegend(cy);
+		closeOpenDrawers();
 	});
 
 	cy.on('tap', 'node', function (event) {
