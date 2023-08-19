@@ -82,10 +82,24 @@ export function handleModalDisplay() {
         return;
     }
 
+    function closeTippy() {
+        // If Tippy uses a specific class or attribute, you can target it more precisely
+        let tippyBoxes = document.querySelectorAll('.tippy-box');
+
+        tippyBoxes.forEach(box => {
+            let parent = box.parentElement;
+            if (parent && parent._tippy) {
+                parent._tippy.hide();
+            }
+        });
+    }
+
+
     closeBtn.onclick = function () {
         // Append the modal back to its original parent when closed
         document.querySelector('.timeline-view-settings_block').appendChild(modal);
         modal.style.display = "none";
+        closeTippy();  // Hide the Tippy tooltip
     }
 
     window.onclick = function (event) {
@@ -93,6 +107,7 @@ export function handleModalDisplay() {
             // Append the modal back to its original parent when clicked outside
             document.querySelector('.timeline-view-settings_block').appendChild(modal);
             modal.style.display = "none";
+            closeTippy();  // Hide the Tippy tooltip
         }
     }
 
