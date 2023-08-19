@@ -63,6 +63,7 @@ import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } f
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
 import { toggleGraphOrientation, highlightNodesByQuery, getNodeDepth, setGraphOrientationBasedOnViewport } from './tl_graph.js';
+import { registerSlashCommand } from "../../../slash-commands.js";
 import { fixMarkdown } from "../../../power-user.js";
 
 let defaultSettings = {
@@ -774,6 +775,22 @@ async function onTimelineButtonClick() {
 }
 
 /**
+ * Handler function that is called when the slash command is used.
+ * This function checks if the timeline data needs to be updated, and potentially renders the Cytoscape diagram.
+ * It also handles the `r` argument, which reloads the graph.
+ * 
+ * @param {Object} _ - The slash event object.
+ * @param {string} reload - The argument passed to the slash command.
+ * @returns {Promise<void>}
+ */
+function slashCommandHandler(_, reload) {
+	if (reload == 'r'){
+		lastContext = null;
+	}
+	onTimelineButtonClick();
+}
+
+/**
  * Entry point function for the jQuery script.
  * It handles adding UI components to the extension settings, binds events to various UI components,
  * and sets up event handlers for user interactions.
@@ -782,6 +799,9 @@ jQuery(async () => {
 	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
 	$("#show_timeline_view").on("click", onTimelineButtonClick);
+	registerSlashCommand('tl', slashCommandHandler, [], "Show the timeline, ` r ` to reload the graph", false, true);
+
+
 
     // Bind listeners to the specific inputs
     const idsToSettingsMap = {
