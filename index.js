@@ -43,6 +43,8 @@ loadFile(`${extensionFolderPath}light.min.css`, "css");
 loadFile(`${extensionFolderPath}material.min.css`, "css");
 loadFile(`${extensionFolderPath}light-border.min.css`, "css");
 loadFile(`${extensionFolderPath}translucent.min.css`, "css");
+loadFile(`${extensionFolderPath}tippy.css`, "css");
+loadFile(`${extensionFolderPath}tl_style.css`, "css");
 
 // Load JavaScript files
 loadFile(`scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js`, 'js');
@@ -61,6 +63,8 @@ import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } f
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
 import { toggleGraphOrientation, highlightNodesByQuery, getNodeDepth, setGraphOrientationBasedOnViewport } from './tl_graph.js';
+import { registerSlashCommand } from "../../../slash-commands.js";
+import { fixMarkdown } from "../../../power-user.js";
 
 let defaultSettings = {
 	nodeWidth: 25,
@@ -128,6 +132,8 @@ async function loadSettings() {
 
 }
 
+let isTapTippyActive = false;
+
 /**
  * Creates a Tippy tooltip for a given Cytoscape element with specified content.
  * 
@@ -154,11 +160,156 @@ function makeTippy(ele, text) {
 		hideOnClick: true,
 		sticky: "reference",
 		interactive: true,
-		appendTo: document.body
+		appendTo: document.body,
 	});
 
 	return tip;
 };
+
+function formatNodeMessage(mes) {
+	if (mes == null) return "";
+	mes = fixMarkdown(mes);
+	mes = mes.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+	mes = mes.replace(/```[\s\S]*?```|``[\s\S]*?``|`[\s\S]*?`|(\".+?\")|(\u201C.+?\u201D)/gm, function (match, p1, p2) {
+		if (p1) {
+			return '<q>' + p1.replace(/\"/g, "") + '</q>';
+		} else if (p2) {
+			return '<q>“' + p2.replace(/\u201C|\u201D/g, "") + '”</q>';
+		} else {
+			return match;
+		}
+	});
+
+
+
+	// 5. Handling mathematical notation
+	mes = mes.replaceAll('\\begin{align*}', '$$').replaceAll('\\end{align*}', '$$');
+
+	let converter = new showdown.Converter({
+		emoji: "true",
+		literalMidWordUnderscores: "true",
+		parseImgDimensions: "true",
+		tables: "true",
+	});
+	
+	mes = converter.makeHtml(mes);
+
+	// 7. Handle <code> tags
+	mes = mes.replace(/<code(.*)>[\s\S]*?<\/code>/g, function (match) {
+		return match.replace(/\n/gm, '\u0000');
+	});
+	mes = mes.replace(/\n/g, "<br/>");
+	mes = mes.replace(/\u0000/g, "\n");
+	mes = mes.trim();
+	mes = mes.replace(/<code(.*)>[\s\S]*?<\/code>/g, function (match) {
+		return match.replace(/&amp;/g, '&');
+	});
+
+	return mes;
+}
+
+
+function makeTapTippy(ele) {
+	var ref = ele.popperRef();
+	var dummyDomEle = document.createElement('div');
+
+	var tip = tippy(dummyDomEle, {
+		getReferenceClientRect: ref.getBoundingClientRect,
+		trigger: 'manual',
+		duration: 0,
+		content: function () {
+			var div = document.createElement('div');
+			div.classList.add('tap_tippy_content');
+
+			// Display specific node data with individual classes
+			var dataItems = [
+				{ content: ele.data('name'), className: 'name_text' },
+				{ content: ele.data('send_date'), className: 'timestamp' },
+			];
+
+			dataItems.forEach(dataItem => {
+				let p = document.createElement('div');
+				p.classList.add(dataItem.className);
+				p.innerHTML = dataItem.content;
+				div.appendChild(p);
+			});
+
+			// Insert an <hr> between name, date, and the message content
+			div.appendChild(document.createElement('hr'));
+
+			// Add the message content
+			let mesDiv = document.createElement('div');
+			mesDiv.classList.add('mes_text');
+			mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
+			div.appendChild(mesDiv);
+
+			// Insert an <hr> before adding the interactive menu based on chat_sessions
+			div.appendChild(document.createElement('hr'));
+
+			var menuDiv = document.createElement('div');
+			menuDiv.classList.add('menu_div');
+			if (ele.data('chat_sessions')) {
+				ele.data('chat_sessions').forEach((session, index) => {
+					let btn = document.createElement('button');
+					btn.classList.add('menu_button');
+					btn.textContent = session.split('.jsonl')[0];
+					btn.dataset.sessionIndex = index; // Storing the session index as a data attribute
+					btn.addEventListener('click', function () {
+						var depth = getNodeDepth(ele);
+						navigateToMessage(session, depth);
+						closeModal();
+						tip.hide(); // Hide the Tippy tooltip
+					});
+					menuDiv.appendChild(btn);
+				});
+			}
+			div.appendChild(menuDiv);
+
+			return div;
+		},
+		arrow: true,
+		placement: 'auto',
+		hideOnClick: false,
+		sticky: "reference",
+		interactive: true,
+		appendTo: document.body,
+		boundary: document.querySelector('#myDiagramDiv'),
+		onShow() {
+			isTapTippyActive = true;
+		},
+		onHide() {
+			isTapTippyActive = false;
+			console.log("Tap Tippy hidden");
+		},
+		popperOptions: {
+			modifiers: [
+				{
+					name: 'preventOverflow',
+					options: {
+						boundary: document.querySelector('#myDiagramDiv')
+					}
+				},
+				{
+					name: 'flip',
+					options: {
+						boundary: document.querySelector('#myDiagramDiv')
+					}
+				},
+            {
+					name: 'computeStyles',
+					options: {
+						adaptive: true,
+						gpuAcceleration: false, // turning this off can fix the arrow being off (sometimes)
+						zIndex: 9999
+					}
+				}				
+			]
+		}
+	});
+
+	return tip;
+};
+
 
 /**
  * Handles click events on nodes in a Cytoscape graph.
@@ -174,14 +325,42 @@ function makeTippy(ele, text) {
 function nodeClickHandler(node) {
 	let depth = getNodeDepth(node);
 	let chatSessions = node.data('chat_sessions');
-	if (!(chatSessions && chatSessions.length > 1)) {
+
+	if (chatSessions && chatSessions.length > 1) {
+		let modalTextElement = document.getElementById('nodeText');
+		let chatSessionListElement = document.getElementById('chatSessionList');
+
+		// Setting the full text from node data
+		modalTextElement.textContent = node.data('full_text'); // Assuming 'full_text' is a property in your node data
+
+		// Clear previous chat sessions
+		chatSessionListElement.innerHTML = '';
+
+		// Populate the list of chat sessions
+		chatSessions.forEach(session => {
+			let listItem = document.createElement('li');
+			listItem.textContent = session.name; // Adjust based on your chat session structure
+			listItem.addEventListener('click', function () {
+				closeNodeModal();
+				navigateToMessage(session.file_name, depth); // Assuming 'file_name' is a property in your chat session data
+			});
+			chatSessionListElement.appendChild(listItem);
+		});
+
+		showNodeModal();
+	} else {
 		let chatSessionName = node.data('file_name');
-		closeModal();
+		closeNodeModal();
 		navigateToMessage(chatSessionName, depth);
 	}
-	else{
-		
-	}
+}
+
+function showNodeModal() {
+	document.getElementById('nodeModal').style.display = 'block';
+}
+
+function closeNodeModal() {
+	document.getElementById('nodeModal').style.display = 'none';
 }
 
 /**
@@ -362,6 +541,9 @@ function initializeCytoscape(nodeData, styles) {
  * @param {Array<Object>} nodeData - Array of node data objects containing information like chat sessions.
  */
 function setupEventHandlers(cy, nodeData) {
+	let showTimeout;
+	let activeTapTippy = null;
+
 	var allChatSessions = [];
 	for (let i = 0; i < nodeData.length; i++) {
 		if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
@@ -381,6 +563,7 @@ function setupEventHandlers(cy, nodeData) {
 				var depth = getNodeDepth(target);
 				navigateToMessage(session, depth);
 				closeModal();
+				activeTapTippy.hide();
 			},
 			hasTrailingDivider: true
 		};
@@ -430,10 +613,41 @@ function setupEventHandlers(cy, nodeData) {
 		closeOpenDrawers();
 	});
 
-	cy.on('tap', 'node', function (event) {
-		let node = event.target;
-		nodeClickHandler(node);
+	cy.on('tap', 'node', function (evt) {
+		clearTimeout(showTimeout); // Clear any pending timeout for showing tooltip
+		let node = evt.target;
+		if (node._tippy) {
+			node._tippy.hide(); // Hide the tippy instance associated with the node
+		}
+		if (activeTapTippy) {
+			activeTapTippy.hide();
+		}
+		let tipInstance = makeTapTippy(node);
+
+		// Show the tooltip
+		tipInstance.show();
+
+		activeTapTippy = tipInstance;
+
+
+		// Optional: Hide the tooltip if user taps anywhere else
+		cy.on('tap', function (e) {
+			if (e.target === cy) {
+				tipInstance.hide();
+			}
+		});
 	});
+
+	// Handle double click on nodes for quickly navigating to the message
+	cy.on('dbltap ', 'node', function (evt) {
+		let node = evt.target;
+		let session = node.data('chat_sessions')[0];
+		let depth = getNodeDepth(node);
+		navigateToMessage(session, depth);
+		closeModal();
+		activeTapTippy.hide();
+	});
+
 
 	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
@@ -448,7 +662,6 @@ function setupEventHandlers(cy, nodeData) {
 			}
 		}
 	});
-	let showTimeout;
 
 	const truncateMessage = (msg, length = 100) => {
 		if (msg === undefined) {
@@ -459,6 +672,10 @@ function setupEventHandlers(cy, nodeData) {
 
 	//Figure out how to do the deley better later
 	cy.on('mouseover', 'node', function (evt) {
+		if (isTapTippyActive) {
+			return;  // Return early if tap Tippy is active
+		}
+
 		let node = evt.target;
 		let truncatedMsg = truncateMessage(node.data('msg'));
 		let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
@@ -468,7 +685,7 @@ function setupEventHandlers(cy, nodeData) {
 			let tippy = makeTippy(node, content);
 			tippy.show();
 			node._tippy = tippy; // Store tippy instance on the node
-		}, 150);
+		}, 250);
 	});
 
 
@@ -568,6 +785,22 @@ async function onTimelineButtonClick() {
 }
 
 /**
+ * Handler function that is called when the slash command is used.
+ * This function checks if the timeline data needs to be updated, and potentially renders the Cytoscape diagram.
+ * It also handles the `r` argument, which reloads the graph.
+ * 
+ * @param {Object} _ - The slash event object.
+ * @param {string} reload - The argument passed to the slash command.
+ * @returns {Promise<void>}
+ */
+function slashCommandHandler(_, reload) {
+	if (reload == 'r'){
+		lastContext = null;
+	}
+	onTimelineButtonClick();
+}
+
+/**
  * Entry point function for the jQuery script.
  * It handles adding UI components to the extension settings, binds events to various UI components,
  * and sets up event handlers for user interactions.
@@ -576,6 +809,9 @@ jQuery(async () => {
 	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
 	$("#show_timeline_view").on("click", onTimelineButtonClick);
+	registerSlashCommand('tl', slashCommandHandler, [], "Show the timeline, ` r ` to reload the graph", false, true);
+
+
 
     // Bind listeners to the specific inputs
     const idsToSettingsMap = {

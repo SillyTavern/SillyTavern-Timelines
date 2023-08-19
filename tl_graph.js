@@ -10,7 +10,6 @@ let currentOrientation = 'TB'; // starting orientation
  */
 export function toggleGraphOrientation(cy, layout) {
     currentOrientation = (currentOrientation === 'LR') ? 'TB' : 'LR';
-
     setOrientation(cy, currentOrientation, layout);
 }
 
@@ -43,14 +42,12 @@ function setOrientation(cy, orientation, layout) {
     // Update layout
     layout.rankDir = orientation;
     cy.layout(layout).run();
-
     // Update taxi-direction in style
     const taxiDirection = orientation === 'TB' ? 'downward' : 'rightward';
     cy.style().selector('edge').style({
         'taxi-direction': taxiDirection
     }).update();
     currentOrientation = orientation;
-
 }
 
 /**

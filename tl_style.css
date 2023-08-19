@@ -143,6 +143,7 @@ position: absolute;
 .graph-container {
     height: 100%;
     width: 100%;
+    overflow: hidden;
 }
 
 .legend-bottom-right {
@@ -170,4 +171,47 @@ position: absolute;
     width: 200px; 
     font-size: 16px; 
     z-index: 10;
+}
+
+.tippy-box {
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    background-color: var(--SmartThemeBlurTintColor);
+    -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
+    text-shadow: 0px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor);
+    padding: 20px;
+    border: 1px solid var(--SmartThemeShadowColor);
+    max-width: 80vw;
+    width: auto;
+    /* To make it responsive */
+    max-height: 80vh;
+    height: auto;
+    /* overflow: auto; */
+    border-radius: 4px;
+    /* Optional: if you want rounded corners */
+}
+
+.tippy-box button:hover {
+    background-color: #0056b3;
+}
+
+.tippy-box .mes_text {
+    max-height: 70vh;
+    max-width: 70vw;
+    overflow-y: auto;
+}
+
+.tippy-box .menu_div {
+    overflow-y: auto;
+    max-height: 50vh;
+}
+
+.tippy-box .menu_button {
+    width: 100%;
+}
+
+.tap_tippy_content {
+    overflow: auto;
+    max-height: 75vh;
+    max-width: 80vw;
 }
