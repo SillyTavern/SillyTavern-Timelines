@@ -638,6 +638,16 @@ function setupEventHandlers(cy, nodeData) {
 		});
 	});
 
+	// Handle double click on nodes for quickly navigating to the message
+	cy.on('dbltap ', 'node', function (evt) {
+		let node = evt.target;
+		let session = node.data('chat_sessions')[0];
+		let depth = getNodeDepth(node);
+		navigateToMessage(session, depth);
+		closeModal();
+		activeTapTippy.hide();
+	});
+
 
 	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
