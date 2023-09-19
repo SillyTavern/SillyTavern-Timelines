@@ -45,13 +45,14 @@ function buildNodes(allChats) {
     let keyCounter = 1;
     let previousNodes = {};
 
+    let nodesWithSwipeChild = new Set();
+
     // Initialize root node
     cyElements.push({
         group: 'nodes',
         data: {
             id: "root",
-            label: "root", // or any text you prefer
-            //name: "Start of Conversation",
+            label: "root",
             x: 0,
             y: 0,
         }
@@ -70,14 +71,58 @@ function buildNodes(allChats) {
             let parentNodeId = previousNodes[group[0].file_name];
 
             let node = createNode(nodeId, parentNodeId, text, group);
-            cyElements.push({
+
+            // Temporary array to hold swipe nodes and their corresponding edges
+            let tempSwipeElements = [];
+
+            // Extract swipes only if it's not the first node (i.e., messagesAtIndex !== 0)
+            if (messagesAtIndex !== 0) {
+                let allSwipes = [];
+                group.forEach(messageObj => {
+                    const swipes = messageObj.message.swipes || [];
+                    allSwipes.push(...swipes);
+                });
+
+                // Deduplicating swipes
+                const uniqueSwipes = [...new Set(allSwipes)];
+
+                // If there are unique swipes other than the main message, set the flag
+                if (uniqueSwipes.length > 1) {
+                    nodesWithSwipeChild.add(parentNodeId);
+                }
+
+                // Skip the first swipe since it's the same as the message
+                uniqueSwipes.slice(1).forEach(swipeText => {
+                    let swipeNodeData = { ...node };
+                    swipeNodeData.id = `swipe${keyCounter}`;
+                    swipeNodeData.msg = swipeText; // replace msg with swipe text
+                    swipeNodeData.isSwipe = true;  // flag to indicate it's a swipe
+
+                    tempSwipeElements.push({
+                        group: 'nodes',
+                        data: swipeNodeData
+                    });
+
+                    tempSwipeElements.push({
+                        group: 'edges',
+                        data: {
+                            id: `edgeSwipe${keyCounter}`,
+                            source: parentNodeId,
+                            target: swipeNodeData.id
+                        }
+                    });
+
+                    keyCounter += 1;
+                });
+            }
+
+            // Insert the main (non-swipe) node in the middle of the tempSwipeElements array
+            const middleIndex = Math.floor(tempSwipeElements.length / 2);
+            tempSwipeElements.splice(middleIndex, 0, {
                 group: 'nodes',
                 data: node
             });
-            keyCounter += 1;
-
-            // If you wish to create edges between nodes, you can add here
-            cyElements.push({
+            tempSwipeElements.splice(middleIndex + 1, 0, {
                 group: 'edges',
                 data: {
                     id: `edge${keyCounter}`,
@@ -86,12 +131,25 @@ function buildNodes(allChats) {
                 }
             });
 
+            keyCounter += 1;
+
+            // Add the interspersed nodes to cyElements
+            cyElements.push(...tempSwipeElements);
+
             updatePreviousNodes(previousNodes, nodeId, group);
         }
     }
 
+    // Update the parent nodes that have a swipe child
+    cyElements.forEach(element => {
+        if (element.group === 'nodes' && nodesWithSwipeChild.has(element.data.id)) {
+            element.data.hasSwipeChild = true;
+        }
+    });
+
     return cyElements;
 }
+
 
 /**
  * Constructs a Cytoscape node object based on provided message details.
@@ -201,6 +259,7 @@ function updatePreviousNodes(previousNodes, nodeKey, group) {
  */
 function postprocessNodes(nodeData) {
     // Placeholder for now; add additional steps if needed
+    console.log(nodeData);
     return nodeData;
 }
 

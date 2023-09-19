@@ -1,9 +1,8 @@
 
 // TODO Edge labels?
 // TODO Possible minimap mode
-// TODO More context menu options
 // TODO Experimental multi-tree view
-// TODO Mobile taps on iOS
+
 
 
 /**
@@ -44,12 +43,15 @@ loadFile(`${extensionFolderPath}material.min.css`, "css");
 loadFile(`${extensionFolderPath}light-border.min.css`, "css");
 loadFile(`${extensionFolderPath}translucent.min.css`, "css");
 loadFile(`${extensionFolderPath}tippy.css`, "css");
-loadFile(`${extensionFolderPath}tl_style.css`, "css");
+//loadFile(`${extensionFolderPath}tl_style.css`, "css");
 
 // Load JavaScript files
 loadFile(`scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js`, 'js');
 loadFile(`${extensionFolderPath}dagre.min.js`, 'js', function () {
 	loadFile(`${extensionFolderPath}cytoscape-dagre.min.js`, 'js');
+});
+loadFile(`${extensionFolderPath}elk.min.js`, 'js', function () {
+	loadFile(`${extensionFolderPath}cytoscape-elk.js`, 'js');
 });
 loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
 	loadFile(`${extensionFolderPath}cytoscape-popper.min.js`, 'js');
@@ -511,6 +513,7 @@ function initializeCytoscape(nodeData, styles) {
 	}
 
 	cytoscape.use(cytoscapeDagre);
+	cytoscape.use(cytoscapeElk);
 	cytoscape.use(cytoscapeContextMenus);
 	cytoscape.use(cytoscapePopper);
 
@@ -648,6 +651,65 @@ function setupEventHandlers(cy, nodeData) {
 		activeTapTippy.hide();
 	});
 
+	function refreshLayout(initial, centerNode=false) {
+		cyLayout = cy.elements().makeLayout(layout);
+		if (cyLayout) {
+			cyLayout.stop();
+		}
+
+		if (initial) {
+			cy.json({
+				elements: nodeData,
+			});
+
+			cyLayout = cy.layout(layout);
+		} else {
+			layout.fit = false;
+			cyLayout = cy.elements().makeLayout(layout);
+		}
+		// unlock nodes
+		cy.nodes().forEach(node => {
+			node.unlock();
+		});
+
+
+		cyLayout.run();
+		if (centerNode) {
+			cy.animate({
+				center: { eles: centerNode },
+				zoom: cy.zoom(),  // Maintain the current zoom level, but adjust the center
+				duration: 300  // Adjust the duration as needed for a smooth transition
+			});
+		}
+	}
+
+	let storedNodesMap = {};  // This will map parent node IDs to their stored child nodes
+
+	cy.on('taphold', 'node', function (evt) {
+		let node = evt.target;
+		let nodeId = node.id();
+
+		if (!node.data('isSwipe')) {
+			if (!storedNodesMap[nodeId]) {  // If there's no entry for this node ID, store the nodes
+				// Get direct child swipe nodes of the current node
+				let childSwipeNodes = node.outgoers().filter(ele => ele.isNode() && ele.data('isSwipe'));
+
+				if (childSwipeNodes.length) {
+					// Store nodes and their connected edges mapped by the parent node's ID
+					storedNodesMap[nodeId] = childSwipeNodes.union(childSwipeNodes.connectedEdges()).jsons();
+					childSwipeNodes.remove();
+				}
+			} else {
+				// Add the stored nodes and edges back to the cy instance
+				cy.add(storedNodesMap[nodeId]);
+				delete storedNodesMap[nodeId];  // Remove the entry for this node ID after adding nodes back
+			}
+
+			// Refresh the layout
+			refreshLayout(false, node);
+		}
+	});
+
 
 	let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
@@ -702,6 +764,7 @@ function setupEventHandlers(cy, nodeData) {
 		}
 	});
 }
+let cyLayout = [];
 
 /**
  * Renders a Cytoscape diagram using the given node data.
@@ -759,6 +822,7 @@ async function updateTimelineDataIfNeeded() {
 			edgeSep: extension_settings.timeline.edgeSeparation,
 			rankSep: extension_settings.timeline.rankSeparation,
 			rankDir: 'LR',  // Left to Right
+			ranker: 'tight-tree',
 			minLen: function (edge) { return 1; },
 			spacingFactor: extension_settings.timeline.spacingFactor
 		}

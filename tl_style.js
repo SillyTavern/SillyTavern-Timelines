@@ -171,6 +171,28 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "black";
                 },
             }
+        },
+        {
+            selector: 'node[?isSwipe]',  // Select nodes with is_system property set to true
+            style: {
+                'background-color': 'black',
+                'border-style': 'dashed',
+                'border-width': 3,
+                'border-color': function (ele) {
+                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "black";
+                },
+            }
+        },
+        { // Select nodes with hasSwipeChild
+            selector: 'node[?hasSwipeChild]',
+            style: {
+                'border-style': 'dashed',
+                'border-width': 3,
+                'shape': 'rectangle',
+                'border-color': function (ele) {
+                    return "black";
+                }
+            }
         }
     ];
 
