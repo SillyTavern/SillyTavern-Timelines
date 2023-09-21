@@ -92,7 +92,7 @@ function buildNodes(allChats) {
                 }
 
                 // Skip the first swipe since it's the same as the message
-                uniqueSwipes.slice(1).forEach(swipeText => {
+                uniqueSwipes.forEach(swipeText => {
                     let swipeNodeData = { ...node };
                     swipeNodeData.id = `swipe${keyCounter}`;
                     swipeNodeData.msg = swipeText; // replace msg with swipe text
@@ -114,6 +114,7 @@ function buildNodes(allChats) {
 
                     keyCounter += 1;
                 });
+            console.log(uniqueSwipes);
             }
 
             // Insert the main (non-swipe) node in the middle of the tempSwipeElements array

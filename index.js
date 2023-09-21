@@ -740,7 +740,26 @@ function setupEventHandlers(cy, nodeData) {
 
 		let node = evt.target;
 		let truncatedMsg = truncateMessage(node.data('msg'));
-		let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
+		var id = node.id();
+		var position = node.position();
+
+		// Dagre-specific Scratch Data
+		var dagreData = node.scratch('dagre');
+		var rank = dagreData ? dagreData._rank : 'N/A';
+		var order = dagreData ? dagreData._order : 'N/A';
+
+		// Node Dimensions
+		var width = node.width();
+		var height = node.height();
+
+		// Node's Custom Data
+		var data = JSON.stringify(node.data());
+
+		// Construct Debugging String
+		var content = `Node ID: ${id}\nPosition: x=${position.x}, y=${position.y}\nRank: ${rank}\nOrder: ${order}\nWidth: ${width}\nHeight: ${height}\nData: ${data}`;
+		console.log(node.scratch());
+
+		//let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg} ${position.x},${position.x}` : truncatedMsg;
 
 		// Delay the tooltip appearance by 3 seconds (3000 ms)
 		showTimeout = setTimeout(() => {
@@ -822,7 +841,7 @@ async function updateTimelineDataIfNeeded() {
 			edgeSep: extension_settings.timeline.edgeSeparation,
 			rankSep: extension_settings.timeline.rankSeparation,
 			rankDir: 'LR',  // Left to Right
-			ranker: 'tight-tree',
+			ranker: 'network-simplex',
 			minLen: function (edge) { return 1; },
 			spacingFactor: extension_settings.timeline.spacingFactor
 		}
