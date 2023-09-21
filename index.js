@@ -78,6 +78,7 @@ let defaultSettings = {
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
 	avatarAsRoot: true,
+	showLegend: true,
 	bookmarkColor: "#ff0000",
 	useChatColors: false,
 	charNodeColor: "#FFFFFF",
@@ -125,6 +126,7 @@ async function loadSettings() {
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
 	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
+	$("#tl_show_legend").prop("checked", extension_settings.timeline.showLegend).trigger("input");
 	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
 	$("#tl_lock_nodes").prop("checked", extension_settings.timeline.lockNodes).trigger("input");
 	$("#bookmark-color-picker").attr('color', extension_settings.timeline.bookmarkColor);
@@ -612,7 +614,9 @@ function setupEventHandlers(cy, nodeData) {
 	}
 
 	cy.ready(function () {
-		createLegend(cy);
+		if (extension_settings.timeline.showLegend) {
+			createLegend(cy);
+		}
 		closeOpenDrawers();
 	});
 
@@ -907,6 +911,7 @@ jQuery(async () => {
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
 		'tl_avatar_as_root': 'avatarAsRoot',
+		'tl_show_legend': 'showLegend',
 		'tl_use_chat_colors': 'useChatColors',
 		'tl_lock_nodes': 'lockNodes',
 		'bookmark-color-picker': 'bookmarkColor',
