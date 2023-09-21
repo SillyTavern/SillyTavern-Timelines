@@ -1,4 +1,5 @@
 import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from "../../../../script.js";
+import { power_user } from "../../../power-user.js";
 
 
 /**
@@ -10,13 +11,34 @@ import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced
  */
 export async function navigateToMessage(chatSessionName, messageId) {
 
-    //remove extension from file name
+    // Remove extension from file name
     chatSessionName = chatSessionName.replace('.jsonl', '');
     await openCharacterChat(chatSessionName);
 
     let message = $(`div[mesid=${messageId - 1}]`); // Select the message div by the messageId
     let chat = $("#chat");
 
+    // Check if the message is not visible
+    while (!message.is(':visible')) {
+        console.log(`Message with id "${messageId}" is not visible.`)
+        // Show hidden messages if they exist
+        if (chat.children('.mes').not(':visible').length > 0) {
+            console.log(`Showing hidden messages.`)
+            const prevHeight = chat.prop('scrollHeight');
+            chat.children('.mes').not(':visible').slice(-power_user.lazy_load).show();
+            const newHeight = chat.prop('scrollHeight');
+            chat.scrollTop(newHeight - prevHeight);
+
+            // Re-select the message after showing hidden ones to see if it's now visible
+            message = $(`div[mesid=${messageId - 1}]`);
+        } else {
+            console.log(`Message with id "${messageId}" not found.`);
+            closeOpenDrawers();
+            return;
+        }
+    }
+
+    // If message is visible, adjust the scroll position to it
     if (message.length) {
         // calculate the position by adding the container's current scrollTop to the message's position().top
         let scrollPosition = chat.scrollTop() + message.position().top;
