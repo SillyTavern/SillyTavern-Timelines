@@ -613,6 +613,10 @@ function setupEventHandlers(cy, nodeData) {
 	cy.ready(function () {
 		if (extension_settings.timeline.showLegend) {
 			createLegend(cy);
+			document.getElementById('legendDiv').style.display = 'block';
+		}
+		else {
+			document.getElementById('legendDiv').style.display = 'none';
 		}
 		closeOpenDrawers();
 	});
