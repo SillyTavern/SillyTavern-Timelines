@@ -18,8 +18,9 @@ export async function navigateToMessage(chatSessionName, messageId) {
     let message = $(`div[mesid=${messageId - 1}]`); // Select the message div by the messageId
     let chat = $("#chat");
 
-    // Check if the message is not visible
+    // Check if the message is not visible if not, check for show_more_messages button
     while (!message.is(':visible')) {
+
         console.log(`Message with id "${messageId}" is not visible.`)
         // Show hidden messages if they exist
         if (chat.children('.mes').not(':visible').length > 0) {
@@ -32,9 +33,19 @@ export async function navigateToMessage(chatSessionName, messageId) {
             // Re-select the message after showing hidden ones to see if it's now visible
             message = $(`div[mesid=${messageId - 1}]`);
         } else {
-            console.log(`Message with id "${messageId}" not found.`);
-            closeOpenDrawers();
-            return;
+            // If no hidden messages exist, check for show_more_messages div anywhere in the page
+            const showMoreBtn = $('#show_more_messages');
+            if (showMoreBtn.length) {
+                console.log(`Showing more messages.`)
+                showMoreBtn.trigger('mouseup');
+                // Re-select the message after showing more messages to see if it's now visible
+                message = $(`div[mesid=${messageId - 1}]`);
+            } else {
+                // If no hidden messages exist and no show_more_messages button exists, the message is not visible
+                console.log(`Message with id "${messageId}" not found.`);
+                closeOpenDrawers();
+                return;
+            }
         }
     }
 
