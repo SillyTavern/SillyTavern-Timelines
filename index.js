@@ -73,6 +73,7 @@ let defaultSettings = {
 	edgeSeparation: 10,
 	rankSeparation: 50,
 	spacingFactor: 1,
+	tooltipFixed : false,
 	align: "UL",
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
@@ -124,6 +125,7 @@ async function loadSettings() {
 	$("#tl_rank_separation").val(extension_settings.timeline.rankSeparation).trigger("input");
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
 	$("#tl_align").val(extension_settings.timeline.align).trigger("input");
+	$("#tl_tooltip_fixed").prop("checked", extension_settings.timeline.fixedTooltip).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
 	$("#tl_swipe_scale").prop("checked", extension_settings.timeline.swipeScale).trigger("input");
@@ -148,11 +150,11 @@ let isTapTippyActive = false;
  * @returns {Object} - Returns the Tippy tooltip instance.
  */
 function makeTippy(ele, text) {
-	var ref = ele.popperRef();
+	var ref = getTooltipReference(ele);
 	var dummyDomEle = document.createElement('div');
 
 	var tip = tippy(dummyDomEle, {
-		getReferenceClientRect: ref.getBoundingClientRect,
+		getReferenceClientRect: ref,
 		trigger: 'mouseenter',
 		delay: [1000, 1000], // 0ms delay for both show and hide
 		duration: 0, // No animation duration
@@ -162,7 +164,7 @@ function makeTippy(ele, text) {
 			return div;
 		},
 		arrow: true,
-		placement: 'bottom',
+		placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'bottom',
 		hideOnClick: true,
 		sticky: "reference",
 		interactive: true,
@@ -216,11 +218,11 @@ function formatNodeMessage(mes) {
 
 
 function makeTapTippy(ele) {
-	var ref = ele.popperRef();
+	var ref = getTooltipReference(ele);
 	var dummyDomEle = document.createElement('div');
 
 	var tip = tippy(dummyDomEle, {
-		getReferenceClientRect: ref.getBoundingClientRect,
+		getReferenceClientRect: ref,
 		trigger: 'manual',
 		duration: 0,
 		content: function () {
@@ -282,7 +284,7 @@ function makeTapTippy(ele) {
 			return div;
 		},
 		arrow: true,
-		placement: 'auto',
+		placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'auto',
 		hideOnClick: false,
 		sticky: "reference",
 		interactive: true,
@@ -538,6 +540,18 @@ function initializeCytoscape(nodeData, styles) {
 	});
 
 	return cy;
+}
+
+function getFixedReferenceClientRect() {
+	return document.querySelector('#fixedReference').getBoundingClientRect();
+}
+
+function getTooltipReference(ele) {
+	if (extension_settings.timeline.fixedTooltip) {
+		return getFixedReferenceClientRect;  // Use fixed bottom-left corner
+	} else {
+		return ele.popperRef().getBoundingClientRect;  // Use node's position
+	}
 }
 
 /**
@@ -939,6 +953,7 @@ jQuery(async () => {
         'tl_edge_separation': 'edgeSeparation',
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
+		'tl_tooltip_fixed': 'fixedTooltip',
 		'tl_align': 'align',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
