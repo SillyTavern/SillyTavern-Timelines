@@ -293,7 +293,10 @@ function makeTapTippy(ele) {
 					branchBtn.title = `Branch from ${session}`
 					branchBtn.addEventListener('click', function () {
 						var depth = getNodeDepth(ele);
-						navigateToMessage(session, depth, -1, true);
+						if(ele.data('isSwipe'))
+							navigateToMessage(session, depth, ele.data('swipeId'), false);
+						else
+							navigateToMessage(session, depth, null, true);
 						closeModal();
 						tip.hide(); // Hide the Tippy tooltip
 					});
