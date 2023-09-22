@@ -140,13 +140,16 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('is_user') ? getAlphaFromRGBA(theme.userNodeColor) : getAlphaFromRGBA(theme.charNodeColor);
                 },
                 'border-color': function (ele) {
-                    return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : '#000';
+                    return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : ele.data('totalSwipes') ? (ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor) : "black";
                 },
                 'border-width': function (ele) {
-                    return ele.data('isBookmark') ? 4 : ele.data('borderColor') ? 3 : 0;
+                    return ele.data('isBookmark') || ele.data('totalSwipes') ? 4 : ele.data('borderColor') ? 3 : 0;
                 },
                 'border-opacity': function (ele) {
-                    return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : 0;
+                    return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : ele.data('totalSwipes') > 0 ? 1 : 0;
+                },
+                'border-style': function (ele) {
+                    return ele.data('totalSwipes') > 0 ? 'double' : 'solid';
                 }
             }
         },
@@ -171,7 +174,7 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "black";
                 },
             }
-        }
+        },
     ];
 
     return cytoscapeStyles;

@@ -228,6 +228,10 @@ function makeTapTippy(ele) {
 				{ content: ele.data('name'), className: 'name_text' },
 				{ content: ele.data('send_date'), className: 'timestamp' },
 			];
+			//if swipes, display swipes
+			if (ele.data('totalSwipes')>0) {
+				dataItems.push({ content: `Swipes: ${ele.data('totalSwipes')}`, className: 'timestamp' });
+			}
 
 			dataItems.forEach(dataItem => {
 				let p = document.createElement('div');

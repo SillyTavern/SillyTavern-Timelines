@@ -50,8 +50,7 @@ function buildNodes(allChats) {
         group: 'nodes',
         data: {
             id: "root",
-            label: "root", // or any text you prefer
-            //name: "Start of Conversation",
+            label: "root",
             x: 0,
             y: 0,
         }
@@ -70,13 +69,29 @@ function buildNodes(allChats) {
             let parentNodeId = previousNodes[group[0].file_name];
 
             let node = createNode(nodeId, parentNodeId, text, group);
+
+            // If it's not the first node, extract swipes and store in the node's swipes attribute
+            if (messagesAtIndex !== 0) {
+                let allSwipes = [];
+                group.forEach(messageObj => {
+                    const swipes = messageObj.message.swipes || [];
+                    allSwipes.push(...swipes);
+                });
+
+                // Deduplicating swipes
+                node.swipes = [...new Set(allSwipes)];
+                node.totalSwipes = node.swipes.length - 1;
+
+                // Find the index of the current message in the swipes array
+                node.currentSwipeIndex = node.swipes.indexOf(text);
+            }
+
             cyElements.push({
                 group: 'nodes',
                 data: node
             });
-            keyCounter += 1;
 
-            // If you wish to create edges between nodes, you can add here
+            // Create edge for this node
             cyElements.push({
                 group: 'edges',
                 data: {
@@ -85,6 +100,8 @@ function buildNodes(allChats) {
                     target: nodeId
                 }
             });
+
+            keyCounter += 1;
 
             updatePreviousNodes(previousNodes, nodeId, group);
         }
