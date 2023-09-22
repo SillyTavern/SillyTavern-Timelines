@@ -677,12 +677,14 @@ function setupEventHandlers(cy, nodeData) {
 		toggleGraphOrientation(cy, layout);
 		//refresh the layout
 		refreshLayout(false);
+		cy.fit();
 	}
 
 	let expandBtn = modal.getElementsByClassName("expand")[0];
 	expandBtn.onclick = function () {
 		toggleSwipes(cy);
 		refreshLayout(false);
+		cy.fit();
 	}
 
 	cy.ready(function () {
