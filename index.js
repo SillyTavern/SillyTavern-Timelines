@@ -48,7 +48,7 @@ loadFile(`${extensionFolderPath}tl_style.css`, "css");
 
 // Load JavaScript files
 loadFile(`scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js`, 'js');
-loadFile(`${extensionFolderPath}dagre.min.js`, 'js', function () {
+loadFile(`${extensionFolderPath}dagre.js`, 'js', function () {
 	loadFile(`${extensionFolderPath}cytoscape-dagre.min.js`, 'js');
 });
 loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
