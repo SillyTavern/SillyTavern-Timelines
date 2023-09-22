@@ -1,5 +1,12 @@
-import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from "../../../../script.js";
+import { openCharacterChat, addOneMessage, event_types, eventSource, } from "../../../../script.js";
 import { power_user } from "../../../power-user.js";
+import { createBranch } from "../../../bookmarks.js"
+import { getTokenCount } from "../../../tokenizers.js";
+import { getContext } from "../../../extensions.js";
+import { debounce } from "../../../utils.js";
+
+
+const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
 
 
 /**
@@ -9,11 +16,12 @@ import { power_user } from "../../../power-user.js";
  * @param {number} messageId - ID of the message to navigate to.
  * @returns {Promise<void>} Resolves once the navigation is complete.
  */
-export async function navigateToMessage(chatSessionName, messageId) {
+export async function navigateToMessage(chatSessionName, messageId, swipeId=-1) {
 
     // Remove extension from file name
     chatSessionName = chatSessionName.replace('.jsonl', '');
     await openCharacterChat(chatSessionName);
+    
 
     let message = $(`div[mesid=${messageId - 1}]`); // Select the message div by the messageId
     let chat = $("#chat");
@@ -48,7 +56,11 @@ export async function navigateToMessage(chatSessionName, messageId) {
             }
         }
     }
-
+    if (swipeId >= 0) {
+        let name = await createBranch(messageId-1);
+        await openCharacterChat(name);
+        goToSwipe(swipeId, messageId-1);
+    }
     // If message is visible, adjust the scroll position to it
     if (message.length) {
         // calculate the position by adding the container's current scrollTop to the message's position().top
@@ -147,4 +159,48 @@ export function handleModalDisplay() {
     // Append the modal to the body when showing it
     document.body.appendChild(modal);
     modal.style.display = "block";
+}
+
+async function goToSwipe(targetSwipeId, message_id) {
+    let chat = getContext().chat;
+ 
+    // Set the desired swipe ID
+    chat[chat.length - 1]['swipe_id'] = targetSwipeId;
+
+    // Validate swipe ID bounds
+    if (chat[chat.length - 1]['swipe_id'] < 0) {
+        chat[chat.length - 1]['swipe_id'] = chat[chat.length - 1]['swipes'].length - 1;
+    }
+    console.log(chat[chat.length - 1]);
+    if (chat[chat.length - 1]['swipe_id'] >= chat[chat.length - 1]['swipes'].length) {
+        chat[chat.length - 1]['swipe_id'] = 0; // Reset to first if exceeding bounds
+    }
+
+    // Update chat data based on the new swipe ID
+    if (!Array.isArray(chat[chat.length - 1]['swipe_info'])) {
+        chat[chat.length - 1]['swipe_info'] = [];
+    }
+
+    chat[chat.length - 1]['mes'] = chat[chat.length - 1]['swipes'][chat[chat.length - 1]['swipe_id']];
+    chat[chat.length - 1]['send_date'] = chat[chat.length - 1].swipe_info[chat[chat.length - 1]['swipe_id']]?.send_date || chat[chat.length - 1].send_date;
+    chat[chat.length - 1]['extra'] = JSON.parse(JSON.stringify(chat[chat.length - 1].swipe_info[chat[chat.length - 1]['swipe_id']]?.extra || chat[chat.length - 1].extra));
+
+    // Clean up any extra properties if needed
+    if (chat[chat.length - 1].extra) {
+        if (chat[chat.length - 1].extra.memory) delete chat[chat.length - 1].extra.memory;
+        if (chat[chat.length - 1].extra.display_text) delete chat[chat.length - 1].extra.display_text;
+    }
+
+    // Update UI with the new message data
+    addOneMessage(chat[chat.length - 1], { type: 'swipe' });
+
+    // Update token count if enabled
+    if (power_user.message_token_count_enabled) {
+        const swipeMessage = $("#chat").find(`[mesid="${message_id}"]`);
+        const tokenCount = getTokenCount(chat[chat.length - 1].mes, 0);
+        chat[chat.length - 1]['extra']['token_count'] = tokenCount;
+        swipeMessage.find('.tokenCounterDisplay').text(`${tokenCount}t`);
+    }
+    await eventSource.emit(event_types.MESSAGE_SWIPED, (chat.length - 1));
+    saveChatDebounced();
 }

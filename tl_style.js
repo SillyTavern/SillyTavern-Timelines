@@ -142,7 +142,6 @@ export function setupStylesAndData(nodeData) {
                     if (isNaN(totalSwipes)) {
                         totalSwipes = 0;
                     }
-                    console.log(totalSwipes);
                     return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
                 },
 
@@ -190,6 +189,27 @@ export function setupStylesAndData(nodeData) {
                 },
             }
         },
+        {
+            selector: 'node[?isSwipe]',  // Select nodes with is_system property set to true
+            style: {
+                'background-opacity': .5,
+                'border-width': 3,
+                'border-color': function (ele) {
+                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "grey";
+                },
+                'border-style': 'dashed',
+                'border-opacity': 1,
+            }
+        },
+        {
+            selector: 'edge[?isSwipe]', 
+
+            style: {
+                'line-style': 'dashed',
+                'line-opacity': .5,
+            }
+        },
+
     ];
 
     return cytoscapeStyles;

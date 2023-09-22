@@ -264,7 +264,11 @@ function makeTapTippy(ele) {
 					btn.dataset.sessionIndex = index; // Storing the session index as a data attribute
 					btn.addEventListener('click', function () {
 						var depth = getNodeDepth(ele);
-						navigateToMessage(session, depth);
+						if (ele.data('isSwipe')) {
+							navigateToMessage(session, depth, ele.data('swipeId'));
+						} else {
+							navigateToMessage(session, depth);
+						}
 						closeModal();
 						tip.hide(); // Hide the Tippy tooltip
 					});
@@ -497,6 +501,7 @@ function createLegendItem(cy, container, item, type) {
 	container.appendChild(legendItem);
 }
 
+let cyLayout = [];
 
 /**
  * Initializes a Cytoscape instance with given node data and styles.
@@ -569,7 +574,11 @@ function setupEventHandlers(cy, nodeData) {
 			onClickFunction: function (event) {
 				var target = event.target || event.cyTarget;
 				var depth = getNodeDepth(target);
-				navigateToMessage(session, depth);
+				if (nodeData.isSwipe) {
+					navigateToMessage(session, depth, nodeData.swipeId);
+				} else {
+					navigateToMessage(session, depth);
+				}
 				closeModal();
 				activeTapTippy.hide();
 			},
@@ -657,9 +666,75 @@ function setupEventHandlers(cy, nodeData) {
 		let node = evt.target;
 		let session = node.data('chat_sessions')[0];
 		let depth = getNodeDepth(node);
-		navigateToMessage(session, depth);
+		//if the node is a swipe, we pass the swipe's session
+		if (node.data('isSwipe')) {
+			navigateToMessage(session, depth, node.data('swipeId'));
+		} else {
+			navigateToMessage(session, depth);
+		}
 		closeModal();
 		activeTapTippy.hide();
+	});
+
+	function refreshLayout(initial, centerNode = false) {
+		cyLayout = cy.elements().makeLayout(layout);
+		if (cyLayout) {
+			cyLayout.stop();
+		}
+
+		if (initial) {
+			cy.json({
+				elements: nodeData,
+			});
+
+			cyLayout = cy.layout(layout);
+		} else {
+			layout.fit = false;
+			cyLayout = cy.elements().makeLayout(layout);
+		}
+		// unlock nodes
+		cy.nodes().forEach(node => {
+			node.unlock();
+		});
+
+
+		cyLayout.run();
+		if (centerNode) {
+			cy.animate({
+				center: { eles: centerNode },
+				zoom: cy.zoom(),  // Maintain the current zoom level, but adjust the center
+				duration: 300  // Adjust the duration as needed for a smooth transition
+			});
+		}
+	}
+
+	let storedNodesMap = {};  // This will map parent node IDs to their stored child nodes
+
+	cy.on('taphold', 'node', function (evt) {
+		let node = evt.target;
+		let nodeId = node.id();
+
+		// Check if the node has the storedSwipes attribute
+		if (node.data('storedSwipes')) {
+			// Determine if the swipes are already added to the graph
+			const firstSwipeId = node.data('storedSwipes')[0].node.id;
+			const swipeExists = cy.getElementById(firstSwipeId).length > 0;
+
+			if (!swipeExists) {
+				// Add stored swipes and their edges to the graph
+				node.data('storedSwipes').forEach(({ node: swipeNode, edge: swipeEdge }) => {
+					cy.add({ group: 'nodes', data: swipeNode });
+					cy.add({ group: 'edges', data: swipeEdge });
+				});
+			} else {
+				// Remove stored swipes and their edges from the graph
+				node.data('storedSwipes').forEach(({ node: swipeNode }) => {
+					cy.getElementById(swipeNode.id).remove();
+				});
+			}
+		}
+
+		refreshLayout(false, false);
 	});
 
 
@@ -721,6 +796,14 @@ function setupEventHandlers(cy, nodeData) {
 	}
 	);
 	eventSource.on(event_types.USER_MESSAGE_RENDERED, () => {
+		lastContext = null;
+	}
+	);
+	eventSource.on(event_types.CHATLOADED, () => {
+		lastContext = null;
+	}
+	);
+	eventSource.on(event_types.MESSAGE_SWIPED, () => {
 		lastContext = null;
 	}
 	);

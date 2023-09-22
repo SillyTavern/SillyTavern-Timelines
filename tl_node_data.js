@@ -44,6 +44,7 @@ function buildNodes(allChats) {
     let cyElements = [];
     let keyCounter = 1;
     let previousNodes = {};
+    let parentSwipeData = {};
 
     // Initialize root node
     cyElements.push({
@@ -70,7 +71,7 @@ function buildNodes(allChats) {
 
             let node = createNode(nodeId, parentNodeId, text, group);
 
-            // If it's not the first node, extract swipes and store in the node's swipes attribute
+            // If it's not the first node, extract swipes and store node and edge data for the parent node
             if (messagesAtIndex !== 0) {
                 let allSwipes = [];
                 group.forEach(messageObj => {
@@ -78,14 +79,43 @@ function buildNodes(allChats) {
                     allSwipes.push(...swipes);
                 });
 
-                // Deduplicating swipes
-                node.swipes = [...new Set(allSwipes)];
-                // REmove the current message from the swipes array
-                node.swipes = node.swipes.filter(swipe => swipe !== text);
-                node.totalSwipes = node.swipes.length;
+                // Deduplicating swipes and filtering out swipes with same content as the message
+                let uniqueSwipes = [...new Set(allSwipes)].filter(swipeText => swipeText !== text);
 
-                // Find the index of the current message in the swipes array
-                node.currentSwipeIndex = node.swipes.indexOf(text);
+                if (!parentSwipeData[parentNodeId]) {
+                    parentSwipeData[parentNodeId] = {
+                        storedSwipes: [],
+                        totalSwipes: 0,
+                        currentSwipeIndex: uniqueSwipes.indexOf(text)
+                    };
+                }
+
+                parentSwipeData[parentNodeId].totalSwipes += uniqueSwipes.length;
+
+                // Store node and edge data for each swipe in parentSwipeData
+                uniqueSwipes.forEach(swipeText => {
+                    let swipeNodeId = `swipe${keyCounter}`;
+                    let swipeIndex = allSwipes.indexOf(swipeText);  // Fetching the index of the swipe from the original swipes list
+                    let swipeNode = {
+                        ...node,
+                        id: swipeNodeId,
+                        msg: swipeText,
+                        isSwipe: true,
+                        swipeId: swipeIndex  // Storing the index as swipeId in the node data
+                    };
+                    delete swipeNode.swipes;
+
+                    let swipeEdge = {
+                        id: `edgeSwipe${keyCounter}`,
+                        source: parentNodeId,
+                        target: swipeNodeId,
+                        isSwipe: true,
+                        swipeId: swipeIndex  // Storing the index as swipeId in the edge data
+                    };
+
+                    parentSwipeData[parentNodeId].storedSwipes.push({ node: swipeNode, edge: swipeEdge });
+                    keyCounter += 1;
+                });
             }
 
             cyElements.push({
@@ -109,8 +139,17 @@ function buildNodes(allChats) {
         }
     }
 
+    // Update cyElements with data from parentSwipeData
+    cyElements.forEach(element => {
+        if (element.group === 'nodes' && parentSwipeData[element.data.id]) {
+            Object.assign(element.data, parentSwipeData[element.data.id]);
+        }
+    });
+
     return cyElements;
 }
+
+
 
 /**
  * Constructs a Cytoscape node object based on provided message details.
