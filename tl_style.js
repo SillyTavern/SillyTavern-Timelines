@@ -130,8 +130,23 @@ export function setupStylesAndData(nodeData) {
         {
             selector: 'node',
             style: {
-                'width': extension_settings.timeline.nodeWidth,
-                'height': extension_settings.timeline.nodeHeight,
+                'width': function (ele) {
+                    let totalSwipes = Number(ele.data('totalSwipes'));
+                    if (isNaN(totalSwipes)) {
+                        totalSwipes = 0;
+                    }
+                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeWidth) : extension_settings.timeline.nodeWidth;
+                },
+                'height': function (ele) {
+                    let totalSwipes = Number(ele.data('totalSwipes'));
+                    if (isNaN(totalSwipes)) {
+                        totalSwipes = 0;
+                    }
+                    console.log(totalSwipes);
+                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
+                },
+
+
                 'shape': extension_settings.timeline.nodeShape, // or 'circle'
                 'background-color': function (ele) {
                     return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor

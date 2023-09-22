@@ -75,6 +75,7 @@ let defaultSettings = {
 	spacingFactor: 1,
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
+	swipeScale: false,
 	avatarAsRoot: true,
 	showLegend: true,
 	bookmarkColor: "#ff0000",
@@ -123,6 +124,7 @@ async function loadSettings() {
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
+	$("#tl_swipe_scale").prop("checked", extension_settings.timeline.swipeScale).trigger("input");
 	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
 	$("#tl_show_legend").prop("checked", extension_settings.timeline.showLegend).trigger("input");
 	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
@@ -844,6 +846,7 @@ jQuery(async () => {
         'tl_spacing_factor': 'spacingFactor',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
+		'tl_swipe_scale': 'swipeScale',
 		'tl_avatar_as_root': 'avatarAsRoot',
 		'tl_show_legend': 'showLegend',
 		'tl_use_chat_colors': 'useChatColors',

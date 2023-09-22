@@ -80,7 +80,9 @@ function buildNodes(allChats) {
 
                 // Deduplicating swipes
                 node.swipes = [...new Set(allSwipes)];
-                node.totalSwipes = node.swipes.length - 1;
+                // REmove the current message from the swipes array
+                node.swipes = node.swipes.filter(swipe => swipe !== text);
+                node.totalSwipes = node.swipes.length;
 
                 // Find the index of the current message in the swipes array
                 node.currentSwipeIndex = node.swipes.indexOf(text);
