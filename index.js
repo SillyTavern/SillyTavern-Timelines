@@ -721,6 +721,7 @@ function setupEventHandlers(cy, nodeData) {
 
 		// Check if the node has the storedSwipes attribute
 		if (node.data('storedSwipes')) {
+			console.log(node.data('storedSwipes'));
 			// Determine if the swipes are already added to the graph
 			const firstSwipeId = node.data('storedSwipes')[0].node.id;
 			const swipeExists = cy.getElementById(firstSwipeId).length > 0;
@@ -872,8 +873,10 @@ async function updateTimelineDataIfNeeded() {
 			edgeSep: extension_settings.timeline.edgeSeparation,
 			rankSep: extension_settings.timeline.rankSeparation,
 			rankDir: 'LR',  // Left to Right
-			ranker: 'tight-tree',  // 'network-simplex', 'tight-tree' or 'longest-path
-			spacingFactor: extension_settings.timeline.spacingFactor
+			ranker: 'network-simplex',  // 'network-simplex', 'tight-tree' or 'longest-path
+			spacingFactor: extension_settings.timeline.spacingFactor,
+			acyclicer: 'greedy',
+			align: 'UL',
 		}
 		return true; // Data was updated
 	}

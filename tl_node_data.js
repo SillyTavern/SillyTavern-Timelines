@@ -94,7 +94,7 @@ function buildNodes(allChats) {
 
                 // Store node and edge data for each swipe in parentSwipeData
                 uniqueSwipes.forEach(swipeText => {
-                    let swipeNodeId = `swipe${keyCounter}`;
+                    let swipeNodeId = `swipe${keyCounter}-${parentSwipeData[parentNodeId].totalSwipes}`;
                     let swipeIndex = allSwipes.indexOf(swipeText);  // Fetching the index of the swipe from the original swipes list
                     let swipeNode = {
                         ...node,
