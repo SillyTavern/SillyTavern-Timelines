@@ -145,7 +145,6 @@ export function setupStylesAndData(nodeData) {
                     return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
                 },
 
-
                 'shape': extension_settings.timeline.nodeShape, // or 'circle'
                 'background-color': function (ele) {
                     return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor

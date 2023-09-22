@@ -554,6 +554,29 @@ function getTooltipReference(ele) {
 	}
 }
 
+function toggleSwipes(cy) {
+	// Check if there's any swipe node in the graph
+	const swipeNodes = cy.nodes('[?isSwipe]');
+
+	if (swipeNodes.length > 0) {
+		// If there are swipe nodes, remove them along with their edges
+		swipeNodes.connectedEdges().remove();
+		swipeNodes.remove();
+	} else {
+		// If there are no swipe nodes, add them from the storedSwipes data in parent nodes
+		cy.nodes().forEach(node => {
+			const storedSwipes = node.data('storedSwipes');
+			if (storedSwipes && storedSwipes.length > 0) {
+				storedSwipes.forEach(({ node: swipeNode, edge: swipeEdge }) => {
+					cy.add({ group: 'nodes', data: swipeNode });
+					cy.add({ group: 'edges', data: swipeEdge });
+				});
+			}
+		});
+	}
+}
+
+
 /**
  * Sets up event handlers for the given Cytoscape instance and node data.
  * 
@@ -619,6 +642,20 @@ function setupEventHandlers(cy, nodeData) {
 		},
 		hasTrailingDivider: true
 	});
+
+	let modal = document.getElementById("myModal");
+	let rotateBtn = modal.getElementsByClassName("rotate")[0];
+	rotateBtn.onclick = function () {
+		toggleGraphOrientation(cy, layout);
+		//refresh the layout
+		refreshLayout(false);
+	}
+
+	let expandBtn = modal.getElementsByClassName("expand")[0];
+	expandBtn.onclick = function () {
+		toggleSwipes(cy);
+		refreshLayout(false);
+	}
 
 	menuItems.push({
 		id: 'rotate-graph',

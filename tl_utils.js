@@ -126,6 +126,7 @@ export function handleModalDisplay() {
         console.error('Close button not found!');
         return;
     }
+    
 
     function closeTippy() {
         // If Tippy uses a specific class or attribute, you can target it more precisely
