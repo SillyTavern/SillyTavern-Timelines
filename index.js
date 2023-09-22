@@ -706,6 +706,11 @@ function setupEventHandlers(cy, nodeData) {
 				duration: 300  // Adjust the duration as needed for a smooth transition
 			});
 		}
+		// reloack nodes
+		cy.nodes().forEach(node => {
+			node.lock();
+		});
+
 	}
 
 	let storedNodesMap = {};  // This will map parent node IDs to their stored child nodes
@@ -723,6 +728,8 @@ function setupEventHandlers(cy, nodeData) {
 			if (!swipeExists) {
 				// Add stored swipes and their edges to the graph
 				node.data('storedSwipes').forEach(({ node: swipeNode, edge: swipeEdge }) => {
+					// increase the edge weight 
+					swipeEdge.weight = 0;
 					cy.add({ group: 'nodes', data: swipeNode });
 					cy.add({ group: 'edges', data: swipeEdge });
 				});
@@ -865,7 +872,7 @@ async function updateTimelineDataIfNeeded() {
 			edgeSep: extension_settings.timeline.edgeSeparation,
 			rankSep: extension_settings.timeline.rankSeparation,
 			rankDir: 'LR',  // Left to Right
-			minLen: function (edge) { return 1; },
+			ranker: 'tight-tree',  // 'network-simplex', 'tight-tree' or 'longest-path
 			spacingFactor: extension_settings.timeline.spacingFactor
 		}
 		return true; // Data was updated
