@@ -10,12 +10,27 @@ const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
 
 
 /**
- * Navigate to a specific chat message in a chat session by adjusting the scroll position.
- *
+ * Navigates to a specific chat message in a chat session by adjusting the scroll position.
+ * If the message is not initially visible, the function attempts to reveal it either by 
+ * showing hidden messages or by triggering a button to load more messages.
+ * Optionally, the function can create a new branch based on the message or navigate to 
+ * a specific swipe associated with the message.
+ * 
  * @param {string} chatSessionName - Name of the chat session file (can include .jsonl extension).
  * @param {number} messageId - ID of the message to navigate to.
+ * @param {number} [swipeId=-1] - Optional ID of a swipe associated with the message. If provided and >= 0, 
+ *                                the function navigates to the swipe after potentially creating a new branch.
+ * @param {boolean} [branch=false] - If true, creates a new branch based on the message and navigates to it.
  * @returns {Promise<void>} Resolves once the navigation is complete.
+ * 
+ * Behavior:
+ * 1. Opens the specified chat session.
+ * 2. Attempts to find and scroll to the message with the given ID.
+ * 3. If the message is not visible, reveals hidden messages or triggers loading of more messages.
+ * 4. If the `branch` parameter is true, creates a new branch based on the message and navigates to it.
+ * 5. If `swipeId` is provided and >= 0, navigates to the associated swipe after potentially creating a new branch.
  */
+
 export async function navigateToMessage(chatSessionName, messageId, swipeId=-1, branch=false) {
 
     // Remove extension from file name
@@ -169,6 +184,24 @@ export function handleModalDisplay() {
     document.body.appendChild(modal);
     modal.style.display = "block";
 }
+
+/**
+ * Navigates to a specific swipe within a chat based on the given swipe ID and updates the chat data and UI accordingly.
+ * 
+ * This function adjusts the chat data to reflect the content of the specified swipe and updates the UI to display it.
+ * It also handles edge cases such as swipe ID bounds and potential cleanup of extra properties.
+ * 
+ * @param {number} targetSwipeId - The ID of the swipe to navigate to.
+ * @param {number} message_id - The ID of the message associated with the swipe.
+ * @returns {Promise<void>} Resolves once the swipe navigation and associated updates are complete.
+ * 
+ * Behavior:
+ * 1. Sets the desired swipe ID and validates its bounds.
+ * 2. Adjusts the chat data to reflect the content of the specified swipe.
+ * 3. Updates the UI to display the new message data.
+ * 4. Optionally updates the token count for the message if enabled.
+ * 5. Emits a 'MESSAGE_SWIPED' event and saves the chat data.
+ */
 
 async function goToSwipe(targetSwipeId, message_id) {
     let chat = getContext().chat;

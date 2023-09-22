@@ -31,15 +31,24 @@ function preprocessChatSessions(channelHistory) {
 }
 
 /**
- * Processes the preprocessed chat sessions to construct nodes (and associated edges) for each message index.
- * The function creates nodes for each unique message content across chat files at each message position.
- * Edges are created to represent the message order and source file.
- *
+ * Constructs nodes and associated edges for each message index based on processed chat sessions.
+ * Nodes are created for each unique message content across chat files at each message position,
+ * and edges represent the message order and source file. The function also handles special
+ * nodes, such as swipes, and ensures they are properly connected in the graph.
+ * 
  * @param {Array} allChats - A 2D array resulting from `preprocessChatSessions`, where each sub-array 
  *                           corresponds to a message index and contains objects detailing the file name, 
  *                           index, and actual message for each chat file.
- * @returns {Array} cyElements - A list of node and edge objects suitable for Cytoscape graph library.
+ * @returns {Array} cyElements - A list of node and edge objects suitable for the Cytoscape graph library.
+ * 
+ * Behavior:
+ * 1. Initializes a root node and sets up tracking for previous nodes.
+ * 2. Iterates over each message index, grouping messages by content.
+ * 3. For each group of messages, constructs a node and an associated edge.
+ * 4. Handles special nodes, such as swipes, and ensures they are properly added.
+ * 5. Returns the full list of constructed nodes and edges.
  */
+
 function buildNodes(allChats) {
     let cyElements = [];
     let keyCounter = 1;
@@ -150,17 +159,22 @@ function buildNodes(allChats) {
 }
 
 
-
 /**
  * Constructs a Cytoscape node object based on provided message details.
- * The function can identify special messages such as bookmarks, and will adjust the 
- * node properties accordingly.
- *
+ * The function identifies special messages, such as bookmarks, and adjusts the node
+ * properties accordingly. The returned node contains properties that help render and
+ * differentiate it within the Cytoscape graph, such as color for bookmarks.
+ * 
  * @param {string} nodeId - The unique ID to assign to the node.
  * @param {string} parentNodeId - The ID of the node from which this node originates (previous message).
  * @param {string} text - The message content.
  * @param {Array} group - A list of message objects that share the same content across chat files.
  * @returns {Object} - A Cytoscape node object with properties set based on the message details.
+ * 
+ * Behavior:
+ * 1. Checks if any message in the group is a bookmark and extracts relevant details.
+ * 2. Determines node properties, such as color for bookmarks, based on the message details.
+ * 3. Constructs and returns the node object.
  */
 function createNode(nodeId, parentNodeId, text, group) {
     let bookmark = group.find(({ message }) => {

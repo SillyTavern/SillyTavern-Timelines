@@ -174,6 +174,22 @@ function makeTippy(ele, text) {
 	return tip;
 };
 
+/**
+ * Formats a message for display within a node, handling special characters and Markdown conversion.
+ * 
+ * @param {string} mes - The message to be formatted.
+ * @returns {string} - The formatted message.
+ * 
+ * Steps:
+ * 1. Convert null messages to empty strings.
+ * 2. Fix markdown-related content.
+ * 3. Convert special characters to HTML entities.
+ * 4. Format quotations and code snippets.
+ * 5. Handle mathematical notation by converting LaTeX align environments to display math mode.
+ * 6. Convert the message from markdown to HTML.
+ * 7. Handle newlines and special characters within <code> tags.
+ */
+
 function formatNodeMessage(mes) {
 	if (mes == null) return "";
 	mes = fixMarkdown(mes);
@@ -214,6 +230,20 @@ function formatNodeMessage(mes) {
 	return mes;
 }
 
+/**
+ * Creates a Tippy tooltip for a given Cytoscape element (node/edge) upon tapping.
+ * 
+ * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip is being created.
+ * @returns {Object} - The Tippy tooltip instance.
+ * 
+ * The tooltip displays:
+ * - Node name and send date.
+ * - Swipes count, if any.
+ * - Message content formatted using the `formatNodeMessage` function.
+ * - A list of chat sessions associated with the node, with buttons to navigate to a session or branch from it.
+ * 
+ * The tooltip's position, behavior, and style are also configured in this function.
+ */
 
 function makeTapTippy(ele) {
 	var ref = getTooltipReference(ele);
@@ -573,10 +603,24 @@ function initializeCytoscape(nodeData, styles) {
 	return cy;
 }
 
+/**
+ * Gets the client bounding rectangle of the element with the id 'fixedReference'.
+ * 
+ * @returns {DOMRect} - The client bounding rectangle of the specified element.
+ */
 function getFixedReferenceClientRect() {
 	return document.querySelector('#fixedReference').getBoundingClientRect();
 }
 
+/**
+ * Determines the reference position for the tooltip based on the configuration settings.
+ * 
+ * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip reference is being determined.
+ * @returns {Function} - A function returning the client bounding rectangle of the reference element.
+ * 
+ * If the fixedTooltip setting is enabled, the reference is the bottom-left corner of the screen;
+ * otherwise, it is the position of the provided Cytoscape element.
+ */
 function getTooltipReference(ele) {
 	if (extension_settings.timeline.fixedTooltip) {
 		return getFixedReferenceClientRect;  // Use fixed bottom-left corner
@@ -584,6 +628,15 @@ function getTooltipReference(ele) {
 		return ele.popperRef().getBoundingClientRect;  // Use node's position
 	}
 }
+
+/**
+ * Toggles the display of swipe nodes in the Cytoscape graph.
+ * 
+ * @param {Object} cy - The Cytoscape instance.
+ * 
+ * If swipe nodes are currently displayed, they are removed along with their connected edges.
+ * If swipe nodes are not displayed, they are added to the graph using the stored data in the parent nodes.
+ */
 
 function toggleSwipes(cy) {
 	// Check if there's any swipe node in the graph
@@ -990,7 +1043,7 @@ jQuery(async () => {
 	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
 	$("#show_timeline_view").on("click", onTimelineButtonClick);
-	registerSlashCommand('tl', slashCommandHandler, [], "Show the timeline, ` r ` to reload the graph", false, true);
+	registerSlashCommand('tl', slashCommandHandler, [], `/tl Show the timeline, "/tl r" to reload the graph`, false, true);
 
 
 
