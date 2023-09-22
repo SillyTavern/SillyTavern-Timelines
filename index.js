@@ -57,7 +57,7 @@ loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
 loadFile(`${extensionFolderPath}cytoscape-context-menus.min.js`, 'js');
 
 import { extension_settings, getContext, } from "../../../extensions.js";
-import { characters, getRequestHeaders, saveSettingsDebounced, } from "../../../../script.js";
+import { event_types, eventSource, saveSettingsDebounced, } from "../../../../script.js";
 
 import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
@@ -709,6 +709,15 @@ function setupEventHandlers(cy, nodeData) {
 			node._tippy.hide();
 		}
 	});
+	// if user_message_rendered or character_message_rendered, we null the lastContext
+	eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => {
+		lastContext = null;
+	}
+	);
+	eventSource.on(event_types.USER_MESSAGE_RENDERED, () => {
+		lastContext = null;
+	}
+	);
 }
 
 /**
