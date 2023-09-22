@@ -729,7 +729,7 @@ function setupEventHandlers(cy, nodeData) {
 				// Add stored swipes and their edges to the graph
 				node.data('storedSwipes').forEach(({ node: swipeNode, edge: swipeEdge }) => {
 					// increase the edge weight 
-					swipeEdge.weight = 0;
+					swipeEdge.weight = 100;
 					cy.add({ group: 'nodes', data: swipeNode });
 					cy.add({ group: 'edges', data: swipeEdge });
 				});
