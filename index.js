@@ -73,6 +73,7 @@ let defaultSettings = {
 	edgeSeparation: 10,
 	rankSeparation: 50,
 	spacingFactor: 1,
+	align: "UL",
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
 	swipeScale: false,
@@ -122,6 +123,7 @@ async function loadSettings() {
 	$("#tl_edge_separation").val(extension_settings.timeline.edgeSeparation).trigger("input");
 	$("#tl_rank_separation").val(extension_settings.timeline.rankSeparation).trigger("input");
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
+	$("#tl_align").val(extension_settings.timeline.align).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
 	$("#tl_swipe_scale").prop("checked", extension_settings.timeline.swipeScale).trigger("input");
@@ -876,7 +878,7 @@ async function updateTimelineDataIfNeeded() {
 			ranker: 'network-simplex',  // 'network-simplex', 'tight-tree' or 'longest-path
 			spacingFactor: extension_settings.timeline.spacingFactor,
 			acyclicer: 'greedy',
-			align: 'UL',
+			align: extension_settings.timeline.align,
 		}
 		return true; // Data was updated
 	}
@@ -937,6 +939,7 @@ jQuery(async () => {
         'tl_edge_separation': 'edgeSeparation',
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
+		'tl_align': 'align',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
 		'tl_swipe_scale': 'swipeScale',
