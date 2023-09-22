@@ -657,27 +657,6 @@ function setupEventHandlers(cy, nodeData) {
 		refreshLayout(false);
 	}
 
-	// menuItems.push({
-	// 	id: 'rotate-graph',
-	// 	content: 'Rotate Graph',
-	// 	selector: 'core',
-	// 	coreAsWell: true,  // This makes sure the menu item is also available on right-clicking the graph background.
-	// 	onClickFunction: function (event) {
-	// 		toggleGraphOrientation(cy, layout);  // This function toggles between the two orientations.
-	// 	},
-	// 	hasTrailingDivider: true
-	// });
-	// try{
-	// 	var contextMenu = cy.contextMenus({
-	// 		menuItems: menuItems,
-	// 		menuItemClasses: ['custom-menu-item'],
-	// 		contextMenuClasses: ['custom-context-menu'],
-	// 	});
-	// }catch(e){
-	// 	console.log(e);
-	// 	console.log("contextMenu is likely not allowed on this device.");
-	// }
-
 	cy.ready(function () {
 		if (extension_settings.timeline.showLegend) {
 			createLegend(cy);
