@@ -16,7 +16,7 @@ const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
  * @param {number} messageId - ID of the message to navigate to.
  * @returns {Promise<void>} Resolves once the navigation is complete.
  */
-export async function navigateToMessage(chatSessionName, messageId, swipeId=-1) {
+export async function navigateToMessage(chatSessionName, messageId, swipeId=-1, branch=false) {
 
     // Remove extension from file name
     chatSessionName = chatSessionName.replace('.jsonl', '');
@@ -56,10 +56,18 @@ export async function navigateToMessage(chatSessionName, messageId, swipeId=-1) 
             }
         }
     }
+    if( branch ) {
+        let name = await createBranch(messageId-1);
+        await openCharacterChat(name);
+        closeOpenDrawers();
+        return
+    }
     if (swipeId >= 0) {
         let name = await createBranch(messageId-1);
         await openCharacterChat(name);
         goToSwipe(swipeId, messageId-1);
+        closeOpenDrawers();
+        return
     }
     // If message is visible, adjust the scroll position to it
     if (message.length) {

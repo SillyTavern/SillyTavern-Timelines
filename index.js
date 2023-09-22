@@ -188,8 +188,6 @@ function formatNodeMessage(mes) {
 		}
 	});
 
-
-
 	// 5. Handling mathematical notation
 	mes = mes.replaceAll('\\begin{align*}', '$$').replaceAll('\\end{align*}', '$$');
 
@@ -262,6 +260,12 @@ function makeTapTippy(ele) {
 			menuDiv.classList.add('menu_div');
 			if (ele.data('chat_sessions')) {
 				ele.data('chat_sessions').forEach((session, index) => {
+					// Create a container for the main and branch buttons
+					let btnContainer = document.createElement('div');
+					btnContainer.style.display = 'flex';
+					btnContainer.style.alignItems = 'center'; // To vertically center the buttons
+
+					// 1. Create the main button
 					let btn = document.createElement('button');
 					btn.classList.add('menu_button');
 					btn.textContent = session.split('.jsonl')[0];
@@ -276,12 +280,36 @@ function makeTapTippy(ele) {
 						closeModal();
 						tip.hide(); // Hide the Tippy tooltip
 					});
-					menuDiv.appendChild(btn);
+					btnContainer.appendChild(btn);
+
+					// 2. Create the branch button with an arrow to the right
+					let branchBtn = document.createElement('button');
+					branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
+					branchBtn.textContent = "→"; // Arrow to the right
+					branchBtn.classList.add('menu_button');
+					branchBtn.classList.add('widthNatural');
+					branchBtn.dataset.sessionIndex = index; // Storing the session index as a data attribute
+					// add title to branch button
+					branchBtn.title = `Branch from ${session}`
+					branchBtn.addEventListener('click', function () {
+						var depth = getNodeDepth(ele);
+						navigateToMessage(session, depth, -1, true);
+						closeModal();
+						tip.hide(); // Hide the Tippy tooltip
+					});
+					btnContainer.appendChild(branchBtn);
+
+					// Append the container to the menuDiv
+					menuDiv.appendChild(btnContainer);
 				});
 			}
 			div.appendChild(menuDiv);
 
 			return div;
+
+
+			return div;
+
 		},
 		arrow: true,
 		placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'auto',
