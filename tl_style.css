@@ -94,6 +94,46 @@
         border: none;
         padding: 0;
 }
+/* The Close Button */
+.expand {
+    color: #aaaaaa;
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    z-index: 3;
+    position: relative;
+    background: none;
+        border: none;
+        padding: 0;
+        padding-right: 10px;
+}
+/* The Close Button */
+.rotate {
+    color: #aaaaaa;
+    float: right;
+    font-size: 24px;
+    font-weight: bold;
+    z-index: 3;
+    position: relative;
+    background: none;
+        border: none;
+        padding: 0;
+        padding-right: 10px;
+}
+
+.rotate:hover,
+.rotate:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.expand:hover,
+.expand:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
 
 .timelineButton {color: #aaaaaa;
 position: absolute;

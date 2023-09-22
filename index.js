@@ -48,7 +48,7 @@ loadFile(`${extensionFolderPath}tl_style.css`, "css");
 
 // Load JavaScript files
 loadFile(`scripts/extensions/third-party/SillyTavern-Timelines/cytoscape.min.js`, 'js');
-loadFile(`${extensionFolderPath}dagre.min.js`, 'js', function () {
+loadFile(`${extensionFolderPath}dagre.js`, 'js', function () {
 	loadFile(`${extensionFolderPath}cytoscape-dagre.min.js`, 'js');
 });
 loadFile(`${extensionFolderPath}tippy.umd.min.js`, 'js', function () {
@@ -73,8 +73,11 @@ let defaultSettings = {
 	edgeSeparation: 10,
 	rankSeparation: 50,
 	spacingFactor: 1,
+	tooltipFixed : false,
+	align: "UL",
 	nodeShape: "ellipse",
 	curveStyle: "taxi",
+	swipeScale: false,
 	avatarAsRoot: true,
 	showLegend: true,
 	bookmarkColor: "#ff0000",
@@ -121,8 +124,11 @@ async function loadSettings() {
 	$("#tl_edge_separation").val(extension_settings.timeline.edgeSeparation).trigger("input");
 	$("#tl_rank_separation").val(extension_settings.timeline.rankSeparation).trigger("input");
 	$("#tl_spacing_factor").val(extension_settings.timeline.spacingFactor).trigger("input");
+	$("#tl_align").val(extension_settings.timeline.align).trigger("input");
+	$("#tl_tooltip_fixed").prop("checked", extension_settings.timeline.fixedTooltip).trigger("input");
 	$("#tl_node_shape").val(extension_settings.timeline.nodeShape).trigger("input");
 	$("#tl_curve_style").val(extension_settings.timeline.curveStyle).trigger("input");
+	$("#tl_swipe_scale").prop("checked", extension_settings.timeline.swipeScale).trigger("input");
 	$("#tl_avatar_as_root").prop("checked", extension_settings.timeline.avatarAsRoot).trigger("input");
 	$("#tl_show_legend").prop("checked", extension_settings.timeline.showLegend).trigger("input");
 	$("#tl_use_chat_colors").prop("checked", extension_settings.timeline.useChatColors).trigger("input");
@@ -144,11 +150,11 @@ let isTapTippyActive = false;
  * @returns {Object} - Returns the Tippy tooltip instance.
  */
 function makeTippy(ele, text) {
-	var ref = ele.popperRef();
+	var ref = getTooltipReference(ele);
 	var dummyDomEle = document.createElement('div');
 
 	var tip = tippy(dummyDomEle, {
-		getReferenceClientRect: ref.getBoundingClientRect,
+		getReferenceClientRect: ref,
 		trigger: 'mouseenter',
 		delay: [1000, 1000], // 0ms delay for both show and hide
 		duration: 0, // No animation duration
@@ -158,7 +164,7 @@ function makeTippy(ele, text) {
 			return div;
 		},
 		arrow: true,
-		placement: 'bottom',
+		placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'bottom',
 		hideOnClick: true,
 		sticky: "reference",
 		interactive: true,
@@ -167,6 +173,22 @@ function makeTippy(ele, text) {
 
 	return tip;
 };
+
+/**
+ * Formats a message for display within a node, handling special characters and Markdown conversion.
+ * 
+ * @param {string} mes - The message to be formatted.
+ * @returns {string} - The formatted message.
+ * 
+ * Steps:
+ * 1. Convert null messages to empty strings.
+ * 2. Fix markdown-related content.
+ * 3. Convert special characters to HTML entities.
+ * 4. Format quotations and code snippets.
+ * 5. Handle mathematical notation by converting LaTeX align environments to display math mode.
+ * 6. Convert the message from markdown to HTML.
+ * 7. Handle newlines and special characters within <code> tags.
+ */
 
 function formatNodeMessage(mes) {
 	if (mes == null) return "";
@@ -181,8 +203,6 @@ function formatNodeMessage(mes) {
 			return match;
 		}
 	});
-
-
 
 	// 5. Handling mathematical notation
 	mes = mes.replaceAll('\\begin{align*}', '$$').replaceAll('\\end{align*}', '$$');
@@ -210,13 +230,27 @@ function formatNodeMessage(mes) {
 	return mes;
 }
 
+/**
+ * Creates a Tippy tooltip for a given Cytoscape element (node/edge) upon tapping.
+ * 
+ * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip is being created.
+ * @returns {Object} - The Tippy tooltip instance.
+ * 
+ * The tooltip displays:
+ * - Node name and send date.
+ * - Swipes count, if any.
+ * - Message content formatted using the `formatNodeMessage` function.
+ * - A list of chat sessions associated with the node, with buttons to navigate to a session or branch from it.
+ * 
+ * The tooltip's position, behavior, and style are also configured in this function.
+ */
 
 function makeTapTippy(ele) {
-	var ref = ele.popperRef();
+	var ref = getTooltipReference(ele);
 	var dummyDomEle = document.createElement('div');
 
 	var tip = tippy(dummyDomEle, {
-		getReferenceClientRect: ref.getBoundingClientRect,
+		getReferenceClientRect: ref,
 		trigger: 'manual',
 		duration: 0,
 		content: function () {
@@ -228,6 +262,10 @@ function makeTapTippy(ele) {
 				{ content: ele.data('name'), className: 'name_text' },
 				{ content: ele.data('send_date'), className: 'timestamp' },
 			];
+			//if swipes, display swipes
+			if (ele.data('totalSwipes')>0) {
+				dataItems.push({ content: `Swipes: ${ele.data('totalSwipes')}`, className: 'timestamp' });
+			}
 
 			dataItems.forEach(dataItem => {
 				let p = document.createElement('div');
@@ -252,25 +290,62 @@ function makeTapTippy(ele) {
 			menuDiv.classList.add('menu_div');
 			if (ele.data('chat_sessions')) {
 				ele.data('chat_sessions').forEach((session, index) => {
+					// Create a container for the main and branch buttons
+					let btnContainer = document.createElement('div');
+					btnContainer.style.display = 'flex';
+					btnContainer.style.alignItems = 'center'; // To vertically center the buttons
+
+					// 1. Create the main button
 					let btn = document.createElement('button');
 					btn.classList.add('menu_button');
 					btn.textContent = session.split('.jsonl')[0];
 					btn.dataset.sessionIndex = index; // Storing the session index as a data attribute
 					btn.addEventListener('click', function () {
 						var depth = getNodeDepth(ele);
-						navigateToMessage(session, depth);
+						if (ele.data('isSwipe')) {
+							navigateToMessage(session, depth, ele.data('swipeId'));
+						} else {
+							navigateToMessage(session, depth);
+						}
 						closeModal();
 						tip.hide(); // Hide the Tippy tooltip
 					});
-					menuDiv.appendChild(btn);
+					btnContainer.appendChild(btn);
+
+					// 2. Create the branch button with an arrow to the right
+					let branchBtn = document.createElement('button');
+					branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
+					branchBtn.textContent = "→"; // Arrow to the right
+					branchBtn.classList.add('menu_button');
+					branchBtn.classList.add('widthNatural');
+					branchBtn.dataset.sessionIndex = index; // Storing the session index as a data attribute
+					// add title to branch button
+					branchBtn.title = `Branch from ${session}`
+					branchBtn.addEventListener('click', function () {
+						var depth = getNodeDepth(ele);
+						if(ele.data('isSwipe'))
+							navigateToMessage(session, depth, ele.data('swipeId'), false);
+						else
+							navigateToMessage(session, depth, null, true);
+						closeModal();
+						tip.hide(); // Hide the Tippy tooltip
+					});
+					btnContainer.appendChild(branchBtn);
+
+					// Append the container to the menuDiv
+					menuDiv.appendChild(btnContainer);
 				});
 			}
 			div.appendChild(menuDiv);
 
 			return div;
+
+
+			return div;
+
 		},
 		arrow: true,
-		placement: 'auto',
+		placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'auto',
 		hideOnClick: false,
 		sticky: "reference",
 		interactive: true,
@@ -491,6 +566,7 @@ function createLegendItem(cy, container, item, type) {
 	container.appendChild(legendItem);
 }
 
+let cyLayout = [];
 
 /**
  * Initializes a Cytoscape instance with given node data and styles.
@@ -528,6 +604,64 @@ function initializeCytoscape(nodeData, styles) {
 }
 
 /**
+ * Gets the client bounding rectangle of the element with the id 'fixedReference'.
+ * 
+ * @returns {DOMRect} - The client bounding rectangle of the specified element.
+ */
+function getFixedReferenceClientRect() {
+	return document.querySelector('#fixedReference').getBoundingClientRect();
+}
+
+/**
+ * Determines the reference position for the tooltip based on the configuration settings.
+ * 
+ * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip reference is being determined.
+ * @returns {Function} - A function returning the client bounding rectangle of the reference element.
+ * 
+ * If the fixedTooltip setting is enabled, the reference is the bottom-left corner of the screen;
+ * otherwise, it is the position of the provided Cytoscape element.
+ */
+function getTooltipReference(ele) {
+	if (extension_settings.timeline.fixedTooltip) {
+		return getFixedReferenceClientRect;  // Use fixed bottom-left corner
+	} else {
+		return ele.popperRef().getBoundingClientRect;  // Use node's position
+	}
+}
+
+/**
+ * Toggles the display of swipe nodes in the Cytoscape graph.
+ * 
+ * @param {Object} cy - The Cytoscape instance.
+ * 
+ * If swipe nodes are currently displayed, they are removed along with their connected edges.
+ * If swipe nodes are not displayed, they are added to the graph using the stored data in the parent nodes.
+ */
+
+function toggleSwipes(cy) {
+	// Check if there's any swipe node in the graph
+	const swipeNodes = cy.nodes('[?isSwipe]');
+
+	if (swipeNodes.length > 0) {
+		// If there are swipe nodes, remove them along with their edges
+		swipeNodes.connectedEdges().remove();
+		swipeNodes.remove();
+	} else {
+		// If there are no swipe nodes, add them from the storedSwipes data in parent nodes
+		cy.nodes().forEach(node => {
+			const storedSwipes = node.data('storedSwipes');
+			if (storedSwipes && storedSwipes.length > 0) {
+				storedSwipes.forEach(({ node: swipeNode, edge: swipeEdge }) => {
+					cy.add({ group: 'nodes', data: swipeNode });
+					cy.add({ group: 'edges', data: swipeEdge });
+				});
+			}
+		});
+	}
+}
+
+
+/**
  * Sets up event handlers for the given Cytoscape instance and node data.
  * 
  * This function does the following:
@@ -563,7 +697,11 @@ function setupEventHandlers(cy, nodeData) {
 			onClickFunction: function (event) {
 				var target = event.target || event.cyTarget;
 				var depth = getNodeDepth(target);
-				navigateToMessage(session, depth);
+				if (nodeData.isSwipe) {
+					navigateToMessage(session, depth, nodeData.swipeId);
+				} else {
+					navigateToMessage(session, depth);
+				}
 				closeModal();
 				activeTapTippy.hide();
 			},
@@ -589,25 +727,20 @@ function setupEventHandlers(cy, nodeData) {
 		hasTrailingDivider: true
 	});
 
-	menuItems.push({
-		id: 'rotate-graph',
-		content: 'Rotate Graph',
-		selector: 'core',
-		coreAsWell: true,  // This makes sure the menu item is also available on right-clicking the graph background.
-		onClickFunction: function (event) {
-			toggleGraphOrientation(cy, layout);  // This function toggles between the two orientations.
-		},
-		hasTrailingDivider: true
-	});
-	try{
-		var contextMenu = cy.contextMenus({
-			menuItems: menuItems,
-			menuItemClasses: ['custom-menu-item'],
-			contextMenuClasses: ['custom-context-menu'],
-		});
-	}catch(e){
-		console.log(e);
-		console.log("contextMenu is likely not allowed on this device.");
+	let modal = document.getElementById("myModal");
+	let rotateBtn = modal.getElementsByClassName("rotate")[0];
+	rotateBtn.onclick = function () {
+		toggleGraphOrientation(cy, layout);
+		//refresh the layout
+		refreshLayout(false);
+		cy.fit();
+	}
+
+	let expandBtn = modal.getElementsByClassName("expand")[0];
+	expandBtn.onclick = function () {
+		toggleSwipes(cy);
+		refreshLayout(false);
+		cy.fit();
 	}
 
 	cy.ready(function () {
@@ -651,9 +784,83 @@ function setupEventHandlers(cy, nodeData) {
 		let node = evt.target;
 		let session = node.data('chat_sessions')[0];
 		let depth = getNodeDepth(node);
-		navigateToMessage(session, depth);
+		//if the node is a swipe, we pass the swipe's session
+		if (node.data('isSwipe')) {
+			navigateToMessage(session, depth, node.data('swipeId'));
+		} else {
+			navigateToMessage(session, depth);
+		}
 		closeModal();
 		activeTapTippy.hide();
+	});
+
+	function refreshLayout(initial, centerNode = false) {
+		cyLayout = cy.elements().makeLayout(layout);
+		if (cyLayout) {
+			cyLayout.stop();
+		}
+
+		if (initial) {
+			cy.json({
+				elements: nodeData,
+			});
+
+			cyLayout = cy.layout(layout);
+		} else {
+			layout.fit = false;
+			cyLayout = cy.elements().makeLayout(layout);
+		}
+		// unlock nodes
+		cy.nodes().forEach(node => {
+			node.unlock();
+		});
+
+
+		cyLayout.run();
+		if (centerNode) {
+			cy.animate({
+				center: { eles: centerNode },
+				zoom: cy.zoom(),  // Maintain the current zoom level, but adjust the center
+				duration: 300  // Adjust the duration as needed for a smooth transition
+			});
+		}
+		// reloack nodes
+		cy.nodes().forEach(node => {
+			node.lock();
+		});
+
+	}
+
+	let storedNodesMap = {};  // This will map parent node IDs to their stored child nodes
+
+	cy.on('taphold', 'node', function (evt) {
+		let node = evt.target;
+		let nodeId = node.id();
+
+		// Check if the node has the storedSwipes attribute
+		if (node.data('storedSwipes')) {
+			console.log(node.data('storedSwipes'));
+			// Determine if the swipes are already added to the graph
+			const firstSwipeId = node.data('storedSwipes')[0].node.id;
+			const swipeExists = cy.getElementById(firstSwipeId).length > 0;
+
+			if (!swipeExists) {
+				// Add stored swipes and their edges to the graph
+				node.data('storedSwipes').forEach(({ node: swipeNode, edge: swipeEdge }) => {
+					// increase the edge weight 
+					swipeEdge.weight = 100;
+					cy.add({ group: 'nodes', data: swipeNode });
+					cy.add({ group: 'edges', data: swipeEdge });
+				});
+			} else {
+				// Remove stored swipes and their edges from the graph
+				node.data('storedSwipes').forEach(({ node: swipeNode }) => {
+					cy.getElementById(swipeNode.id).remove();
+				});
+			}
+		}
+
+		refreshLayout(false, false);
 	});
 
 
@@ -718,6 +925,14 @@ function setupEventHandlers(cy, nodeData) {
 		lastContext = null;
 	}
 	);
+	eventSource.on(event_types.CHATLOADED, () => {
+		lastContext = null;
+	}
+	);
+	eventSource.on(event_types.MESSAGE_SWIPED, () => {
+		lastContext = null;
+	}
+	);
 }
 
 /**
@@ -776,8 +991,10 @@ async function updateTimelineDataIfNeeded() {
 			edgeSep: extension_settings.timeline.edgeSeparation,
 			rankSep: extension_settings.timeline.rankSeparation,
 			rankDir: 'LR',  // Left to Right
-			minLen: function (edge) { return 1; },
-			spacingFactor: extension_settings.timeline.spacingFactor
+			ranker: 'network-simplex',  // 'network-simplex', 'tight-tree' or 'longest-path
+			spacingFactor: extension_settings.timeline.spacingFactor,
+			acyclicer: 'greedy',
+			align: extension_settings.timeline.align,
 		}
 		return true; // Data was updated
 	}
@@ -826,7 +1043,7 @@ jQuery(async () => {
 	const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
 	$("#extensions_settings").append(settingsHtml);
 	$("#show_timeline_view").on("click", onTimelineButtonClick);
-	registerSlashCommand('tl', slashCommandHandler, [], "Show the timeline, ` r ` to reload the graph", false, true);
+	registerSlashCommand('tl', slashCommandHandler, [], `/tl Show the timeline, "/tl r" to reload the graph`, false, true);
 
 
 
@@ -838,8 +1055,11 @@ jQuery(async () => {
         'tl_edge_separation': 'edgeSeparation',
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
+		'tl_tooltip_fixed': 'fixedTooltip',
+		'tl_align': 'align',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
+		'tl_swipe_scale': 'swipeScale',
 		'tl_avatar_as_root': 'avatarAsRoot',
 		'tl_show_legend': 'showLegend',
 		'tl_use_chat_colors': 'useChatColors',

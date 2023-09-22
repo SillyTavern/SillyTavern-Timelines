@@ -130,8 +130,21 @@ export function setupStylesAndData(nodeData) {
         {
             selector: 'node',
             style: {
-                'width': extension_settings.timeline.nodeWidth,
-                'height': extension_settings.timeline.nodeHeight,
+                'width': function (ele) {
+                    let totalSwipes = Number(ele.data('totalSwipes'));
+                    if (isNaN(totalSwipes)) {
+                        totalSwipes = 0;
+                    }
+                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeWidth) : extension_settings.timeline.nodeWidth;
+                },
+                'height': function (ele) {
+                    let totalSwipes = Number(ele.data('totalSwipes'));
+                    if (isNaN(totalSwipes)) {
+                        totalSwipes = 0;
+                    }
+                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
+                },
+
                 'shape': extension_settings.timeline.nodeShape, // or 'circle'
                 'background-color': function (ele) {
                     return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor
@@ -140,13 +153,16 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('is_user') ? getAlphaFromRGBA(theme.userNodeColor) : getAlphaFromRGBA(theme.charNodeColor);
                 },
                 'border-color': function (ele) {
-                    return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : '#000';
+                    return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : ele.data('totalSwipes') ? (ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor) : "black";
                 },
                 'border-width': function (ele) {
-                    return ele.data('isBookmark') ? 4 : ele.data('borderColor') ? 3 : 0;
+                    return ele.data('isBookmark')|| ele.data('totalSwipes') ? 5 : ele.data('borderColor') ? 3 : 0;
                 },
                 'border-opacity': function (ele) {
-                    return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : 0;
+                    return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : ele.data('totalSwipes') > 0 ? 1 : 0;
+                },
+                'border-style': function (ele) {
+                    return ele.data('totalSwipes') > 0 ? 'double' : 'solid';
                 }
             }
         },
@@ -171,7 +187,28 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "black";
                 },
             }
-        }
+        },
+        {
+            selector: 'node[?isSwipe]',  // Select nodes with is_system property set to true
+            style: {
+                'background-opacity': .5,
+                'border-width': 3,
+                'border-color': function (ele) {
+                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "grey";
+                },
+                'border-style': 'dashed',
+                'border-opacity': 1,
+            }
+        },
+        {
+            selector: 'edge[?isSwipe]', 
+
+            style: {
+                'line-style': 'dashed',
+                'line-opacity': .5,
+            }
+        },
+
     ];
 
     return cytoscapeStyles;

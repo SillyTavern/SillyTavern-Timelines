@@ -10,6 +10,10 @@
                 <input id="tl_lock_nodes" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
+                <label for="tl_tooltip_fixed">Fixed Tooltip</label>
+                <input id="tl_tooltip_fixed" type="checkbox" />
+            </div>
+            <div class="timeline-view-settings_block flex-container">
                 <input value="Style Settings" class="menu_button" type="submit" id="toggleStyleSettings">
             </div>
             <!-- The collapsible style settings section -->
@@ -22,6 +26,10 @@
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_show_legend">Show Legend</label>
                     <input id="tl_show_legend" type="checkbox" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_swipe_scale">Scale nodes with swipes</label>
+                    <input id="tl_swipe_scale" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_use_chat_colors">Use UI Theme</label>
@@ -58,7 +66,7 @@
                     <input id="tl_spacing_factor" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_node_shape">Node Shape (<span id="tl_node_shape_value"></span>)</label>
+                    <label for="tl_node_shape">Node Shape</label>
                     <select id="tl_node_shape">
                         <option value="ellipse">Ellipse</option>
                         <option value="triangle">Triangle</option>
@@ -89,7 +97,7 @@
                 </div>
 
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_curve_style">Curve Style (<span id="tl_curve_style_value"></span>)</label>
+                    <label for="tl_curve_style">Curve Style</label>
                     <select id="tl_curve_style">
                         <option value="haystack">Haystack</option>
                         <option value="straight">Straight</option>
@@ -98,6 +106,15 @@
                         <option value="unbundled-bezier">Unbundled-Bezier</option>
                         <option value="segments">Segments</option>
                         <option value="taxi">Taxi</option>
+                    </select>
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_align">Alignment</label>
+                    <select id="tl_align">
+                        <option value="UL">Upper Left</option>
+                        <option value="UR">Upper Right</option>
+                        <option value="DL">Down Left</option>
+                        <option value="DR">Down Right</option>
                     </select>
                 </div>
                 <div class="timeline-view-settings_block flex-container">
@@ -133,12 +150,15 @@
             <div id="myModal" class="modal">
                 <!-- Modal content -->
                 <div id="networkContainer">
-                    <button class="close">&times;</button>
+                    <button class="close" title="Close">&times;</button>
+                    <button class="rotate" title="Rotate Graph">&orarr;</button>
+                    <button class="expand" title="Toggle Expand Swipes">&#x26D5;</button>
                     <input id="transparent-search" type="text" placeholder="Search..." />
                     <div class="graph-container">
                         <!-- Relative positioned container -->
                         <div id="myDiagramDiv"></div>
                         <div id="legendDiv" class="legend-bottom-right"></div>
+                        <div id="fixedReference" style="position: fixed; bottom: 0; left: 0; width: 0; height: 0;"></div>
                         <!-- Legend with absolute positioning -->
                     </div>
                 </div>
