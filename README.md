@@ -37,4 +37,4 @@ All feedback and issues welcome.
 
 ## License
 
-MIT
+[MIT](https://github.com/city-unit/SillyTavern-Timelines/blob/master/LICENSE)
