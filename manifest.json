@@ -7,5 +7,6 @@
     "css": "tl_style.css",
     "author": "city-unit",
     "version": "1.2.0",
-    "homePage": "https://github.com/city-unit/SillyTavern-Timelines"
+    "homePage": "https://github.com/SillyTavern/SillyTavern-Timelines",
+    "auto_update": true
 }
