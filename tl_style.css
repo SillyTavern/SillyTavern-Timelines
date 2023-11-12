@@ -255,3 +255,12 @@ position: absolute;
     max-height: 75vh;
     max-width: 80vw;
 }
+
+.legend-bottom-right {
+overflow-y: scroll;
+    max-height: 90%;
+    border: 1px solid var(--SmartThemeBorderColor);
+    padding: 5px;
+    border-radius: 5px;
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+}
