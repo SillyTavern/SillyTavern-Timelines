@@ -14,8 +14,8 @@ export function toggleGraphOrientation(cy, layout) {
 }
 
 /**
- * Sets the graph orientation based on the current viewport size. 
- * Chooses Left-to-Right (LR) orientation if the viewport width is greater than its height, 
+ * Sets the graph orientation based on the current viewport size.
+ * Chooses Left-to-Right (LR) orientation if the viewport width is greater than its height,
  * otherwise selects Top-to-Bottom (TB).
  *
  * @param {Object} cy - The Cytoscape instance representing the graph.
@@ -30,7 +30,7 @@ export function setGraphOrientationBasedOnViewport(cy, layout) {
 }
 
 /**
- * Sets the orientation of the graph to the specified direction (either 'LR' for Left-to-Right 
+ * Sets the orientation of the graph to the specified direction (either 'LR' for Left-to-Right
  * or 'TB' for Top-to-Bottom).
  *
  * @param {Object} cy - The Cytoscape instance representing the graph.
@@ -45,13 +45,13 @@ function setOrientation(cy, orientation, layout) {
     // Update taxi-direction in style
     const taxiDirection = orientation === 'TB' ? 'downward' : 'rightward';
     cy.style().selector('edge').style({
-        'taxi-direction': taxiDirection
+        'taxi-direction': taxiDirection,
     }).update();
     currentOrientation = orientation;
 }
 
 /**
- * Highlights nodes in the graph based on a provided query. 
+ * Highlights nodes in the graph based on a provided query.
  * Nodes where the 'msg' property contains the query will be highlighted, while others will be dimmed.
  * If no nodes match the query or if the query is empty, all nodes will be restored to their original state.
  *
@@ -60,7 +60,7 @@ function setOrientation(cy, orientation, layout) {
  */
 export function highlightNodesByQuery(cy, query) {
     // If there's no query, restore elements to their original state.
-    if (!query || query === "") {
+    if (!query || query === '') {
         restoreElements(cy);
         return;
     }
@@ -78,7 +78,7 @@ export function highlightNodesByQuery(cy, query) {
 }
 
 /**
- * Retrieves the depth of a given node in a graph. The depth is determined based on the number of 
+ * Retrieves the depth of a given node in a graph. The depth is determined based on the number of
  * ancestral nodes a node has, with the assumption that each node has at most one parent.
  *
  * @param {Object} node - The Cytoscape node object whose depth is to be determined.

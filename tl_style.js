@@ -1,6 +1,6 @@
-import { extension_settings, getContext, loadExtensionSettings } from "../../../extensions.js";
-import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from "../../../../script.js";
-import { power_user } from "../../../power-user.js";
+import { extension_settings, getContext, loadExtensionSettings } from '../../../extensions.js';
+import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from '../../../../script.js';
+import { power_user } from '../../../power-user.js';
 
 
 /**
@@ -25,11 +25,11 @@ function getAlphaFromRGBA(rgbaString) {
  */
 function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness = 4, startingZIndex = 1000) {
     let bookmarkNode = Object.values(rawData).find(entry =>
-        entry.group === 'nodes' && entry.data.id === bookmarkNodeId
+        entry.group === 'nodes' && entry.data.id === bookmarkNodeId,
     );
 
     if (!bookmarkNode) {
-        console.error("Bookmark node not found!");
+        console.error('Bookmark node not found!');
         return;
     }
 
@@ -42,7 +42,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
         }
 
         let incomingEdge = Object.values(rawData).find(entry =>
-            entry.group === 'edges' && entry.data.target === currentNode.data.id
+            entry.group === 'edges' && entry.data.target === currentNode.data.id,
         );
 
         if (incomingEdge) {
@@ -58,7 +58,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 
             currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
             currentNode = Object.values(rawData).find(entry =>
-                entry.group === 'nodes' && entry.data.id === incomingEdge.data.source
+                entry.group === 'nodes' && entry.data.id === incomingEdge.data.source,
             );
         } else {
             currentNode = null;
@@ -67,7 +67,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
 }
 
 /**
- * Sets up visual styles for nodes and edges based on provided node data and context settings. 
+ * Sets up visual styles for nodes and edges based on provided node data and context settings.
  * This function prepares styles that are to be used with Cytoscape to visually represent a graph.
  * Depending on extension settings and context, different colors, shapes, and styles are applied to nodes and edges.
  * Additionally, paths from bookmarked nodes to the root are highlighted.
@@ -87,7 +87,7 @@ export function setupStylesAndData(nodeData) {
         theme.charNodeColor = power_user.main_text_color;
         theme.edgeColor = power_user.italics_text_color;
         theme.userNodeColor = power_user.quote_text_color;
-        theme.bookmarkColor = 'rgba(255, 215, 0, 1)' // gold
+        theme.bookmarkColor = 'rgba(255, 215, 0, 1)'; // gold
         // power_user.blur_tint_color;
         // power_user.user_mes_blur_tint_color;
         // power_user.bot_mes_blur_tint_color;
@@ -124,8 +124,8 @@ export function setupStylesAndData(nodeData) {
                 },
                 'z-index': function (ele) {
                     return ele.data('zIndex') ? ele.data('zIndex') : 1;
-                }
-            }
+                },
+            },
         },
         {
             selector: 'node',
@@ -147,13 +147,13 @@ export function setupStylesAndData(nodeData) {
 
                 'shape': extension_settings.timeline.nodeShape, // or 'circle'
                 'background-color': function (ele) {
-                    return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor
+                    return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor;
                 },
                 'background-opacity': function (ele) {
                     return ele.data('is_user') ? getAlphaFromRGBA(theme.userNodeColor) : getAlphaFromRGBA(theme.charNodeColor);
                 },
                 'border-color': function (ele) {
-                    return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : ele.data('totalSwipes') ? (ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor) : "black";
+                    return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : ele.data('totalSwipes') ? (ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor) : 'black';
                 },
                 'border-width': function (ele) {
                     return ele.data('isBookmark')|| ele.data('totalSwipes') ? 5 : ele.data('borderColor') ? 3 : 0;
@@ -163,8 +163,8 @@ export function setupStylesAndData(nodeData) {
                 },
                 'border-style': function (ele) {
                     return ele.data('totalSwipes') > 0 ? 'double' : 'solid';
-                }
-            }
+                },
+            },
         },
         {
             selector: 'node[label="root"]',
@@ -174,7 +174,7 @@ export function setupStylesAndData(nodeData) {
                 'width': extension_settings.timeline.avatarAsRoot ? '40px' : extension_settings.timeline.nodeWidth,
                 'height': extension_settings.timeline.avatarAsRoot ? '50px' : extension_settings.timeline.nodeHeight,
                 'shape': extension_settings.timeline.avatarAsRoot ? 'rectangle' : extension_settings.timeline.nodeShape,
-            }
+            },
         },
 
         {
@@ -184,9 +184,9 @@ export function setupStylesAndData(nodeData) {
                 'border-style': 'dashed',
                 'border-width': 3,
                 'border-color': function (ele) {
-                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "black";
+                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : 'black';
                 },
-            }
+            },
         },
         {
             selector: 'node[?isSwipe]',  // Select nodes with is_system property set to true
@@ -194,19 +194,19 @@ export function setupStylesAndData(nodeData) {
                 'background-opacity': .5,
                 'border-width': 3,
                 'border-color': function (ele) {
-                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : "grey";
+                    return ele.data('isBookmark') ? extension_settings.timeline.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : 'grey';
                 },
                 'border-style': 'dashed',
                 'border-opacity': 1,
-            }
+            },
         },
         {
-            selector: 'edge[?isSwipe]', 
+            selector: 'edge[?isSwipe]',
 
             style: {
                 'line-style': 'dashed',
                 'line-opacity': .5,
-            }
+            },
         },
 
     ];
@@ -237,7 +237,7 @@ export function highlightElements(cy, selector) {
             'underlay-color': 'white',
             'underlay-padding': '2px',
             'underlay-opacity': 0.5,
-            'underlay-shape': 'ellipse'
+            'underlay-shape': 'ellipse',
         });
     }
 
@@ -253,7 +253,7 @@ export function highlightElements(cy, selector) {
 }
 
 /**
- * Restores all elements in a Cytoscape graph to their default visual state. 
+ * Restores all elements in a Cytoscape graph to their default visual state.
  * The opacity of all elements is set back to 1, and any applied underlays are removed.
  *
  * @param {Object} cy - The Cytoscape instance containing the graph elements.
@@ -264,6 +264,6 @@ export function restoreElements(cy) {
         'underlay-color': '',
         'underlay-padding': '',
         'underlay-opacity': '',
-        'underlay-shape': ''
+        'underlay-shape': '',
     });
 }

@@ -1,5 +1,5 @@
-import { characters, getRequestHeaders, } from "../../../../script.js";
-import { extension_settings, getContext, } from "../../../extensions.js";
+import { characters, getRequestHeaders } from '../../../../script.js';
+import { extension_settings, getContext } from '../../../extensions.js';
 
 
 /**
@@ -8,7 +8,7 @@ import { extension_settings, getContext, } from "../../../extensions.js";
  * from every chat file, effectively transposing the structure.
  *
  * @param {Object} channelHistory - An object where keys are file names and values are arrays of chat messages.
- * @returns {Array} allChats - A 2D array where each sub-array corresponds to a message index and contains 
+ * @returns {Array} allChats - A 2D array where each sub-array corresponds to a message index and contains
  *                             objects detailing the file name, index, and actual message for each chat file.
  */
 function preprocessChatSessions(channelHistory) {
@@ -22,7 +22,7 @@ function preprocessChatSessions(channelHistory) {
             allChats[index].push({
                 file_name,
                 index,
-                message
+                message,
             });
         });
     }
@@ -35,12 +35,12 @@ function preprocessChatSessions(channelHistory) {
  * Nodes are created for each unique message content across chat files at each message position,
  * and edges represent the message order and source file. The function also handles special
  * nodes, such as swipes, and ensures they are properly connected in the graph.
- * 
- * @param {Array} allChats - A 2D array resulting from `preprocessChatSessions`, where each sub-array 
- *                           corresponds to a message index and contains objects detailing the file name, 
+ *
+ * @param {Array} allChats - A 2D array resulting from `preprocessChatSessions`, where each sub-array
+ *                           corresponds to a message index and contains objects detailing the file name,
  *                           index, and actual message for each chat file.
  * @returns {Array} cyElements - A list of node and edge objects suitable for the Cytoscape graph library.
- * 
+ *
  * Behavior:
  * 1. Initializes a root node and sets up tracking for previous nodes.
  * 2. Iterates over each message index, grouping messages by content.
@@ -59,16 +59,16 @@ function buildNodes(allChats) {
     cyElements.push({
         group: 'nodes',
         data: {
-            id: "root",
-            label: "root",
+            id: 'root',
+            label: 'root',
             x: 0,
             y: 0,
-        }
+        },
     });
 
     // Initialize previousNodes
     allChats[0].forEach(({ file_name }) => {
-        previousNodes[file_name] = "root";
+        previousNodes[file_name] = 'root';
     });
 
     for (let messagesAtIndex = 0; messagesAtIndex < allChats.length; messagesAtIndex++) {
@@ -95,7 +95,7 @@ function buildNodes(allChats) {
                     parentSwipeData[parentNodeId] = {
                         storedSwipes: [],
                         totalSwipes: 0,
-                        currentSwipeIndex: uniqueSwipes.indexOf(text)
+                        currentSwipeIndex: uniqueSwipes.indexOf(text),
                     };
                 }
 
@@ -110,7 +110,7 @@ function buildNodes(allChats) {
                         id: swipeNodeId,
                         msg: swipeText,
                         isSwipe: true,
-                        swipeId: swipeIndex  // Storing the index as swipeId in the node data
+                        swipeId: swipeIndex,  // Storing the index as swipeId in the node data
                     };
                     delete swipeNode.swipes;
 
@@ -119,7 +119,7 @@ function buildNodes(allChats) {
                         source: parentNodeId,
                         target: swipeNodeId,
                         isSwipe: true,
-                        swipeId: swipeIndex  // Storing the index as swipeId in the edge data
+                        swipeId: swipeIndex,  // Storing the index as swipeId in the edge data
                     };
 
                     parentSwipeData[parentNodeId].storedSwipes.push({ node: swipeNode, edge: swipeEdge });
@@ -129,7 +129,7 @@ function buildNodes(allChats) {
 
             cyElements.push({
                 group: 'nodes',
-                data: node
+                data: node,
             });
 
             // Create edge for this node
@@ -138,8 +138,8 @@ function buildNodes(allChats) {
                 data: {
                     id: `edge${keyCounter}`,
                     source: parentNodeId,
-                    target: nodeId
-                }
+                    target: nodeId,
+                },
             });
 
             keyCounter += 1;
@@ -164,13 +164,13 @@ function buildNodes(allChats) {
  * The function identifies special messages, such as bookmarks, and adjusts the node
  * properties accordingly. The returned node contains properties that help render and
  * differentiate it within the Cytoscape graph, such as color for bookmarks.
- * 
+ *
  * @param {string} nodeId - The unique ID to assign to the node.
  * @param {string} parentNodeId - The ID of the node from which this node originates (previous message).
  * @param {string} text - The message content.
  * @param {Array} group - A list of message objects that share the same content across chat files.
  * @returns {Object} - A Cytoscape node object with properties set based on the message details.
- * 
+ *
  * Behavior:
  * 1. Checks if any message in the group is a bookmark and extracts relevant details.
  * 2. Determines node properties, such as color for bookmarks, based on the message details.
@@ -179,7 +179,7 @@ function buildNodes(allChats) {
 function createNode(nodeId, parentNodeId, text, group) {
     let bookmark = group.find(({ message }) => {
         // Check if the message is from the system and if it indicates a bookmark
-        if (message.is_system && message.mes.includes("Bookmark created! Click here to open the bookmark chat")) return true;
+        if (message.is_system && message.mes.includes('Bookmark created! Click here to open the bookmark chat')) return true;
 
         // Original bookmark case
         return !!message.extra && !!message.extra.bookmark_link;
@@ -229,7 +229,7 @@ function createNode(nodeId, parentNodeId, text, group) {
  * This function helps in creating a representative node for each unique message across chat sessions.
  *
  * @param {Array} messages - A list of message objects, each containing file_name and message details.
- * @returns {Object} groups - An object where the key is the unique message content and the value is 
+ * @returns {Object} groups - An object where the key is the unique message content and the value is
  *                            an array of message objects that share that content.
  */
 function groupMessagesByContent(messages) {
@@ -302,15 +302,15 @@ export function generateUniqueColor() {
 
 /**
  * Fetches all chats associated with a specific character based on their avatar URL.
- * 
+ *
  * @async
  * @param {string} characterAvatar - The URL of the character's avatar, used as an identifier to fetch chats.
- * @returns {Promise<Object|undefined>} A promise that resolves with the JSON representation of the chat data 
+ * @returns {Promise<Object|undefined>} A promise that resolves with the JSON representation of the chat data
  *                                      or undefined if the fetch request is not successful.
  * @throws Will throw an error if there's an issue with the fetch request itself.
  */
 export async function fetchData(characterAvatar) {
-    const response = await fetch("/getallchatsofcharacter", {
+    const response = await fetch('/getallchatsofcharacter', {
         method: 'POST',
         body: JSON.stringify({ avatar_url: characterAvatar }),
         headers: getRequestHeaders(),
@@ -328,16 +328,16 @@ export async function fetchData(characterAvatar) {
  *
  * @async
  * @param {Object} data - A dictionary containing summary or metadata of chats.
- * @param {boolean} isGroupChat - A flag indicating whether the chat data is for group chats (true) 
+ * @param {boolean} isGroupChat - A flag indicating whether the chat data is for group chats (true)
  *                                or individual chats (false).
- * @returns {Promise<Array>} A promise that resolves with a list of nodes (and potentially edges) 
+ * @returns {Promise<Array>} A promise that resolves with a list of nodes (and potentially edges)
  *                           suitable for the Cytoscape graph library.
  * @throws Will throw an error if the fetch request or data processing encounters issues.
  */
 export async function prepareData(data, isGroupChat) {
     const context = getContext();
     let chat_dict = {};
-    let chat_list = Object.values(data).sort((a, b) => a["file_name"].localeCompare(b["file_name"])).reverse();
+    let chat_list = Object.values(data).sort((a, b) => a['file_name'].localeCompare(b['file_name'])).reverse();
 
     for (const { file_name } of chat_list) {
         try {
@@ -347,7 +347,7 @@ export async function prepareData(data, isGroupChat) {
                 : JSON.stringify({
                     ch_name: characters[context.characterId].name,
                     file_name: file_name.replace('.jsonl', ''),
-                    avatar_url: characters[context.characterId].avatar
+                    avatar_url: characters[context.characterId].avatar,
                 });
 
             const chatResponse = await fetch(endpoint, {
