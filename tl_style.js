@@ -135,14 +135,14 @@ export function setupStylesAndData(nodeData) {
                     if (isNaN(totalSwipes)) {
                         totalSwipes = 0;
                     }
-                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeWidth) : extension_settings.timeline.nodeWidth;
+                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1)) * 4 + Number(extension_settings.timeline.nodeWidth) : extension_settings.timeline.nodeWidth;
                 },
                 'height': function (ele) {
                     let totalSwipes = Number(ele.data('totalSwipes'));
                     if (isNaN(totalSwipes)) {
                         totalSwipes = 0;
                     }
-                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1))*4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
+                    return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1)) * 4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
                 },
 
                 'shape': extension_settings.timeline.nodeShape, // or 'circle'
@@ -156,7 +156,7 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : ele.data('totalSwipes') ? (ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor) : 'black';
                 },
                 'border-width': function (ele) {
-                    return ele.data('isBookmark')|| ele.data('totalSwipes') ? 5 : ele.data('borderColor') ? 3 : 0;
+                    return ele.data('isBookmark') || ele.data('totalSwipes') ? 5 : ele.data('borderColor') ? 3 : 0;
                 },
                 'border-opacity': function (ele) {
                     return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : ele.data('totalSwipes') > 0 ? 1 : 0;

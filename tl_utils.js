@@ -31,7 +31,7 @@ const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
  * 5. If `swipeId` is provided and >= 0, navigates to the associated swipe after potentially creating a new branch.
  */
 
-export async function navigateToMessage(chatSessionName, messageId, swipeId=-1, branch=false) {
+export async function navigateToMessage(chatSessionName, messageId, swipeId = -1, branch = false) {
 
     // Remove extension from file name
     chatSessionName = chatSessionName.replace('.jsonl', '');
@@ -72,15 +72,15 @@ export async function navigateToMessage(chatSessionName, messageId, swipeId=-1, 
         }
     }
     if( branch ) {
-        let name = await createBranch(messageId-1);
+        let name = await createBranch(messageId - 1);
         await openCharacterChat(name);
         closeOpenDrawers();
         return;
     }
     if (swipeId >= 0) {
-        let name = await createBranch(messageId-1);
+        let name = await createBranch(messageId - 1);
         await openCharacterChat(name);
-        goToSwipe(swipeId, messageId-1);
+        goToSwipe(swipeId, messageId - 1);
         closeOpenDrawers();
         return;
     }

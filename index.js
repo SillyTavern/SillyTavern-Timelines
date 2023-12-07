@@ -263,7 +263,7 @@ function makeTapTippy(ele) {
                 { content: ele.data('send_date'), className: 'timestamp' },
             ];
             //if swipes, display swipes
-            if (ele.data('totalSwipes')>0) {
+            if (ele.data('totalSwipes') > 0) {
                 dataItems.push({ content: `Swipes: ${ele.data('totalSwipes')}`, className: 'timestamp' });
             }
 
@@ -972,7 +972,7 @@ async function updateTimelineDataIfNeeded() {
                 // for each group.chats, we add to a dict with the key being the index and the value being the chat
                 for(let i = 0; i < group.chats.length; i++){
                     console.log(group.chats[i]);
-                    data[i]= { 'file_name': group.chats[i] };
+                    data[i] = { 'file_name': group.chats[i] };
                 }
                 lastTimelineData = await prepareData(data, true);
             }
