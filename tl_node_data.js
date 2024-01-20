@@ -310,7 +310,7 @@ export function generateUniqueColor() {
  * @throws Will throw an error if there's an issue with the fetch request itself.
  */
 export async function fetchData(characterAvatar) {
-    const response = await fetch('/getallchatsofcharacter', {
+    const response = await fetch('/api/characters/chats', {
         method: 'POST',
         body: JSON.stringify({ avatar_url: characterAvatar }),
         headers: getRequestHeaders(),
@@ -341,7 +341,7 @@ export async function prepareData(data, isGroupChat) {
 
     for (const { file_name } of chat_list) {
         try {
-            const endpoint = isGroupChat ? '/getgroupchat' : '/getchat';
+            const endpoint = isGroupChat ? '/api/chats/group/get' : '/api/chats/get';
             const requestBody = isGroupChat
                 ? JSON.stringify({ id: file_name })
                 : JSON.stringify({
