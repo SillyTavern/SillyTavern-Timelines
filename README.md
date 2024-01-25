@@ -21,8 +21,8 @@ Use ST's inbuilt extension installer.
 Extensions > Timelines > View Timeline
 
 - Nodes with swipes will appear with a halo around them
-- Bookmarks appear with a colored ring around them
-- Bookmark paths will be colored and are visible in the legend
+- Checkpoints appear with a colored ring around them
+- Checkpoint paths will be colored and are visible in the legend
 - Long-pressing a node with swipes will reveal the swipes on the graph
 - Clicking a node will open the full info about it
 - Double clicking a node will go straight to the message

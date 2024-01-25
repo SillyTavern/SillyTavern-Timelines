@@ -15,11 +15,11 @@ function getAlphaFromRGBA(rgbaString) {
 }
 
 /**
- * Highlights the path from a specified bookmark node to the root in a data structure representing a graph.
+ * Highlights the path from a specified checkpoint node to the root in a data structure representing a graph.
  * The function iteratively traces and highlights edges and nodes, adjusting visual attributes like color, thickness, and zIndex.
  *
  * @param {Object} rawData - The data structure representing the graph with nodes and edges.
- * @param {string|number} bookmarkNodeId - The ID of the bookmark node to start highlighting from.
+ * @param {string|number} bookmarkNodeId - The ID of the checkpoint node to start highlighting from.
  * @param {number} currentHighlightThickness - The starting thickness for highlighting edges (default is 4).
  * @param {number} startingZIndex - The starting zIndex for nodes and edges to be highlighted (default is 1000).
  */
@@ -29,7 +29,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
     );
 
     if (!bookmarkNode) {
-        console.error('Bookmark node not found!');
+        console.error('Checkpoint node not found!');
         return;
     }
 
@@ -70,7 +70,7 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
  * Sets up visual styles for nodes and edges based on provided node data and context settings.
  * This function prepares styles that are to be used with Cytoscape to visually represent a graph.
  * Depending on extension settings and context, different colors, shapes, and styles are applied to nodes and edges.
- * Additionally, paths from bookmarked nodes to the root are highlighted.
+ * Additionally, paths from checkpoint nodes to the root are highlighted.
  *
  * @param {Object} nodeData - Data structure representing the graph with nodes and edges.
  * @returns {Array} An array of style definitions suitable for use with Cytoscape.

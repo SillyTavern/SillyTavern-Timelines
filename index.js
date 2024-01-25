@@ -449,7 +449,7 @@ function closeNodeModal() {
  *    - If a node with a unique name is found, its details (name and color)
  *      are added to the legend under the 'Nodes Legend' category.
  * 3. Iterates over all edges in the graph:
- *    - If an edge with a unique color is found, its details (bookmark name and color)
+ *    - If an edge with a unique color is found, its details (checkpoint name and color)
  *      are added to the legend under the 'Edges Legend' category.
  *
  * @param {Object} cy - The Cytoscape instance where graph operations are performed.
