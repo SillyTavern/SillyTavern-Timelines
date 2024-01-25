@@ -18,7 +18,7 @@ Use ST's inbuilt extension installer.
 
 ### Usage
 
-Extensions > Timeline > View Timeline
+Extensions > Timelines > View Timeline
 
 - Nodes with swipes will appear with a halo around them
 - Bookmarks appear with a colored ring around them
