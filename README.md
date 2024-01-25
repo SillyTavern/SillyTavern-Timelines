@@ -27,6 +27,13 @@ Extensions > Timeline > View Timeline
 - Clicking a node will open the full info about it 
 - Double clicking a node will go straight to the message
 
+The extension adds a slash command:
+
+- `/tl` - open the timeline view
+- `/tl r` - refresh the timeline graph
+
+Binding the `/tl` command to a custom Quick Reply button gives convenient one-click access to the timeline view.
+
 ## Prerequisites
 
 SillyTavern version  >=1.10.4
