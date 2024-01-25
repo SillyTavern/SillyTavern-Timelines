@@ -178,8 +178,15 @@ function buildNodes(allChats) {
  */
 function createNode(nodeId, parentNodeId, text, group) {
     let bookmark = group.find(({ message }) => {
-        // Check if the message is from the system and if it indicates a checkpoint
-        if (message.is_system && message.mes.includes('Checkpoint created! Click here to open the checkpoint chat')) return true;
+        // Check if the message is from the system and if it indicates a checkpoint.
+        //
+        // This check is only needed for compatibility with old chat files. ST has not used
+        // this marker since summer 2023.
+        //
+        // There is still a `bookmark_created` system message in `SillyTavern/public/script.js`,
+        // which uses the new "checkpoint" term (instead of the old "bookmark", as here), but
+        // that message has never been used in chat files.
+        if (message.is_system && message.mes.includes('Bookmark created! Click here to open the bookmark chat')) return true;
 
         // Original bookmark case
         return !!message.extra && !!message.extra.bookmark_link;
