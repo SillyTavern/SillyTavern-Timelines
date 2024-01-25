@@ -161,9 +161,9 @@ function buildNodes(allChats) {
 
 /**
  * Constructs a Cytoscape node object based on provided message details.
- * The function identifies special messages, such as bookmarks, and adjusts the node
+ * The function identifies special messages, such as checkpoints, and adjusts the node
  * properties accordingly. The returned node contains properties that help render and
- * differentiate it within the Cytoscape graph, such as color for bookmarks.
+ * differentiate it within the Cytoscape graph, such as color for checkpoints.
  *
  * @param {string} nodeId - The unique ID to assign to the node.
  * @param {string} parentNodeId - The ID of the node from which this node originates (previous message).
@@ -172,13 +172,20 @@ function buildNodes(allChats) {
  * @returns {Object} - A Cytoscape node object with properties set based on the message details.
  *
  * Behavior:
- * 1. Checks if any message in the group is a bookmark and extracts relevant details.
- * 2. Determines node properties, such as color for bookmarks, based on the message details.
+ * 1. Checks if any message in the group is a checkpoint and extracts relevant details.
+ * 2. Determines node properties, such as color for checkpoints, based on the message details.
  * 3. Constructs and returns the node object.
  */
 function createNode(nodeId, parentNodeId, text, group) {
     let bookmark = group.find(({ message }) => {
-        // Check if the message is from the system and if it indicates a bookmark
+        // Check if the message is from the system and if it indicates a checkpoint.
+        //
+        // This check is only needed for compatibility with old chat files. ST has not used
+        // this marker since summer 2023.
+        //
+        // There is still a `bookmark_created` system message in `SillyTavern/public/script.js`,
+        // which uses the new "checkpoint" term (instead of the old "bookmark", as here), but
+        // that message has never been used in chat files.
         if (message.is_system && message.mes.includes('Bookmark created! Click here to open the bookmark chat')) return true;
 
         // Original bookmark case
@@ -187,7 +194,7 @@ function createNode(nodeId, parentNodeId, text, group) {
 
     let isBookmark = Boolean(bookmark);
 
-    // Extract bookmarkName and fileNameForNode depending on bookmark type
+    // Extract bookmarkName and fileNameForNode depending on checkpoint type
     let bookmarkName, fileNameForNode;
     if (isBookmark) {
         if (bookmark.message.extra && bookmark.message.extra.bookmark_link) {
