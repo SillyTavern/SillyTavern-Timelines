@@ -681,6 +681,7 @@ function setupEventHandlers(cy, nodeData) {
     let showTimeout;
     let activeTapTippy = null;
 
+    /*  Currently unused (leftover debug code?), so commenting out.
     var allChatSessions = [];
     for (let i = 0; i < nodeData.length; i++) {
         if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
@@ -709,6 +710,7 @@ function setupEventHandlers(cy, nodeData) {
             hasTrailingDivider: true,
         };
     });
+    */
 
     document.getElementById('transparent-search').addEventListener('input', function (e) {
         let mainSearch = document.getElementById('transparent-search');
@@ -718,6 +720,7 @@ function setupEventHandlers(cy, nodeData) {
         highlightNodesByQuery(cy, query);
     });
 
+    /*  Currently unused (leftover debug code?), so commenting out.
     menuItems.push({
         id: 'no-chat-session',
         content: 'No chat sessions available',
@@ -727,6 +730,7 @@ function setupEventHandlers(cy, nodeData) {
         },
         hasTrailingDivider: true,
     });
+    */
 
     let modal = document.getElementById('myModal');
     let rotateBtn = modal.getElementsByClassName('rotate')[0];
