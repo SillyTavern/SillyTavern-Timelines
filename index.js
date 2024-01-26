@@ -300,6 +300,7 @@ function makeTapTippy(ele) {
                     btn.classList.add('menu_button');
                     btn.textContent = session.split('.jsonl')[0];
                     btn.dataset.sessionIndex = index; // Storing the session index as a data attribute
+                    btn.title = `Find and open this message in "${session}".`;  // TODO: data-i18n?
                     btn.addEventListener('click', function () {
                         var depth = getNodeDepth(ele);
                         if (ele.data('isSwipe')) {
@@ -320,7 +321,7 @@ function makeTapTippy(ele) {
                     branchBtn.classList.add('widthNatural');
                     branchBtn.dataset.sessionIndex = index; // Storing the session index as a data attribute
                     // add title to branch button
-                    branchBtn.title = `Branch from ${session}`;
+                    branchBtn.title = `Create a new branch from "${session}", starting at this message, and open it.`;  // TODO: data-i18n?
                     branchBtn.addEventListener('click', function () {
                         var depth = getNodeDepth(ele);
                         if(ele.data('isSwipe'))
