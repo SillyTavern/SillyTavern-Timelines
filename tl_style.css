@@ -94,7 +94,7 @@
         border: none;
         padding: 0;
 }
-/* The Close Button */
+/* The Expand Button */
 .expand {
     color: #aaaaaa;
     float: right;
@@ -107,7 +107,7 @@
         padding: 0;
         padding-right: 10px;
 }
-/* The Close Button */
+/* The Rotate Button */
 .rotate {
     color: #aaaaaa;
     float: right;
