@@ -746,7 +746,7 @@ function setupEventHandlers(cy, nodeData) {
 
     let reloadBtn = modal.getElementsByClassName('reload')[0];
     reloadBtn.onclick = function () {
-        slashCommandHandler(null, true);  // reload
+        slashCommandHandler(null, 'r');  // r = reload
         refreshLayout(false);
         cy.fit();
     };
