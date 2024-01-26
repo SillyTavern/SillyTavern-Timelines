@@ -903,7 +903,7 @@ function setupEventHandlers(cy, nodeData) {
         let truncatedMsg = truncateMessage(node.data('msg'));
         let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
 
-        // Delay the tooltip appearance by 3 seconds (3000 ms)
+        // Delay the tooltip appearance by 250 ms
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
             tippy.show();
