@@ -744,6 +744,13 @@ function setupEventHandlers(cy, nodeData) {
         cy.fit();
     };
 
+    let reloadBtn = modal.getElementsByClassName('reload')[0];
+    reloadBtn.onclick = function () {
+        slashCommandHandler(null, true);  // reload
+        refreshLayout(false);
+        cy.fit();
+    };
+
     cy.ready(function () {
         if (extension_settings.timeline.showLegend) {
             createLegend(cy);
