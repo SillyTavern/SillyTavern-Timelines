@@ -204,12 +204,12 @@ position: absolute;
     background-color: transparent;
     border: none;
     outline: none;
-    color: white; 
-    position: absolute; 
-    top: 10px; 
-    left: 10px; 
-    width: 200px; 
-    font-size: 16px; 
+    color: white;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 200px;
+    font-size: 16px;
     z-index: 10;
 }
 
