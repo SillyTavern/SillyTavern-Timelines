@@ -1027,7 +1027,10 @@ async function onTimelineButtonClick() {
         renderCytoscapeDiagram(lastTimelineData);
     }
     closeOpenDrawers();
-    document.getElementById('transparent-search').focus();
+    let searchElement = document.getElementById('transparent-search');
+    searchElement.focus();
+    searchElement.select();  // select content for easy erasing
+    searchElement.dispatchEvent(new Event('input'));  // apply the search
 }
 
 /**
