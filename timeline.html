@@ -10,7 +10,7 @@
                 <input id="tl_lock_nodes" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <label for="tl_tooltip_fixed">Fixed Tooltip</label>
+                <label for="tl_tooltip_fixed" title="When you click on a node, always show the node content at the bottom left. When off, show it near the node clicked." data-i18n="[title]When you click on a node, always show the node content at the bottom left. When off, show it near the node clicked.">Fixed Tooltip</label>
                 <input id="tl_tooltip_fixed" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
@@ -20,19 +20,19 @@
             <div id="styleSettingsArea" class="hidden">
                 <!-- Moved tl_avatar_as_root checkbox -->
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_avatar_as_root">Avatar As Root</label>
+                    <label for="tl_avatar_as_root" title="Show the AI character's avatar as the root node. When off, show the root node as blank." data-i18n="[title]Show the AI character's avatar as the root node. When off, show the root node as blank.">Avatar As Root</label>
                     <input id="tl_avatar_as_root" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_show_legend">Show Legend</label>
+                    <label for="tl_show_legend" title="Show a legend for colors corresponding to different characters and chat checkpoints." data-i18n="[title]Show a legend for colors corresponding to different characters and chat checkpoints.">Show Legend</label>
                     <input id="tl_show_legend" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_swipe_scale">Scale nodes with swipes</label>
+                    <label for="tl_swipe_scale" title="When enabled, nodes that have swipes will appear subtly larger." data-i18n="[title]When enabled, nodes that have swipes will appear subtly larger.">Scale nodes with swipes</label>
                     <input id="tl_swipe_scale" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_use_chat_colors">Use UI Theme</label>
+                    <label for="tl_use_chat_colors" title="Use the colors of the ST GUI theme, instead of the colors configured specifically for this extension." data-i18n="[title]Use the colors of the ST GUI theme, instead of the colors configured specifically for this extension.">Use UI Theme</label>
                     <input id="tl_use_chat_colors" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
@@ -153,6 +153,7 @@
                     <button class="close" title="Close">&times;</button>
                     <button class="rotate" title="Rotate Graph">&orarr;</button>
                     <button class="expand" title="Toggle Expand Swipes">&#x26D5;</button>
+                    <button class="reload" title="Reload Graph [/tl r]">&#x1f5d8;</button>
                     <input id="transparent-search" type="text" placeholder="Search..." />
                     <div class="graph-container">
                         <!-- Relative positioned container -->

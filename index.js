@@ -300,6 +300,7 @@ function makeTapTippy(ele) {
                     btn.classList.add('menu_button');
                     btn.textContent = session.split('.jsonl')[0];
                     btn.dataset.sessionIndex = index; // Storing the session index as a data attribute
+                    btn.title = `Find and open this message in "${session}".`;  // TODO: data-i18n?
                     btn.addEventListener('click', function () {
                         var depth = getNodeDepth(ele);
                         if (ele.data('isSwipe')) {
@@ -320,7 +321,7 @@ function makeTapTippy(ele) {
                     branchBtn.classList.add('widthNatural');
                     branchBtn.dataset.sessionIndex = index; // Storing the session index as a data attribute
                     // add title to branch button
-                    branchBtn.title = `Branch from ${session}`;
+                    branchBtn.title = `Create a new branch from "${session}", starting at this message, and open it.`;  // TODO: data-i18n?
                     branchBtn.addEventListener('click', function () {
                         var depth = getNodeDepth(ele);
                         if(ele.data('isSwipe'))
@@ -680,6 +681,7 @@ function setupEventHandlers(cy, nodeData) {
     let showTimeout;
     let activeTapTippy = null;
 
+    /*  Currently unused (leftover debug code?), so commenting out.
     var allChatSessions = [];
     for (let i = 0; i < nodeData.length; i++) {
         if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
@@ -708,6 +710,7 @@ function setupEventHandlers(cy, nodeData) {
             hasTrailingDivider: true,
         };
     });
+    */
 
     document.getElementById('transparent-search').addEventListener('input', function (e) {
         let mainSearch = document.getElementById('transparent-search');
@@ -717,6 +720,7 @@ function setupEventHandlers(cy, nodeData) {
         highlightNodesByQuery(cy, query);
     });
 
+    /*  Currently unused (leftover debug code?), so commenting out.
     menuItems.push({
         id: 'no-chat-session',
         content: 'No chat sessions available',
@@ -726,6 +730,7 @@ function setupEventHandlers(cy, nodeData) {
         },
         hasTrailingDivider: true,
     });
+    */
 
     let modal = document.getElementById('myModal');
     let rotateBtn = modal.getElementsByClassName('rotate')[0];
@@ -739,6 +744,13 @@ function setupEventHandlers(cy, nodeData) {
     let expandBtn = modal.getElementsByClassName('expand')[0];
     expandBtn.onclick = function () {
         toggleSwipes(cy);
+        refreshLayout(false);
+        cy.fit();
+    };
+
+    let reloadBtn = modal.getElementsByClassName('reload')[0];
+    reloadBtn.onclick = function () {
+        slashCommandHandler(null, 'r');  // r = reload
         refreshLayout(false);
         cy.fit();
     };
@@ -895,7 +907,7 @@ function setupEventHandlers(cy, nodeData) {
         let truncatedMsg = truncateMessage(node.data('msg'));
         let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
 
-        // Delay the tooltip appearance by 3 seconds (3000 ms)
+        // Delay the tooltip appearance by 250 ms
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
             tippy.show();
@@ -1015,7 +1027,10 @@ async function onTimelineButtonClick() {
         renderCytoscapeDiagram(lastTimelineData);
     }
     closeOpenDrawers();
-    document.getElementById('transparent-search').focus();
+    let searchElement = document.getElementById('transparent-search');
+    searchElement.focus();
+    searchElement.select();  // select content for easy erasing
+    searchElement.dispatchEvent(new Event('input'));  // apply the search
 }
 
 /**
