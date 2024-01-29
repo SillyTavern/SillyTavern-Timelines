@@ -133,24 +133,59 @@
     padding: 0;
     padding-right: 10px;
 }
+/* The Zoom to Fit Button */
+.zoomtofit {
+    color: #aaaaaa;
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    z-index: 3;
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+    padding-right: 10px;
+}
+/* The Zoom to Current Button */
+.zoomtocurrent {
+    color: #aaaaaa;
+    float: right;
+    font-size: 20px;
+    font-weight: bold;
+    z-index: 3;
+    position: relative;
+    background: none;
+    border: none;
+    padding: 0;
+    padding-right: 10px;
+}
 
-.rotate:hover,
-.rotate:focus {
-    color: black;
+.rotate:hover {
+    color: #808080;
     text-decoration: none;
     cursor: pointer;
 }
 
-.expand:hover,
-.expand:focus {
-    color: black;
+.expand:hover {
+    color: #808080;
     text-decoration: none;
     cursor: pointer;
 }
 
-.reload:hover,
-.reload:focus {
-    color: black;
+.reload:hover {
+    color: #808080;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.zoomtofit:hover {
+    color: #808080;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.zoomtocurrent:hover {
+    color: #808080;
     text-decoration: none;
     cursor: pointer;
 }
@@ -168,9 +203,8 @@ position: absolute;
     padding: 0;
 }
 
-.close:hover,
-.close:focus {
-    color: black;
+.close:hover {
+    color: red;
     text-decoration: none;
     cursor: pointer;
 }

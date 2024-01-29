@@ -1,10 +1,16 @@
+// TODO: Settings: remove `Lock Nodes` (does nothing)
+// TODO: Settings: add `Auto-expand Swipes`
+// TODO: Settings: add `Max zoom level` (optional)
+// TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search)
+// TODO: Icon sizes at the top right of the timeline view should match each other.
+// TODO: Remove unused code (see TODOs marked in code comments)
 
+// Old TODOs:
 // TODO Edge labels?
 // TODO Possible minimap mode
 // TODO More context menu options
 // TODO Experimental multi-tree view
 // TODO Mobile taps on iOS
-
 
 /**
  * Loads an external file (CSS or JS) into the document's head.
@@ -88,12 +94,11 @@ let defaultSettings = {
     lockNodes: true,
 };
 
-// Variable to keep track of the currently highlighted elements
-let currentlyHighlighted = null;
-let lastContext = null; // Initialize lastContext to null
+let currentlyHighlighted = null;  // selector for active legend item
+let lastContext = null;  // for tracking whether we need to refresh the graph
 let layout = {};
-let lastTimelineData = null; // Store the last fetched and prepared timeline data
-let activeTippies = new Set();
+let lastTimelineData = null;  // last fetched and prepared timeline data
+let theCy = null;  // Cytoscape instance
 
 /**
  * Asynchronously loads settings from `extension_settings.timeline`,
@@ -105,14 +110,14 @@ let activeTippies = new Set();
 async function loadSettings() {
     // Ensure extension_settings.timeline exists
     if (!extension_settings.timeline) {
-        console.log('Creating extension_settings.timeline');
+        console.info('Creating extension_settings.timeline');
         extension_settings.timeline = {};
     }
 
     // Check and merge each default setting if it doesn't exist
     for (const [key, value] of Object.entries(defaultSettings)) {
         if (!extension_settings.timeline.hasOwnProperty(key)) {
-            console.log(`Setting default for: ${key}`);
+            console.info(`Setting default for: ${key}`);
             extension_settings.timeline[key] = value;
         }
     }
@@ -257,16 +262,16 @@ function makeTapTippy(ele) {
             var div = document.createElement('div');
             div.classList.add('tap_tippy_content');
 
-            // Display specific node data with individual classes
+            // Set up the heading section
             var dataItems = [
                 { content: ele.data('name'), className: 'name_text' },
                 { content: ele.data('send_date'), className: 'timestamp' },
             ];
-            //if swipes, display swipes
             if (ele.data('totalSwipes') > 0) {
                 dataItems.push({ content: `Swipes: ${ele.data('totalSwipes')}`, className: 'timestamp' });
             }
 
+            // Format the heading section HTML
             dataItems.forEach(dataItem => {
                 let p = document.createElement('div');
                 p.classList.add(dataItem.className);
@@ -286,48 +291,56 @@ function makeTapTippy(ele) {
             // Insert an <hr> before adding the interactive menu based on chat_sessions
             div.appendChild(document.createElement('hr'));
 
+            // Add buttons: navigate to the message, create a new branch at the message
             var menuDiv = document.createElement('div');
             menuDiv.classList.add('menu_div');
             if (ele.data('chat_sessions')) {
-                ele.data('chat_sessions').forEach((session, index) => {
-                    // Create a container for the main and branch buttons
+                ele.data('chat_sessions').forEach((file_name, index) => {
+                    // Create a container for the buttons
                     let btnContainer = document.createElement('div');
                     btnContainer.style.display = 'flex';
                     btnContainer.style.alignItems = 'center'; // To vertically center the buttons
 
+                    const sessionName = file_name.split('.jsonl')[0];
+                    const depth = getNodeDepth(ele);
+                    const messageId = depth - 1;  // sequential message number in chat (-1 for graph root node)
+                    // Without creating a branch, swipes are available only at the last message of a chat.
+                    const sessionLength = ele.data('chat_session_lengths')[file_name];
+                    const canNavigateToSwipe = (messageId === (sessionLength - 1));
+
                     // 1. Create the main button
-                    let btn = document.createElement('button');
-                    btn.classList.add('menu_button');
-                    btn.textContent = session.split('.jsonl')[0];
-                    btn.dataset.sessionIndex = index; // Storing the session index as a data attribute
-                    btn.title = `Find and open this message in "${session}".`;  // TODO: data-i18n?
-                    btn.addEventListener('click', function () {
-                        var depth = getNodeDepth(ele);
+                    let navigateBtn = document.createElement('button');
+                    navigateBtn.classList.add('menu_button');
+                    navigateBtn.textContent = sessionName;
+                    navigateBtn.title = `Find and open this message in "${sessionName}".`;  // TODO: data-i18n?
+                    if (Boolean(ele.data('isSwipe')) && !canNavigateToSwipe) {
+                        navigateBtn.disabled = true;
+                        navigateBtn.classList.add('disabled');
+                    }
+                    navigateBtn.addEventListener('click', function () {
                         if (ele.data('isSwipe')) {
-                            navigateToMessage(session, depth, ele.data('swipeId'));
+                            navigateToMessage(file_name, messageId, ele.data('swipeId'));
                         } else {
-                            navigateToMessage(session, depth);
+                            navigateToMessage(file_name, messageId);
                         }
                         closeModal();
                         tip.hide(); // Hide the Tippy tooltip
                     });
-                    btnContainer.appendChild(btn);
+                    btnContainer.appendChild(navigateBtn);
 
-                    // 2. Create the branch button with an arrow to the right
+                    // 2. Create the branch button (arrow to the right)
                     let branchBtn = document.createElement('button');
                     branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
                     branchBtn.textContent = '→'; // Arrow to the right
                     branchBtn.classList.add('menu_button');
                     branchBtn.classList.add('widthNatural');
-                    branchBtn.dataset.sessionIndex = index; // Storing the session index as a data attribute
                     // add title to branch button
-                    branchBtn.title = `Create a new branch from "${session}", starting at this message, and open it.`;  // TODO: data-i18n?
+                    branchBtn.title = `Create a new branch from "${sessionName}", starting at this message, and open it.`;  // TODO: data-i18n?
                     branchBtn.addEventListener('click', function () {
-                        var depth = getNodeDepth(ele);
                         if(ele.data('isSwipe'))
-                            navigateToMessage(session, depth, ele.data('swipeId'), false);
+                            navigateToMessage(file_name, messageId, ele.data('swipeId'), true);
                         else
-                            navigateToMessage(session, depth, null, true);
+                            navigateToMessage(file_name, messageId, null, true);
                         closeModal();
                         tip.hide(); // Hide the Tippy tooltip
                     });
@@ -340,10 +353,6 @@ function makeTapTippy(ele) {
             div.appendChild(menuDiv);
 
             return div;
-
-
-            return div;
-
         },
         arrow: true,
         placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'auto',
@@ -357,7 +366,7 @@ function makeTapTippy(ele) {
         },
         onHide() {
             isTapTippyActive = false;
-            console.log('Tap Tippy hidden');
+            console.debug('Tap Tippy hidden');
         },
         popperOptions: {
             modifiers: [
@@ -400,46 +409,47 @@ function makeTapTippy(ele) {
  *
  * @param {Object} node - The clicked node from the Cytoscape graph.
  */
-function nodeClickHandler(node) {
-    let depth = getNodeDepth(node);
-    let chatSessions = node.data('chat_sessions');
-
-    if (chatSessions && chatSessions.length > 1) {
-        let modalTextElement = document.getElementById('nodeText');
-        let chatSessionListElement = document.getElementById('chatSessionList');
-
-        // Setting the full text from node data
-        modalTextElement.textContent = node.data('full_text'); // Assuming 'full_text' is a property in your node data
-
-        // Clear previous chat sessions
-        chatSessionListElement.innerHTML = '';
-
-        // Populate the list of chat sessions
-        chatSessions.forEach(session => {
-            let listItem = document.createElement('li');
-            listItem.textContent = session.name; // Adjust based on your chat session structure
-            listItem.addEventListener('click', function () {
-                closeNodeModal();
-                navigateToMessage(session.file_name, depth); // Assuming 'file_name' is a property in your chat session data
-            });
-            chatSessionListElement.appendChild(listItem);
-        });
-
-        showNodeModal();
-    } else {
-        let chatSessionName = node.data('file_name');
-        closeNodeModal();
-        navigateToMessage(chatSessionName, depth);
-    }
-}
-
-function showNodeModal() {
-    document.getElementById('nodeModal').style.display = 'block';
-}
-
-function closeNodeModal() {
-    document.getElementById('nodeModal').style.display = 'none';
-}
+// function nodeClickHandler(node) {  // TODO: This function is unused, should be removed.
+//     let depth = getNodeDepth(node);
+//     let messageId = depth - 1;  // in sequential numbering in chat
+//     let chatSessions = node.data('chat_sessions');
+//
+//     if (chatSessions && chatSessions.length > 1) {
+//         let modalTextElement = document.getElementById('nodeText');
+//         let chatSessionListElement = document.getElementById('chatSessionList');
+//
+//         // Setting the full text from node data
+//         modalTextElement.textContent = node.data('full_text'); // Assuming 'full_text' is a property in your node data (seems not, this is the only match...)
+//
+//         // Clear previous chat sessions
+//         chatSessionListElement.innerHTML = '';
+//
+//         // Populate the list of chat sessions
+//         chatSessions.forEach(session => {
+//             let listItem = document.createElement('li');
+//             listItem.textContent = session.name; // Adjust based on your chat session structure
+//             listItem.addEventListener('click', function () {
+//                 closeNodeModal();
+//                 navigateToMessage(session.file_name, messageId); // Assuming 'file_name' is a property in your chat session data
+//             });
+//             chatSessionListElement.appendChild(listItem);
+//         });
+//
+//         showNodeModal();
+//     } else {
+//         let file_name = node.data('file_name');
+//         closeNodeModal();
+//         navigateToMessage(file_name, messageId);
+//     }
+// }
+//
+// function showNodeModal() {
+//     document.getElementById('nodeModal').style.display = 'block';
+// }
+//
+// function closeNodeModal() {
+//     document.getElementById('nodeModal').style.display = 'none';
+// }
 
 /**
  * Creates and populates a legend for nodes and edges in a Cytoscape graph.
@@ -533,20 +543,20 @@ function createLegendItem(cy, container, item, type) {
 
     // Click to lock/unlock the view
     legendItem.addEventListener('click', function () {
-        if (currentlyHighlighted === selector) {
-            restoreElements(cy);
-            legendItem.classList.remove('active-legend');
-            currentlyHighlighted = null;
-        } else {
-            if (currentlyHighlighted) {
-                restoreElements(cy);
-                const activeItems = document.querySelectorAll('.active-legend');
-                activeItems.forEach(item => item.classList.remove('active-legend'));
-            }
+        const differentLegendItemClicked = Boolean(currentlyHighlighted !== selector);
+
+        resetLegendHighlight(cy);
+
+        if (differentLegendItemClicked) {
             highlightElements(cy, selector);
             legendItem.classList.add('active-legend');
             currentlyHighlighted = selector;
         }
+
+        // Zoom to the highlighted elements (or zoom out if none)
+        const [eles, padding] = filterElementsAndPad(cy, currentlyHighlighted);
+        cy.stop().animate({fit: { eles: eles, padding: padding },
+                           duration: 300});
     });
 
     if (type === 'circle') {
@@ -565,6 +575,67 @@ function createLegendItem(cy, container, item, type) {
     legendItem.appendChild(legendText);
 
     container.appendChild(legendItem);
+}
+
+/**
+ * Resets the legend highlight (from clicking on a legend item).
+ *
+ * @param {Object} cy - The Cytoscape instance where graph operations are performed.
+ */
+function resetLegendHighlight(cy)
+{
+    if (currentlyHighlighted) {
+        restoreElements(cy);
+        const activeItems = document.querySelectorAll('.active-legend');
+        activeItems.forEach(item => item.classList.remove('active-legend'));
+        currentlyHighlighted = null;
+    }
+}
+
+/**
+ * Selects elements for zooming to fit, and calculates padding.
+ * This is the higher-level function that uses `calculateFitZoom`, which see.
+ *
+ * Leaves one node size of padding if zoomed in (= closer than 100%), and 20px otherwise.
+ *
+ * @param {Object} cy - The Cytoscape instance.
+ * @param {Object} selector - Anything `cy.filter` accepts. The thing(s) being zoomed to fit.
+ *                            Use `undefined` to select the whole graph.
+ */
+function filterElementsAndPad(cy, selector) {
+    let padding = 20;
+    let eles = cy.filter(selector);
+    if (eles.length > 0) {
+        const zoomToFit = calculateFitZoom(cy, eles);
+        if (zoomToFit >= 1.0) {
+            padding = zoomToFit * extension_settings.timeline.nodeWidth;
+        }
+    } else {
+        eles = cy.filter();  // zoom out if the selector didn't match
+    }
+    return [eles, padding]
+}
+
+/**
+ * Calculates the zoom level needed to exactly fit the specified thing to the Cytoscape viewport.
+ *
+ * This can be used as an adapter for computing padding sizes in *model* pixels when zooming to fit
+ * in Cytoscape, because the 'fit' operations only accept padding sizes in *rendered* pixels.
+ *
+ * @param {Object} cy - The Cytoscape instance.
+ * @param {Object} eles - Result from `cy.filter`. The thing(s) being zoomed to fit.
+ *                        We require calling `cy.filter` manually so that `eles` can be re-used
+ *                        in the actual zooming call.
+ * @returns {number} Returns the zoom-to-fit zoom level as a number.
+ */
+function calculateFitZoom(cy, eles) {
+    const bb = eles.boundingBox();
+    const view_w = cy.width();
+    const view_h = cy.height();
+    const zoomToFit_w = view_w / bb.w;
+    const zoomToFit_h = view_h / bb.h;
+    const zoomToFit = Math.min(zoomToFit_w, zoomToFit_h);
+    return zoomToFit;
 }
 
 let cyLayout = [];
@@ -691,18 +762,19 @@ function setupEventHandlers(cy, nodeData) {
     allChatSessions = [...new Set(allChatSessions)];
 
     // Initialize context menu with all chat sessions using the new selector format
-    var menuItems = allChatSessions.map((session, index) => {
+    var menuItems = allChatSessions.map((file_name, index) => {
         return {
             id: 'chat-session-' + index,
-            content: 'Open chat session ' + session,
-            selector: `node[chat_sessions_str *= ";${session};"]`,
+            content: 'Open chat session ' + file_name,
+            selector: `node[chat_sessions_str *= ";${file_name};"]`,
             onClickFunction: function (event) {
                 var target = event.target || event.cyTarget;
                 var depth = getNodeDepth(target);
+                var messageId = depth - 1;  // in sequential numbering in chat
                 if (nodeData.isSwipe) {
-                    navigateToMessage(session, depth, nodeData.swipeId);
+                    navigateToMessage(file_name, messageId, nodeData.swipeId);
                 } else {
-                    navigateToMessage(session, depth);
+                    navigateToMessage(file_name, messageId);
                 }
                 closeModal();
                 activeTapTippy.hide();
@@ -713,11 +785,18 @@ function setupEventHandlers(cy, nodeData) {
     */
 
     document.getElementById('transparent-search').addEventListener('input', function (e) {
-        let mainSearch = document.getElementById('transparent-search');
+        const mainSearch = document.getElementById('transparent-search');
         mainSearch.value = e.target.value;
 
-        let query = e.target.value.toLowerCase();
+        const query = e.target.value.toLowerCase();
+        resetLegendHighlight(cy);
         highlightNodesByQuery(cy, query);
+
+        // Zoom to the matched elements (or zoom out if none)
+        const selector = `node[msg @*= "${query}"]`;
+        const [eles, padding] = filterElementsAndPad(cy, selector);
+        cy.stop().animate({fit: { eles: eles, padding: padding },
+                           duration: 300});
     });
 
     /*  Currently unused (leftover debug code?), so commenting out.
@@ -726,33 +805,45 @@ function setupEventHandlers(cy, nodeData) {
         content: 'No chat sessions available',
         selector: 'node[!chat_sessions_str]',  // Adjusted selector to match nodes without the chat_sessions_str attribute
         onClickFunction: function (event) {
-            console.log('No chat sessions available');
+            console.info('No chat sessions available');
         },
         hasTrailingDivider: true,
     });
     */
 
-    let modal = document.getElementById('myModal');
+    let modal = document.getElementById('timelinesModal');
     let rotateBtn = modal.getElementsByClassName('rotate')[0];
     rotateBtn.onclick = function () {
         toggleGraphOrientation(cy, layout);
         //refresh the layout
         refreshLayout(false);
-        cy.fit();
+        const [eles, padding] = filterElementsAndPad(cy, undefined);
+        cy.stop().animate({fit: { eles: eles, padding: padding },
+                           duration: 300});
     };
 
     let expandBtn = modal.getElementsByClassName('expand')[0];
     expandBtn.onclick = function () {
         toggleSwipes(cy);
         refreshLayout(false);
-        cy.fit();
     };
 
     let reloadBtn = modal.getElementsByClassName('reload')[0];
     reloadBtn.onclick = function () {
         slashCommandHandler(null, 'r');  // r = reload
         refreshLayout(false);
-        cy.fit();
+    };
+
+    let zoomtofitBtn = modal.getElementsByClassName('zoomtofit')[0];
+    zoomtofitBtn.onclick = function () {
+        const [eles, padding] = filterElementsAndPad(cy, undefined);
+        cy.stop().animate({fit: { eles: eles, padding: padding },
+                           duration: 300});
+    };
+
+    let zoomtocurrentBtn = modal.getElementsByClassName('zoomtocurrent')[0];
+    zoomtocurrentBtn.onclick = function () {
+        zoomToCurrentChatNode();
     };
 
     cy.ready(function () {
@@ -782,7 +873,6 @@ function setupEventHandlers(cy, nodeData) {
 
         activeTapTippy = tipInstance;
 
-
         // Optional: Hide the tooltip if user taps anywhere else
         cy.on('tap', function (e) {
             if (e.target === cy) {
@@ -794,13 +884,15 @@ function setupEventHandlers(cy, nodeData) {
     // Handle double click on nodes for quickly navigating to the message
     cy.on('dbltap ', 'node', function (evt) {
         let node = evt.target;
-        let session = node.data('chat_sessions')[0];
+        let file_name = node.data('chat_sessions')[0];
         let depth = getNodeDepth(node);
-        //if the node is a swipe, we pass the swipe's session
+        let messageId = depth - 1;  // in sequential numbering in chat
         if (node.data('isSwipe')) {
-            navigateToMessage(session, depth, node.data('swipeId'));
+            // NOTE: This will automatically create a branch if the swipe is on a non-last message.
+            //       "Avoid creating a branch *when possible*" is arguably the right behavior for the quick shortcut.
+            navigateToMessage(file_name, messageId, node.data('swipeId'));
         } else {
-            navigateToMessage(session, depth);
+            navigateToMessage(file_name, messageId);
         }
         closeModal();
         activeTapTippy.hide();
@@ -812,31 +904,33 @@ function setupEventHandlers(cy, nodeData) {
             cyLayout.stop();
         }
 
-        if (initial) {
+        if (initial) {  // TODO: unused feature, remove
             cy.json({
                 elements: nodeData,
             });
-
             cyLayout = cy.layout(layout);
         } else {
             layout.fit = false;
             cyLayout = cy.elements().makeLayout(layout);
         }
-        // unlock nodes
+
+        // Unlock nodes
         cy.nodes().forEach(node => {
             node.unlock();
         });
 
-
+        // Apply the layout
         cyLayout.run();
-        if (centerNode) {
-            cy.animate({
+
+        if (centerNode) {  // TODO: unused feature, remove
+            cy.stop().animate({
                 center: { eles: centerNode },
                 zoom: cy.zoom(),  // Maintain the current zoom level, but adjust the center
                 duration: 300,  // Adjust the duration as needed for a smooth transition
             });
         }
-        // reloack nodes
+
+        // relock nodes
         cy.nodes().forEach(node => {
             node.lock();
         });
@@ -851,7 +945,7 @@ function setupEventHandlers(cy, nodeData) {
 
         // Check if the node has the storedSwipes attribute
         if (node.data('storedSwipes')) {
-            console.log(node.data('storedSwipes'));
+            console.debug(node.data('storedSwipes'));
             // Determine if the swipes are already added to the graph
             const firstSwipeId = node.data('storedSwipes')[0].node.id;
             const swipeExists = cy.getElementById(firstSwipeId).length > 0;
@@ -957,6 +1051,7 @@ function setupEventHandlers(cy, nodeData) {
 function renderCytoscapeDiagram(nodeData) {
     const styles = setupStylesAndData(nodeData);
     const cy = initializeCytoscape(nodeData, styles);
+    theCy = cy;
 
     if (cy) {
         setupEventHandlers(cy, nodeData);
@@ -983,7 +1078,7 @@ async function updateTimelineDataIfNeeded() {
                 let group = context.groups.find(group => group.id === groupID);
                 // for each group.chats, we add to a dict with the key being the index and the value being the chat
                 for(let i = 0; i < group.chats.length; i++){
-                    console.log(group.chats[i]);
+                    console.debug(group.chats[i]);
                     data[i] = { 'file_name': group.chats[i] };
                 }
                 lastTimelineData = await prepareData(data, true);
@@ -995,7 +1090,7 @@ async function updateTimelineDataIfNeeded() {
         }
 
         lastContext = context; // Update the lastContext to the current context
-        console.log('Timeline data updated');
+        console.info('Timeline data updated');
         layout = {
             name: 'dagre',
             nodeDimensionsIncludeLabels: true,
@@ -1014,6 +1109,40 @@ async function updateTimelineDataIfNeeded() {
 }
 
 /**
+ * If the Cytoscape instance is ready, centers and zooms to the chat node containing the current chat message.
+ */
+function zoomToCurrentChatNode() {
+    if (theCy) {
+        // Get latest chat message in currently open chat (TODO: special considerations for group chats?)
+        const context = getContext();
+        const mes = context.chat[context.chat.length - 1].mes;
+
+        // On the graph, find the node containing that message text.
+        const selector = function (ele) {return ele.data('msg') === mes};
+        const newCenterNode = theCy.filter(selector);
+        resetLegendHighlight(theCy);
+
+        // Center and zoom in
+        theCy.stop().animate({
+            center: { eles: newCenterNode },
+            zoom: 1.0,
+            duration: 300,  // Adjust the duration as needed for a smooth transition
+        });
+
+        // Draw the user's attention to the node
+        function flashNode(node, howManyflashes) {
+            const duration = 500;  // half-period
+            node.flashClass('NoticeMe', duration);  // do the first flash now
+            for (let j = 1; j < howManyflashes; j++) {  // schedule the rest
+                setTimeout(() => { node.flashClass('NoticeMe', duration); },
+                           2 * j * duration);
+            }
+        }
+        flashNode(newCenterNode, 4);
+    }
+}
+
+/**
  * Handler function that is called when the timeline button is clicked.
  * This function checks if the timeline data needs to be updated, handles modal display,
  * potentially renders the Cytoscape diagram, and sets the focus on a specific HTML element.
@@ -1022,11 +1151,16 @@ async function updateTimelineDataIfNeeded() {
  */
 async function onTimelineButtonClick() {
     const dataUpdated = await updateTimelineDataIfNeeded();
-    handleModalDisplay();
+    handleModalDisplay();  // Show the timeline view, and wire the close button to close it.
     if (dataUpdated) {
         renderCytoscapeDiagram(lastTimelineData);
     }
     closeOpenDrawers();
+
+    // Let the window layout settle itself for 500 ms before trying to zoom
+    // (this avoids some failed pans/zooms).
+    setTimeout(zoomToCurrentChatNode, 500);
+
     let searchElement = document.getElementById('transparent-search');
     searchElement.focus();
     searchElement.select();  // select content for easy erasing
