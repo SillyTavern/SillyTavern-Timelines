@@ -235,26 +235,24 @@ async function goToSwipe(targetSwipeId) {  // TODO: To avoid duplication, this f
     const lastMessageId = chat.length - 1;
     const lastMessageObj = chat[lastMessageId];
 
-    // Set the desired swipe ID
-    lastMessageObj['swipe_id'] = targetSwipeId;
+    // Reset with wraparound if exceeding bounds
+    if (targetSwipeId < 0) {
+        targetSwipeId = lastMessageObj['swipes'].length - 1;
+    } else if (targetSwipeId >= lastMessageObj['swipes'].length) {
+        targetSwipeId = 0;
+    }
 
-    // Validate swipe ID bounds
-    if (lastMessageObj['swipe_id'] < 0) {
-        lastMessageObj['swipe_id'] = lastMessageObj['swipes'].length - 1;
-    }
+    // Set the swipe ID
+    lastMessageObj['swipe_id'] = targetSwipeId;
     console.debug(lastMessageObj);
-    if (lastMessageObj['swipe_id'] >= lastMessageObj['swipes'].length) {
-        lastMessageObj['swipe_id'] = 0; // Reset to first if exceeding bounds
-    }
 
     // Update chat data based on the new swipe ID
     if (!Array.isArray(lastMessageObj['swipe_info'])) {
         lastMessageObj['swipe_info'] = [];
     }
-
-    lastMessageObj['mes'] = lastMessageObj['swipes'][lastMessageObj['swipe_id']];
-    lastMessageObj['send_date'] = lastMessageObj.swipe_info[lastMessageObj['swipe_id']]?.send_date || lastMessageObj.send_date;
-    lastMessageObj['extra'] = JSON.parse(JSON.stringify(lastMessageObj.swipe_info[lastMessageObj['swipe_id']]?.extra || lastMessageObj.extra));
+    lastMessageObj['mes'] = lastMessageObj['swipes'][targetSwipeId];
+    lastMessageObj['send_date'] = lastMessageObj.swipe_info[targetSwipeId]?.send_date || lastMessageObj.send_date;
+    lastMessageObj['extra'] = JSON.parse(JSON.stringify(lastMessageObj.swipe_info[targetSwipeId]?.extra || lastMessageObj.extra));
 
     // Clean up any extra properties if needed
     if (lastMessageObj.extra) {
@@ -267,10 +265,10 @@ async function goToSwipe(targetSwipeId) {  // TODO: To avoid duplication, this f
 
     // Update token count if enabled
     if (power_user.message_token_count_enabled) {
-        const swipeMessage = $('#chat').find(`[mesid="${lastMessageId}"]`);
+        const swipeMessageElement = $('#chat').find(`[mesid="${lastMessageId}"]`);
         const tokenCount = getTokenCount(lastMessageObj.mes, 0);
         lastMessageObj['extra']['token_count'] = tokenCount;
-        swipeMessage.find('.tokenCounterDisplay').text(`${tokenCount}t`);
+        swipeMessageElement.find('.tokenCounterDisplay').text(`${tokenCount}t`);
     }
     await eventSource.emit(event_types.MESSAGE_SWIPED, lastMessageId);
     saveChatDebounced();
