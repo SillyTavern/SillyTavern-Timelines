@@ -65,11 +65,13 @@ Actions:
 
 ### Checkpoints
 
-While checkpoints are a core ST feature, *Timelines* takes them to center stage, so we explain it briefly here.
+While checkpoints are a core ST feature, *Timelines* takes them to center stage, so we explain them briefly here.
 
 A checkpoint is just a named chat branch. Branches, including checkpoints, are essentially separate chat files.
 
-*Timelines* itself only creates (unnamed) branches. Checkpoints are created in the ST main GUI. To create a checkpoint, go to the chat message you want, and then press the *Checkpoint* button in the *Message Actions* for that message. The actions are in the "..." menu, unless you have enabled *Expand Message Actions* in your *User Settings* (advanced mode).
+*Timelines* itself only creates (unnamed) branches.
+
+Checkpoints are created in the ST main GUI. To create a checkpoint, go to the chat message you want, and then press the *Checkpoint* button in the *Message Actions* for that message. The actions are in the "..." menu, unless you have enabled *Expand Message Actions* in your *User Settings* (advanced mode).
 
 To rename a checkpoint, rename the file in a file manager.
 
@@ -81,13 +83,14 @@ However, checkpoint tracking complicates things slightly:
   - The link belongs to a specific message. Each chat message can have at most one checkpoint link.
   - As of ST 1.11.3, checkpoint links cannot be deleted in the GUI (but this does not matter much).
 - If you later overwrite a checkpoint, by creating a new one at the same message in the same chat, doing so severs the original link.
+  - This does not overwrite the old checkpoint chat file. Only the checkpoint link in the originating chat file is overwritten.
 - If you delete or rename the checkpoint chat file, this leaves a dead link in the originating chat file.
 
 *Timelines* tracks checkpoint paths by following checkpoint links, ignoring any dead links. Therefore:
 
 - If you delete or rename a checkpoint chat file, that checkpoint vanishes from the timeline view.
   - A renamed checkpoint chat file appears as an independent chat file in the timeline view (in the full info panel for nodes containing its messages), not connected to any checkpoint.
-- If you overwrite a checkpoint, only the **new** checkpoint is tracked in the timeline view.
+- If you overwrite a checkpoint, only the **new** checkpoint is tracked as a checkpoint path.
   - The checkpoint chat file for the old checkpoint then appears as an independent chat file in the timeline view.
 
 
