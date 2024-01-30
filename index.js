@@ -3,7 +3,6 @@
 // TODO: Settings: add `Max zoom level` (optional)
 // TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search)
 // TODO: Icon sizes at the top right of the timeline view should match each other.
-// TODO: Remove unused code (see TODOs marked in code comments)
 
 // Old TODOs:
 // TODO Edge labels?
@@ -397,60 +396,6 @@ function makeTapTippy(ele) {
     return tip;
 }
 
-
-/**
- * Handles click events on nodes in a Cytoscape graph.
- *
- * This function performs the following tasks:
- * 1. Determines the depth of the clicked node.
- * 2. Fetches the associated chat sessions of the node.
- * 3. If the node is associated with a single chat session, it navigates
- *    to the corresponding message within the chat session based on its depth.
- *
- * @param {Object} node - The clicked node from the Cytoscape graph.
- */
-// function nodeClickHandler(node) {  // TODO: This function is unused, should be removed.
-//     let depth = getNodeDepth(node);
-//     let messageId = depth - 1;  // in sequential numbering in chat
-//     let chatSessions = node.data('chat_sessions');
-//
-//     if (chatSessions && chatSessions.length > 1) {
-//         let modalTextElement = document.getElementById('nodeText');
-//         let chatSessionListElement = document.getElementById('chatSessionList');
-//
-//         // Setting the full text from node data
-//         modalTextElement.textContent = node.data('full_text'); // Assuming 'full_text' is a property in your node data (seems not, this is the only match...)
-//
-//         // Clear previous chat sessions
-//         chatSessionListElement.innerHTML = '';
-//
-//         // Populate the list of chat sessions
-//         chatSessions.forEach(session => {
-//             let listItem = document.createElement('li');
-//             listItem.textContent = session.name; // Adjust based on your chat session structure
-//             listItem.addEventListener('click', function () {
-//                 closeNodeModal();
-//                 navigateToMessage(session.file_name, messageId); // Assuming 'file_name' is a property in your chat session data
-//             });
-//             chatSessionListElement.appendChild(listItem);
-//         });
-//
-//         showNodeModal();
-//     } else {
-//         let file_name = node.data('file_name');
-//         closeNodeModal();
-//         navigateToMessage(file_name, messageId);
-//     }
-// }
-//
-// function showNodeModal() {
-//     document.getElementById('nodeModal').style.display = 'block';
-// }
-//
-// function closeNodeModal() {
-//     document.getElementById('nodeModal').style.display = 'none';
-// }
-
 /**
  * Creates and populates a legend for nodes and edges in a Cytoscape graph.
  *
@@ -737,13 +682,10 @@ function toggleSwipes(cy) {
  * Sets up event handlers for the given Cytoscape instance and node data.
  *
  * This function does the following:
- * 1. Gathers all chat sessions from the node data.
- * 2. Initializes the context menu for the Cytoscape instance based on chat sessions,
- *    providing options to open specific chat sessions or rotate the graph.
- * 3. Attaches listeners to the 'input' event of the search field to enable node highlighting based on search query.
- * 4. Adds an event listener to handle node clicks, triggering actions like node navigation.
- * 5. Configures the graph's orientation based on the viewport dimensions.
- * 6. Implements a delay for displaying tooltips on node hover, showcasing truncated node messages.
+ * 1. Attaches listeners to the 'input' event of the search field to enable node highlighting based on search query.
+ * 2. Adds an event listener to handle node clicks, triggering actions like node navigation.
+ * 3. Configures the graph's orientation based on the viewport dimensions.
+ * 4. Implements a delay for displaying tooltips on node hover, showcasing truncated node messages.
  *
  * @param {Object} cy - The Cytoscape instance for which the event handlers are being set up.
  * @param {Array<Object>} nodeData - Array of node data objects containing information like chat sessions.
@@ -751,38 +693,6 @@ function toggleSwipes(cy) {
 function setupEventHandlers(cy, nodeData) {
     let showTimeout;
     let activeTapTippy = null;
-
-    /*  Currently unused (leftover debug code?), so commenting out.
-    var allChatSessions = [];
-    for (let i = 0; i < nodeData.length; i++) {
-        if (nodeData[i].group === 'nodes' && nodeData[i].data.chat_sessions) {
-            allChatSessions.push(...nodeData[i].data.chat_sessions);
-        }
-    }
-    allChatSessions = [...new Set(allChatSessions)];
-
-    // Initialize context menu with all chat sessions using the new selector format
-    var menuItems = allChatSessions.map((file_name, index) => {
-        return {
-            id: 'chat-session-' + index,
-            content: 'Open chat session ' + file_name,
-            selector: `node[chat_sessions_str *= ";${file_name};"]`,
-            onClickFunction: function (event) {
-                var target = event.target || event.cyTarget;
-                var depth = getNodeDepth(target);
-                var messageId = depth - 1;  // in sequential numbering in chat
-                if (nodeData.isSwipe) {
-                    navigateToMessage(file_name, messageId, nodeData.swipeId);
-                } else {
-                    navigateToMessage(file_name, messageId);
-                }
-                closeModal();
-                activeTapTippy.hide();
-            },
-            hasTrailingDivider: true,
-        };
-    });
-    */
 
     document.getElementById('transparent-search').addEventListener('input', function (e) {
         const mainSearch = document.getElementById('transparent-search');
@@ -798,18 +708,6 @@ function setupEventHandlers(cy, nodeData) {
         cy.stop().animate({fit: { eles: eles, padding: padding },
                            duration: 300});
     });
-
-    /*  Currently unused (leftover debug code?), so commenting out.
-    menuItems.push({
-        id: 'no-chat-session',
-        content: 'No chat sessions available',
-        selector: 'node[!chat_sessions_str]',  // Adjusted selector to match nodes without the chat_sessions_str attribute
-        onClickFunction: function (event) {
-            console.info('No chat sessions available');
-        },
-        hasTrailingDivider: true,
-    });
-    */
 
     let modal = document.getElementById('timelinesModal');
     let rotateBtn = modal.getElementsByClassName('rotate')[0];
@@ -905,46 +803,14 @@ function setupEventHandlers(cy, nodeData) {
         activeTapTippy.hide();
     });
 
-    function refreshLayout(initial, centerNode = false) {
+    function refreshLayout() {
+        layout.fit = false;
         cyLayout = cy.elements().makeLayout(layout);
-        if (cyLayout) {
-            cyLayout.stop();
-        }
 
-        if (initial) {  // TODO: unused feature, remove
-            cy.json({
-                elements: nodeData,
-            });
-            cyLayout = cy.layout(layout);
-        } else {
-            layout.fit = false;
-            cyLayout = cy.elements().makeLayout(layout);
-        }
-
-        // Unlock nodes
-        cy.nodes().forEach(node => {
-            node.unlock();
-        });
-
-        // Apply the layout
-        cyLayout.run();
-
-        if (centerNode) {  // TODO: unused feature, remove
-            cy.stop().animate({
-                center: { eles: centerNode },
-                zoom: cy.zoom(),  // Maintain the current zoom level, but adjust the center
-                duration: 300,  // Adjust the duration as needed for a smooth transition
-            });
-        }
-
-        // relock nodes
-        cy.nodes().forEach(node => {
-            node.lock();
-        });
-
+        cy.nodes().forEach(node => { node.unlock(); });
+        cyLayout.run();  // apply the layout
+        cy.nodes().forEach(node => { node.lock(); });
     }
-
-    let storedNodesMap = {};  // This will map parent node IDs to their stored child nodes
 
     cy.on('taphold', 'node', function (evt) {
         let node = evt.target;
@@ -975,7 +841,6 @@ function setupEventHandlers(cy, nodeData) {
 
         refreshLayout(false, false);
     });
-
 
     let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
 
