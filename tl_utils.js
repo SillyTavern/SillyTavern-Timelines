@@ -196,8 +196,14 @@ export function handleModalDisplay() {
     };
 
     // When clicked outside
-    window.onclick = function (event) {
-        if (event.target == modal) {
+    //
+    // How do you detect a click *outside*? How this works, for other non-native JS speakers:
+    // The modal is built out of two parts:
+    //   - An outer div (`timelinesModal`, the "outer modal") covers the whole viewport (hence, it catches the click here)
+    //   - An inner div (`networkContainer`, the "inner modal") covers only part of the viewport, and has the actual content of the modal
+    // See e.g. https://wesbos.com/javascript/06-serious-practice-exercises/click-outside-modal
+    modal.onclick = function (event) {
+        if (event.target == modal) {  // outer div itself clicked (as opposed to something inside it clicked)
             closeModal();
             closeTippy();
         }
