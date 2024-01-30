@@ -29,7 +29,9 @@ For convenient one-click access, bind the `/tl` command to a custom Quick Reply 
 
 - *Nodes with swipes* appear with a halo around them.
   - There is also a setting to make them subtly larger.
-- *Checkpoints* appear with a colored ring around them.
+- *Checkpoint nodes* appear with a colored ring around them.
+  - If using the UI theme, the ring is a golden yellow.
+  - If using a custom theme, the color is configurable.
 - *Checkpoint paths* are colored accordingly, and are shown in the legend.
   - The checkpoint color is random, but determined from the checkpoint name.
   - A checkpoint is detected only when there is an intact checkpoint link in the chat file that originated the checkpoint. Dead links are ignored.
