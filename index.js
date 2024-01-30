@@ -689,8 +689,9 @@ function setupEventHandlers(cy, nodeData) {
     let activeTapTippy = null;
 
     document.getElementById('transparent-search').addEventListener('input', function (e) {
-        const mainSearch = document.getElementById('transparent-search');
-        mainSearch.value = e.target.value;
+        // // `evt.target === mainSearch`, so this is a no-op.
+        // const mainSearch = document.getElementById('transparent-search');
+        // mainSearch.value = evt.target.value;
 
         const query = e.target.value.toLowerCase();
         resetLegendHighlight(cy);
