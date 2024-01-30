@@ -45,8 +45,8 @@ function preprocessChatSessions(channelHistory) {
  *
  * Behavior:
  * 1. Initializes a root node and sets up tracking for previous nodes.
- * 2. Iterates over each message index, grouping messages by content.
- * 3. For each group of messages, constructs a node and an associated edge.
+ * 2. Iterates over each `messageId` (sequential numbering of chat messages), grouping messages at the same position by content.
+ * 3. For each message group, constructs a node and an associated edge.
  * 4. Handles special nodes, such as swipes, and ensures they are properly added.
  * 5. Returns the full list of constructed nodes and edges.
  */
@@ -81,7 +81,10 @@ function buildNodes(allChats, allChatFileNamesAndLengths) {
             // Now `group` contains the messages, at this `messageId`, that have `text` as their text content.
 
             let nodeId = `message${keyCounter}`;
-            let parentNodeId = previousNodes[group[0].file_name];  // TODO: `group[0]` seems arbitrary?
+
+            // TODO: `group[0]` seems arbitrary. It refers to the first session (chat file) that has a message with content `text` at this `messageId`.
+            //       It seems the design is that we want all messages with the same content, at the same position, to share the same parent node in the graph?
+            let parentNodeId = previousNodes[group[0].file_name];
 
             let node = createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNamesAndLengths);
 
