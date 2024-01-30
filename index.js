@@ -883,14 +883,17 @@ function setupEventHandlers(cy, nodeData) {
 
     // Handle double click on nodes for quickly navigating to the message
     cy.on('dbltap ', 'node', function (evt) {
-        let node = evt.target;
-        let file_name = node.data('chat_sessions')[0];  // Pick first session that has this message
-        let depth = getNodeDepth(node);
-        let messageId = depth - 1;  // in sequential numbering in chat
+        const node = evt.target;
+        const chatSessions = node.data('chat_sessions');
+        const file_name = chatSessions[0];  // Pick first session that has this message
+        const depth = getNodeDepth(node);
+        const messageId = depth - 1;  // in sequential numbering in chat
 
-        // Show which session was selected
-        const sessionName = file_name.split('.jsonl')[0];
-        toastr.info(`Auto-picked "${sessionName}"`);
+        // If ambiguous, show which session was selected
+        if (chatSessions.length > 1) {
+            const sessionName = file_name.split('.jsonl')[0];
+            toastr.info(`Multiple matches, auto-picked "${sessionName}"`);
+        }
 
         if (node.data('isSwipe')) {
             // NOTE: This will automatically create a branch if the swipe is on a non-last message.
