@@ -884,9 +884,14 @@ function setupEventHandlers(cy, nodeData) {
     // Handle double click on nodes for quickly navigating to the message
     cy.on('dbltap ', 'node', function (evt) {
         let node = evt.target;
-        let file_name = node.data('chat_sessions')[0];
+        let file_name = node.data('chat_sessions')[0];  // Pick first session that has this message
         let depth = getNodeDepth(node);
         let messageId = depth - 1;  // in sequential numbering in chat
+
+        // Show which session was selected
+        const sessionName = file_name.split('.jsonl')[0];
+        toastr.info(`Auto-picked "${sessionName}"`);
+
         if (node.data('isSwipe')) {
             // NOTE: This will automatically create a branch if the swipe is on a non-last message.
             //       "Avoid creating a branch *when possible*" is arguably the right behavior for the quick shortcut.
