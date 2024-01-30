@@ -688,7 +688,7 @@ function setupEventHandlers(cy, nodeData) {
     let showTimeout;
     let activeTapTippy = null;
 
-    document.getElementById('transparent-search').addEventListener('input', function (evt) {
+    document.getElementById('transparent-search').addEventListener('input', function (evt) {  // apply the search
         // // `evt.target === mainSearch`, so this is a no-op.
         // const mainSearch = document.getElementById('transparent-search');
         // mainSearch.value = evt.target.value;
