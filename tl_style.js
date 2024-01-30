@@ -223,21 +223,28 @@ export function setupStylesAndData(nodeData) {
 }
 
 /**
- * Highlights specific elements (nodes or edges) in a Cytoscape graph based on a given selector string.
+ * Highlights specific elements (nodes or edges) in a Cytoscape graph based on a given selector.
+ *
  * Initially, all elements in the graph are dimmed. Based on the provided selector, matching nodes or edges are then
  * highlighted with a white underlay. If the selector pertains to an edge with a specific color, nodes with the same
  * border color are also highlighted.
  *
  * @param {Object} cy - The Cytoscape instance containing the graph elements.
- * @param {string} selector - A Cytoscape-compatible selector string used to determine which elements to highlight.
+ * @param {string|function} selector - A Cytoscape-compatible selector string used to determine which elements to highlight.
+ *                                     Alternatively, a callable selector; in that case, it is assumed to select nodes.
+ *                                     This is safer when selecting by node text content, which may include special characters.
  */
 export function highlightElements(cy, selector) {
-    cy.elements().style({ 'opacity': 0.2 }); // Dim all nodes and edges
+    cy.elements().style({ 'opacity': 0.2 });  // Dim all nodes and edges
 
-    // If it's an edge selector
-    if (selector.startsWith('edge')) {
-        let colorValue = selector.match(/color="([^"]+)"/)[1]; // Extract the color from the selector
-        let nodeSelector = `node[borderColor="${colorValue}"]`; // Construct the node selector
+    // Defaults, for a node selector
+    let underlayPadding = '5px';
+    let underlayShape = 'ellipse';
+
+    // If it's an edge selector (i.e. for a checkpoint path)
+    if (((typeof selector === "string") || (selector instanceof String)) && selector.startsWith('edge')) {
+        let colorValue = selector.match(/color="([^"]+)"/)[1];  // Extract the color from the selector
+        let nodeSelector = `node[borderColor="${colorValue}"]`;  // Construct the corresponding node selector
 
         // Style the associated nodes
         cy.elements(nodeSelector).style({
@@ -247,16 +254,19 @@ export function highlightElements(cy, selector) {
             'underlay-opacity': 0.5,
             'underlay-shape': 'ellipse',
         });
+
+        // Configure padding and shape for edges
+        underlayPadding = '2px';
+        underlayShape = '';
     }
 
-    // For the initial selector (whether it's node or edge)
+    // For the original selector (any kind)
     cy.elements(selector).style({
         'opacity': 1,
         'underlay-color': 'white',
-        'underlay-padding': selector.startsWith('edge') ? '2px' : '5px',
+        'underlay-padding': underlayPadding,
         'underlay-opacity': 0.5,
-        'underlay-shape': selector.startsWith('edge') ? '' : 'ellipse',
-
+        'underlay-shape': underlayShape,
     });
 }
 

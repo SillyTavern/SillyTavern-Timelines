@@ -688,17 +688,18 @@ function setupEventHandlers(cy, nodeData) {
     let showTimeout;
     let activeTapTippy = null;
 
-    document.getElementById('transparent-search').addEventListener('input', function (e) {
+    document.getElementById('transparent-search').addEventListener('input', function (evt) {
         // // `evt.target === mainSearch`, so this is a no-op.
         // const mainSearch = document.getElementById('transparent-search');
         // mainSearch.value = evt.target.value;
 
-        const query = e.target.value.toLowerCase();
+        // We will now zoom to the search results, so remove the legend highlight, if any.
         resetLegendHighlight(cy);
-        highlightNodesByQuery(cy, query);
+
+        const query = evt.target.value.toLowerCase();
+        const selector = highlightNodesByQuery(cy, query);  // -> selector function, or undefined if no match
 
         // Zoom to the matched elements (or zoom out if none)
-        const selector = `node[msg @*= "${query}"]`;
         const [eles, padding] = filterElementsAndPad(cy, selector);
         cy.stop().animate({fit: { eles: eles, padding: padding },
                            duration: 300});
