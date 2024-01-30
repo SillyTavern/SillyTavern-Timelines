@@ -1,4 +1,3 @@
-// TODO: Settings: remove `Lock Nodes` (does nothing)
 // TODO: Settings: add `Max zoom level` (optional)
 // TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search)
 // TODO: Icon sizes at the top right of the timeline view should match each other.
@@ -89,7 +88,6 @@ let defaultSettings = {
     charNodeColor: '#FFFFFF',
     userNodeColor: '#ADD8E6',
     edgeColor: '#555',
-    lockNodes: true,
     autoExpandSwipes: false
 };
 
@@ -136,7 +134,6 @@ async function loadSettings() {
     $('#tl_avatar_as_root').prop('checked', extension_settings.timeline.avatarAsRoot).trigger('input');
     $('#tl_show_legend').prop('checked', extension_settings.timeline.showLegend).trigger('input');
     $('#tl_use_chat_colors').prop('checked', extension_settings.timeline.useChatColors).trigger('input');
-    $('#tl_lock_nodes').prop('checked', extension_settings.timeline.lockNodes).trigger('input');
     $('#tl_auto_expand_swipes').prop('checked', extension_settings.timeline.autoExpandSwipes).trigger('input');
     $('#bookmark-color-picker').attr('color', extension_settings.timeline.bookmarkColor);
     $('#edge-color-picker').attr('color', extension_settings.timeline.edgeColor);
@@ -850,13 +847,9 @@ function setupEventHandlers(cy, nodeData) {
 
     cy.on('render', function () {
         if (!hasSetOrientation) {
-            setGraphOrientationBasedOnViewport(cy, layout);
             hasSetOrientation = true;
-            if (extension_settings.timeline.lockNodes) {
-                cy.nodes().forEach(node => {
-                    node.lock();
-                });
-            }
+            setGraphOrientationBasedOnViewport(cy, layout);
+            cy.nodes().forEach(node => { node.lock(); });  // nodes are always locked after running the layout anyway
         }
     });
 
@@ -1097,7 +1090,6 @@ jQuery(async () => {
         'tl_avatar_as_root': 'avatarAsRoot',
         'tl_show_legend': 'showLegend',
         'tl_use_chat_colors': 'useChatColors',
-        'tl_lock_nodes': 'lockNodes',
         'tl_auto_expand_swipes': 'autoExpandSwipes',
         'bookmark-color-picker': 'bookmarkColor',
         'edge-color-picker': 'edgeColor',
