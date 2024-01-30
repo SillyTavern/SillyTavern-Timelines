@@ -64,7 +64,7 @@
     /* allows scrolling if the content is larger than the modal */
 }
 
-#myDiagramDiv {
+#timelinesDiagramDiv {
     /* Make the diagram take the full space of the modal content */
     position: absolute;
     top: 0;

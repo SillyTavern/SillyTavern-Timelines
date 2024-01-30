@@ -95,15 +95,15 @@ let defaultSettings = {
 
 let currentlyHighlighted = null;  // selector for active legend item
 let lastContext = null;  // for tracking whether we need to refresh the graph
-let layout = {};
 let lastTimelineData = null;  // last fetched and prepared timeline data
 let theCy = null;  // Cytoscape instance
+let layout = {};  // Cytoscape graph layout configuration; populated later in `updateTimelineDataIfNeeded`
 
 /**
  * Asynchronously loads settings from `extension_settings.timeline`,
  * filling in with default settings if some are missing.
  *
- * After loading the settings, it also updates the UI components
+ * After loading the settings, it also updates the UI elements
  * with the appropriate values from the loaded settings.
  */
 async function loadSettings() {
@@ -121,7 +121,7 @@ async function loadSettings() {
         }
     }
 
-    // Update UI components
+    // Update UI elements
     $('#tl_node_width').val(extension_settings.timeline.nodeWidth).trigger('input');
     $('#tl_node_height').val(extension_settings.timeline.nodeHeight).trigger('input');
     $('#tl_node_separation').val(extension_settings.timeline.nodeSeparation).trigger('input');
@@ -141,7 +141,6 @@ async function loadSettings() {
     $('#edge-color-picker').attr('color', extension_settings.timeline.edgeColor);
     $('#user-node-color-picker').attr('color', extension_settings.timeline.userNodeColor);
     $('#char-node-color-picker').attr('color', extension_settings.timeline.charNodeColor);
-
 }
 
 let isTapTippyActive = false;
@@ -221,6 +220,7 @@ function formatNodeMessage(mes) {
     mes = converter.makeHtml(mes);
 
     // 7. Handle <code> tags
+    // TODO: Does this ever trigger? We replace < > a the beginning with HTML entities.
     mes = mes.replace(/<code(.*)>[\s\S]*?<\/code>/g, function (match) {
         return match.replace(/\n/gm, '\u0000');
     });
@@ -357,7 +357,7 @@ function makeTapTippy(ele) {
         sticky: 'reference',
         interactive: true,
         appendTo: document.body,
-        boundary: document.querySelector('#myDiagramDiv'),
+        boundary: document.querySelector('#timelinesDiagramDiv'),
         onShow() {
             isTapTippyActive = true;
         },
@@ -370,13 +370,13 @@ function makeTapTippy(ele) {
                 {
                     name: 'preventOverflow',
                     options: {
-                        boundary: document.querySelector('#myDiagramDiv'),
+                        boundary: document.querySelector('#timelinesDiagramDiv'),
                     },
                 },
                 {
                     name: 'flip',
                     options: {
-                        boundary: document.querySelector('#myDiagramDiv'),
+                        boundary: document.querySelector('#timelinesDiagramDiv'),
                     },
                 },
                 {
@@ -418,7 +418,7 @@ function createLegend(cy) {
 
     cy.nodes().forEach(node => {
         let name = node.data('name');
-        let color = node.style('background-color'); // Fetching the node color
+        let color = node.style('background-color');
 
         // If the name is defined and is not yet in the set
         if (name && !nodeNames.has(name)) {
@@ -475,7 +475,6 @@ function createLegendItem(cy, container, item, type) {
             highlightElements(cy, selector);
         }
     });
-
 
     // Mouseout to remove the preview, but keep it if clicked (locked)
     legendItem.addEventListener('mouseout', function () {
@@ -581,13 +580,11 @@ function calculateFitZoom(cy, eles) {
     return zoomToFit;
 }
 
-let cyLayout = [];
-
 /**
  * Initializes a Cytoscape instance with given node data and styles.
  *
  * This function does the following:
- * 1. Locates the container element 'myDiagramDiv' for the Cytoscape graph.
+ * 1. Locates the container element 'timelinesDiagramDiv' for the Cytoscape graph.
  * 2. Registers the necessary plugins: 'cytoscapeDagre', 'cytoscapeContextMenus', and 'cytoscapePopper'.
  * 3. Creates and configures the Cytoscape instance with the provided node data, styles, and layout settings.
  * 4. Adjusts wheel sensitivity for zooming operations on the graph.
@@ -597,9 +594,9 @@ let cyLayout = [];
  * @returns {Object|null} Returns the Cytoscape instance if initialization is successful, otherwise returns null.
  */
 function initializeCytoscape(nodeData, styles) {
-    let myDiagramDiv = document.getElementById('myDiagramDiv');
-    if (!myDiagramDiv) {
-        console.error('Unable to find element with id "myDiagramDiv". Please ensure the element exists at the time of calling this function.');
+    let timelinesDiagramDiv = document.getElementById('timelinesDiagramDiv');
+    if (!timelinesDiagramDiv) {
+        console.error('Unable to find element with id "timelinesDiagramDiv". Please ensure the element exists at the time of calling this function.');
         return null;
     }
 
@@ -608,7 +605,7 @@ function initializeCytoscape(nodeData, styles) {
     cytoscape.use(cytoscapePopper);
 
     const cy = cytoscape({
-        container: myDiagramDiv,
+        container: timelinesDiagramDiv,
         elements: nodeData,
         style: styles,
         layout: layout,
@@ -675,12 +672,11 @@ function toggleSwipes(cy) {
     }
 }
 
-
 /**
  * Sets up event handlers for the given Cytoscape instance and node data.
  *
  * This function does the following:
- * 1. Attaches listeners to the 'input' event of the search field to enable node highlighting based on search query.
+ * 1. Attaches an event listener to the 'input' event of the search field to enable node highlighting based on search query.
  * 2. Adds an event listener to handle node clicks, triggering actions like node navigation.
  * 3. Configures the graph's orientation based on the viewport dimensions.
  * 4. Implements a delay for displaying tooltips on node hover, showcasing truncated node messages.
@@ -804,7 +800,7 @@ function setupEventHandlers(cy, nodeData) {
 
     function refreshLayout() {
         layout.fit = false;
-        cyLayout = cy.elements().makeLayout(layout);
+        const cyLayout = cy.elements().makeLayout(layout);
 
         cy.nodes().forEach(node => { node.unlock(); });
         cyLayout.run();  // apply the layout
@@ -836,9 +832,9 @@ function setupEventHandlers(cy, nodeData) {
                     cy.getElementById(swipeNode.id).remove();
                 });
             }
-        }
 
-        refreshLayout();
+            refreshLayout();
+        }
     });
 
     let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
@@ -862,7 +858,7 @@ function setupEventHandlers(cy, nodeData) {
         return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
     };
 
-    //Figure out how to do the deley better later
+    // TODO: Figure out how to do the delay better later
     cy.on('mouseover', 'node', function (evt) {
         if (isTapTippyActive) {
             return;  // Return early if tap Tippy is active
@@ -876,7 +872,7 @@ function setupEventHandlers(cy, nodeData) {
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
             tippy.show();
-            node._tippy = tippy; // Store tippy instance on the node
+            node._tippy = tippy;  // Store the tippy instance on the node
         }, 250);
     });
 
@@ -884,7 +880,7 @@ function setupEventHandlers(cy, nodeData) {
     cy.on('mouseout', 'node', function (evt) {
         let node = evt.target;
 
-        // Clear the timeout if mouse is moved out before tooltip appears
+        // Clear the timeout if the mouse is moved out before the tooltip appears
         if (showTimeout) {
             clearTimeout(showTimeout);
         }
@@ -950,9 +946,9 @@ async function updateTimelineDataIfNeeded() {
         if (!context.characterId) {
             let groupID = context.groupId;
             if (groupID) {
-                //send the group where the ID within the dict is equal to groupID
+                // Send the group where the ID within the dict is equal to groupID
                 let group = context.groups.find(group => group.id === groupID);
-                // for each group.chats, we add to a dict with the key being the index and the value being the chat
+                // For each `group.chats`, we add to a dict with the key being the index and the value being the chat
                 for(let i = 0; i < group.chats.length; i++){
                     console.debug(group.chats[i]);
                     data[i] = { 'file_name': group.chats[i] };
@@ -965,7 +961,7 @@ async function updateTimelineDataIfNeeded() {
             lastTimelineData = await prepareData(data);
         }
 
-        lastContext = context; // Update the lastContext to the current context
+        lastContext = context; // Update `lastContext` to the current context
         console.info('Timeline data updated');
         layout = {
             name: 'dagre',
@@ -1070,8 +1066,6 @@ jQuery(async () => {
     $('#show_timeline_view').on('click', onTimelineButtonClick);
     registerSlashCommand('tl', slashCommandHandler, [], '/tl Show the timeline, "/tl r" to reload the graph', false, true);
 
-
-
     // Bind listeners to the specific inputs
     const idsToSettingsMap = {
         'tl_node_width': 'nodeWidth',
@@ -1096,7 +1090,7 @@ jQuery(async () => {
     };
 
     for (let [id, settingName] of Object.entries(idsToSettingsMap)) {
-        if (id.includes('color-picker')) { // or a more specific way to identify color pickers if needed
+        if (id.includes('color-picker')) {  // or a more specific way to identify color pickers if needed
             $(`#${id}`).on('change', function (evt) {
                 onInputChange($(this), settingName, evt.detail.rgba);
             });
@@ -1106,7 +1100,6 @@ jQuery(async () => {
             });
         }
     }
-
 
     $(document).ready(function () {
         $('#toggleStyleSettings').click(function () {
@@ -1122,7 +1115,6 @@ jQuery(async () => {
         loadSettings();
         saveSettingsDebounced();
     });
-
 
     loadSettings();
 });
