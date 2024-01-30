@@ -1,8 +1,11 @@
-// TODO: Settings: add `Max zoom level` (optional)
-// TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search)
+// @Technologicat's TODOs, early 2024:
+// TODO: Settings: add `Max zoom level` (optional). See `cy.maxZoom` to implement this easily. Maybe `cy.minZoom`, too.
+// TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search).
+// TODO: Node full info panel placement - try to avoid hindering navigation of the timeline the node belongs to.
 // TODO: Icon sizes at the top right of the timeline view should match each other.
+// TODO: Finalize README.
 
-// Old TODOs:
+// @city-unit's original TODOs:
 // TODO Edge labels?
 // TODO Possible minimap mode
 // TODO More context menu options
