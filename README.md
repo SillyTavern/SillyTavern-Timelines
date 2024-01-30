@@ -1,7 +1,9 @@
 # SillyTavern Timelines Extension
 
 ![STTL](https://github.com/city-unit/SillyTavern-Timelines/assets/140349364/7ef54816-b156-4002-af46-236635b6f0d6)
-An extension to allow for timeline based navigation of ST chat histories.
+An extension for timeline based navigation of ST chat histories.
+
+Think *Loom* [[1]](https://generative.ink/posts/loom-interface-to-the-multiverse/) [[2]](https://www.lesswrong.com/posts/bxt7uCiHam4QXrQAA/cyborgism#Appendix__Testimony_of_a_Cyborg), but built on ST's chat paradigm.
 
 
 ## Features
