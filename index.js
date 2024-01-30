@@ -512,7 +512,7 @@ function createLegendItem(cy, container, item, type) {
 
     const legendText = document.createElement('div');
     legendText.className = 'legend-text';
-    legendText.innerText = item.text.split(' - ')[0];
+    legendText.innerText = item.text.split(" - ").slice(0, -1).join(" - ");  // Omit the chat file timestamp, but keep the rest.
 
     legendItem.appendChild(legendSymbol);
     legendItem.appendChild(legendText);
