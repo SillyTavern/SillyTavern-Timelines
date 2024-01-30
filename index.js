@@ -1,5 +1,7 @@
 // @Technologicat's TODOs, early 2024:
 // TODO: Settings: add `Max zoom level` (optional). See `cy.maxZoom` to implement this easily. Maybe `cy.minZoom`, too.
+//       Explain there that 1.0 is the zoom level where all sizes specified in pixels.
+// TODO: Settings: add `Jump to current chat zoom level` (default 1.0).
 // TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search).
 // TODO: Node full info panel placement - try to avoid hindering navigation of the timeline the node belongs to.
 // TODO: Icon sizes at the top right of the timeline view should match each other.
