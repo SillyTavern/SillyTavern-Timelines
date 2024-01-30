@@ -766,8 +766,8 @@ function setupEventHandlers(cy, nodeData) {
         activeTapTippy = tipInstance;
 
         // Optional: Hide the tooltip if user taps anywhere else
-        cy.on('tap', function (e) {
-            if (e.target === cy) {
+        cy.on('tap', function (evt) {
+            if (evt.target === cy) {
                 tipInstance.hide();
             }
         });
