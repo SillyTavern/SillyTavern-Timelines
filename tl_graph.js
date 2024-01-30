@@ -1,6 +1,6 @@
 import { highlightElements, restoreElements } from './tl_style.js';
-let currentOrientation = 'TB'; // starting orientation
 
+let currentOrientation = 'TB';  // starting orientation
 
 /**
  * Toggles the orientation of the graph between Left-to-Right (LR) and Top-to-Bottom (TB).
