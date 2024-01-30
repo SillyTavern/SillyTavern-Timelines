@@ -554,7 +554,7 @@ function filterElementsAndPad(cy, selector) {
             padding = zoomToFit * extension_settings.timeline.nodeWidth;
         }
     } else {
-        eles = cy.filter();  // zoom out if the selector didn't match
+        eles = cy.filter();  // zoom out (select all elements) if the selector didn't match
     }
     return [eles, padding]
 }
