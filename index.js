@@ -891,8 +891,7 @@ function setupEventHandlers(cy, nodeData) {
 
         // If ambiguous, show which session was selected
         if (chatSessions.length > 1) {
-            const sessionName = file_name.split('.jsonl')[0];
-            toastr.info(`Multiple matches, auto-picked "${sessionName}"`);
+            toastr.info(`Multiple matches, auto-picked "${file_name}"`);
         }
 
         if (node.data('isSwipe')) {
