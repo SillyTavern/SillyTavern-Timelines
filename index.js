@@ -287,25 +287,23 @@ function makeTapTippy(ele) {
             mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
             div.appendChild(mesDiv);
 
-            // Insert an <hr> before adding the interactive menu based on chat_sessions
+            // Insert an <hr> before adding the interactive menu based on `chat_sessions`
             div.appendChild(document.createElement('hr'));
 
             // Add buttons: navigate to the message, create a new branch at the message
             var menuDiv = document.createElement('div');
             menuDiv.classList.add('menu_div');
             if (ele.data('chat_sessions')) {
-                ele.data('chat_sessions').forEach((file_name, index) => {
+                for (const [file_name, session_metadata] of Object.entries(ele.data('chat_sessions'))) {
                     // Create a container for the buttons
                     let btnContainer = document.createElement('div');
                     btnContainer.style.display = 'flex';
                     btnContainer.style.alignItems = 'center'; // To vertically center the buttons
 
                     const sessionName = file_name.split('.jsonl')[0];
-                    const depth = getNodeDepth(ele);
-                    const messageId = depth - 1;  // sequential message number in chat (-1 for graph root node)
+                    const messageId = session_metadata.messageId;  // sequential message number in chat
                     // Without creating a branch, swipes are available only at the last message of a chat.
-                    const sessionLength = ele.data('chat_session_lengths')[file_name];
-                    const canNavigateToSwipe = (messageId === (sessionLength - 1));
+                    const canNavigateToSwipe = (messageId === (session_metadata.length - 1));
 
                     // 1. Create the main button
                     let navigateBtn = document.createElement('button');
@@ -347,7 +345,7 @@ function makeTapTippy(ele) {
 
                     // Append the container to the menuDiv
                     menuDiv.appendChild(btnContainer);
-                });
+                }
             }
             div.appendChild(menuDiv);
 
@@ -782,13 +780,14 @@ function setupEventHandlers(cy, nodeData) {
     // Handle double click on nodes for quickly navigating to the message
     cy.on('dbltap ', 'node', function (evt) {
         const node = evt.target;
-        const chatSessions = node.data('chat_sessions');
-        const file_name = chatSessions[0];  // Pick first session that has this message
-        const depth = getNodeDepth(node);
-        const messageId = depth - 1;  // in sequential numbering in chat
+
+        // Auto-pick first chat file that has this message
+        const chat_sessions = Object.entries(node.data('chat_sessions'));
+        const [file_name, session_metadata] = chat_sessions[0];
+        const messageId = session_metadata.messageId;
 
         // If ambiguous, show which session was selected
-        if (chatSessions.length > 1) {
+        if (chat_sessions.length > 1) {
             toastr.info(`Multiple matches, auto-picked "${file_name}"`);
         }
 

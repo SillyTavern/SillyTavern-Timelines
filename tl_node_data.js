@@ -236,12 +236,14 @@ function createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNam
 
     let { is_name, is_user, name, send_date, is_system } = group[0].message;  // Added is_system here
 
-    let sessionLengths = {};
+    // Find chat sessions that have this message (and their lengths)
+    let chat_sessions = {};
     for (let {file_name, message} of group) {
         // console.debug(`messageId (in chat) ${messageId}: graph node '${nodeId}' for chat '${file_name}' [${allChatFileNamesAndLengths[file_name]} messages]`);
-
-        // Could store `messageId` here, too, but in the Cytoscape graph, we know that `messageId = depth - 1` so we don't strictly need to store it.
-        sessionLengths[file_name] = allChatFileNamesAndLengths[file_name];
+        chat_sessions[file_name] = {
+            messageId: messageId,
+            length: allChatFileNamesAndLengths[file_name],
+        };
     }
 
     return {
@@ -256,10 +258,7 @@ function createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNam
         name: name,
         send_date: send_date,
         color: isBookmark ? generateUniqueColor(text) : null,
-        // TODO: we could use a more sensible format - the data in `chat_session_lengths` alone is enough at our use sites.
-        chat_sessions: group.map(({ file_name }) => file_name),
-        chat_session_lengths: sessionLengths,
-        chat_sessions_str: ';' + group.map(({ file_name }) => file_name).join(';') + ';',
+        chat_sessions: chat_sessions,  // ES2015 and later preserve string keys in their insertion order, so this can also be used as an ordered list of sessions.
     };
 }
 
