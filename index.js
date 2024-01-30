@@ -821,7 +821,7 @@ function setupEventHandlers(cy, nodeData) {
             const swipeExists = cy.getElementById(firstSwipeId).length > 0;
 
             if (!swipeExists) {
-                // Add stored swipes and their edges to the graph
+                // For this node, add stored swipes and their edges to the graph
                 node.data('storedSwipes').forEach(({ node: swipeNode, edge: swipeEdge }) => {
                     // increase the edge weight
                     swipeEdge.weight = 100;
@@ -829,7 +829,7 @@ function setupEventHandlers(cy, nodeData) {
                     cy.add({ group: 'edges', data: swipeEdge });
                 });
             } else {
-                // Remove stored swipes and their edges from the graph
+                // For this node, remove stored swipes and their edges from the graph
                 node.data('storedSwipes').forEach(({ node: swipeNode }) => {
                     cy.getElementById(swipeNode.id).remove();
                 });
