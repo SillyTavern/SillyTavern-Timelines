@@ -241,7 +241,7 @@ function createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNam
 
     // Find chat sessions that have this message (and their lengths)
     let chat_sessions = {};
-    for (let {file_name, message} of group) {
+    for (const {file_name} of group) {
         // console.debug(`messageId (in chat) ${messageId}: graph node '${nodeId}' for chat '${file_name}' [${allChatFileNamesAndLengths[file_name]} messages]`);
         chat_sessions[file_name] = {
             messageId: messageId,
