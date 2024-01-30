@@ -1071,7 +1071,7 @@ jQuery(async () => {
     $('#show_timeline_view').on('click', onTimelineButtonClick);
     registerSlashCommand('tl', slashCommandHandler, [], '/tl Show the timeline, "/tl r" to reload the graph', false, true);
 
-    // Bind listeners to the specific inputs
+    // Bind listeners to the specific inputs; format: {html_ui_id: name_in_default_settings, ...}
     const idsToSettingsMap = {
         'tl_node_width': 'nodeWidth',
         'tl_node_height': 'nodeHeight',
