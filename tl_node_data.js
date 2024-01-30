@@ -327,6 +327,7 @@ function postprocessNodes(nodeData) {
 function convertToCytoscapeElements(chatHistory) {
     let allChats = preprocessChatSessions(chatHistory);
 
+    // Gather chat session lengths (in number of messages) for last-message detection.
     // dictmap {k: v} -> {k: v.length}
     let allChatFileNamesAndLengths = {};
     for (const [key, val] of Object.entries(chatHistory)) {
