@@ -714,7 +714,7 @@ function setupEventHandlers(cy, nodeData) {
     rotateBtn.onclick = function () {
         toggleGraphOrientation(cy, layout);
         //refresh the layout
-        refreshLayout(false);
+        refreshLayout();
         const [eles, padding] = filterElementsAndPad(cy, undefined);
         cy.stop().animate({fit: { eles: eles, padding: padding },
                            duration: 300});
@@ -723,13 +723,13 @@ function setupEventHandlers(cy, nodeData) {
     let expandBtn = modal.getElementsByClassName('expand')[0];
     expandBtn.onclick = function () {
         toggleSwipes(cy);
-        refreshLayout(false);
+        refreshLayout();
     };
 
     let reloadBtn = modal.getElementsByClassName('reload')[0];
     reloadBtn.onclick = function () {
         slashCommandHandler(null, 'r');  // r = reload
-        refreshLayout(false);
+        refreshLayout();
     };
 
     let zoomtofitBtn = modal.getElementsByClassName('zoomtofit')[0];
@@ -839,7 +839,7 @@ function setupEventHandlers(cy, nodeData) {
             }
         }
 
-        refreshLayout(false, false);
+        refreshLayout();
     });
 
     let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
