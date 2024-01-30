@@ -137,6 +137,7 @@ async function loadSettings() {
     $('#tl_show_legend').prop('checked', extension_settings.timeline.showLegend).trigger('input');
     $('#tl_use_chat_colors').prop('checked', extension_settings.timeline.useChatColors).trigger('input');
     $('#tl_lock_nodes').prop('checked', extension_settings.timeline.lockNodes).trigger('input');
+    $('#tl_auto_expand_swipes').prop('checked', extension_settings.timeline.autoExpandSwipes).trigger('input');
     $('#bookmark-color-picker').attr('color', extension_settings.timeline.bookmarkColor);
     $('#edge-color-picker').attr('color', extension_settings.timeline.edgeColor);
     $('#user-node-color-picker').attr('color', extension_settings.timeline.userNodeColor);
