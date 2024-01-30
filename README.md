@@ -63,27 +63,31 @@ Actions:
 - *Clicking a legend entry* highlights it and zooms into it. Clicking the same entry again zooms out.
 - *Typing into fulltext search* highlights and zooms to the search results in realtime. When no match, or if you clear the search, it zooms out.
 
-If you find yourself amid a profusion of branches, consider using ST's built-in *Manage chat files* view (or a file manager) to delete any extra ones.
-
 ### Checkpoints
 
-While checkpoints are a general ST feature, their behavior becomes much more visible in *Timelines*, so we explain it briefly here.
+While checkpoints are a core ST feature, *Timelines* takes them to center stage, so we explain it briefly here.
 
-A checkpoint is just a named chat branch.
+A checkpoint is just a named chat branch. Branches, including checkpoints, are essentially separate chat files.
 
-*Timelines* itself only creates (unnamed) branches. Checkpoints are created in the ST main GUI. Go to the chat message you want, and then press the *Checkpoint* button in the *Message Actions* for that message. The actions are in the "..." menu, unless you have enabled *Expand Message Actions* in your *User Settings* (advanced mode).
+*Timelines* itself only creates (unnamed) branches. Checkpoints are created in the ST main GUI. To create a checkpoint, go to the chat message you want, and then press the *Checkpoint* button in the *Message Actions* for that message. The actions are in the "..." menu, unless you have enabled *Expand Message Actions* in your *User Settings* (advanced mode).
 
-- Creating a checkpoint spawns a new chat file (the *checkpoint chat file*), and inserts a *checkpoint link* into the originating chat file.
+To rename a checkpoint, rename the file in a file manager.
+
+To delete a branch or checkpoint, use ST's built-in *Manage chat files* view, or a file manager. Roughly speaking: delete the chat file that was spawned by the branch or checkpoint, and the branch/checkpoint will be gone.
+
+However, checkpoint tracking complicates things slightly:
+
+- Creating a checkpoint spawns a new chat file (the *checkpoint chat file*), but it also inserts a *checkpoint link* into the originating chat file.
   - The link belongs to a specific message. Each chat message can have at most one checkpoint link.
   - As of ST 1.11.3, checkpoint links cannot be deleted in the GUI (but this does not matter much).
 - If you later overwrite a checkpoint, by creating a new one at the same message in the same chat, doing so severs the original link.
 - If you delete or rename the checkpoint chat file, this leaves a dead link in the originating chat file.
 
-*Timelines* tracks checkpoints by following the checkpoint links, and ignoring any dead links. Therefore:
+*Timelines* tracks checkpoint paths by following checkpoint links, ignoring any dead links. Therefore:
 
 - If you delete or rename a checkpoint chat file, that checkpoint vanishes from the timeline view.
-  - The renamed checkpoint chat file then appears as an independent chat file (in the full info panel for nodes containing its messages), not connected to any checkpoint in the timeline view.
-- If you overwrite a checkpoint, only the **new** checkpoint is tracked in the timeline view, because only the new checkpoint has a link.
+  - A renamed checkpoint chat file appears as an independent chat file in the timeline view (in the full info panel for nodes containing its messages), not connected to any checkpoint.
+- If you overwrite a checkpoint, only the **new** checkpoint is tracked in the timeline view.
   - The checkpoint chat file for the old checkpoint then appears as an independent chat file in the timeline view.
 
 
