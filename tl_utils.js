@@ -155,8 +155,8 @@ export function closeModal() {
         return;
     }
 
-    // Append the modal back to its original parent
-    document.querySelector('.timeline-view-settings_block').appendChild(modal);
+    // Append the modal back to its original parent (to store it while closed)
+    document.querySelector('.timelines-modal-container').appendChild(modal);
     modal.style.display = 'none';
 }
 

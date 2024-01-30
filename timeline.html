@@ -146,22 +146,23 @@
                 <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" />
             </div>
             <!-- The Modal -->
-            <div id="timelinesModal" class="modal">
-                <!-- Modal content -->
-                <div id="networkContainer">
-                    <button class="close" title="Close">&times;</button>
-                    <button class="rotate" title="Rotate Graph">&orarr;</button>
-                    <button class="expand" title="Toggle Expand Swipes">&#x26D5;</button>
-                    <button class="reload" title="Reload Graph [/tl r]">&#x1f5d8;</button>
-                    <button class="zoomtofit" title="Zoom to Fit">[]</button>
-                    <button class="zoomtocurrent" title="Zoom to Current Chat">&#x2b95;</button>
-                    <input id="transparent-search" type="text" placeholder="Search..." />
-                    <div class="graph-container">
-                        <!-- Relative positioned container -->
-                        <div id="timelinesDiagramDiv"></div>
-                        <div id="legendDiv" class="legend-bottom-right"></div>
-                        <div id="fixedReference" style="position: fixed; bottom: 0; left: 0; width: 0; height: 0;"></div>
-                        <!-- Legend with absolute positioning -->
+            <div class="timelines-modal-container hidden">  <!-- A place in the DOM to store the modal when not in use -->
+                <div id="timelinesModal" class="modal">  <!-- The transparent outer modal, covering the whole viewport -->
+                    <div id="networkContainer">  <!-- The inner modal, i.e. the actual content -->
+                        <button class="close" title="Close">&times;</button>
+                        <button class="rotate" title="Rotate Graph">&orarr;</button>
+                        <button class="expand" title="Toggle Expand Swipes">&#x26D5;</button>
+                        <button class="reload" title="Reload Graph [/tl r]">&#x1f5d8;</button>
+                        <button class="zoomtofit" title="Zoom to Fit">[]</button>
+                        <button class="zoomtocurrent" title="Zoom to Current Chat">&#x2b95;</button>
+                        <input id="transparent-search" type="text" placeholder="Search..." />
+                        <div class="graph-container">
+                            <!-- Relative positioned container -->
+                            <div id="timelinesDiagramDiv"></div>
+                            <div id="legendDiv" class="legend-bottom-right"></div>
+                            <div id="fixedReference" style="position: fixed; bottom: 0; left: 0; width: 0; height: 0;"></div>
+                            <!-- Legend with absolute positioning -->
+                        </div>
                     </div>
                 </div>
             </div>
