@@ -2,7 +2,6 @@ import { extension_settings, getContext, loadExtensionSettings } from '../../../
 import { characters, getRequestHeaders, openCharacterChat, saveSettingsDebounced, getThumbnailUrl } from '../../../../script.js';
 import { power_user } from '../../../power-user.js';
 
-
 /**
  * Extracts the alpha (opacity) value from a given RGBA color string.
  *
@@ -15,10 +14,10 @@ function getAlphaFromRGBA(rgbaString) {
 }
 
 /**
- * Highlights the path from a specified checkpoint node to the root in a data structure representing a graph.
+ * Highlights the path from a specified checkpoint node to the root in a data structure representing a Cytoscape graph.
  * The function iteratively traces and highlights edges and nodes, adjusting visual attributes like color, thickness, and zIndex.
  *
- * @param {Object} rawData - The data structure representing the graph with nodes and edges.
+ * @param {Object} rawData - The data structure representing the Cytoscape graph with nodes and edges.
  * @param {string|number} bookmarkNodeId - The ID of the checkpoint node to start highlighting from.
  * @param {number} currentHighlightThickness - The starting thickness for highlighting edges (default is 4).
  * @param {number} startingZIndex - The starting zIndex for nodes and edges to be highlighted (default is 1000).
@@ -50,17 +49,19 @@ function highlightPathToRoot(rawData, bookmarkNodeId, currentHighlightThickness 
             incomingEdge.data.color = bookmarkNode.data.color;
             incomingEdge.data.bookmarkName = bookmarkNode.data.bookmarkName;
             incomingEdge.data.highlightThickness = currentHighlightThickness;
+            currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
+
+            currentNode.data.borderColor = incomingEdge.data.color;
 
             // Set the zIndex of the incomingEdge
             incomingEdge.data.zIndex = currentZIndex;
-            currentNode.data.borderColor = incomingEdge.data.color;
             currentZIndex++; // Increase the zIndex for the next edge in the path
 
-            currentHighlightThickness = Math.min(currentHighlightThickness + 0.1, 6);
+            // Select the next node up
             currentNode = Object.values(rawData).find(entry =>
                 entry.group === 'nodes' && entry.data.id === incomingEdge.data.source,
             );
-        } else {
+        } else {  // This was the topmost node
             currentNode = null;
         }
     }
@@ -145,7 +146,7 @@ export function setupStylesAndData(nodeData) {
                     return extension_settings.timeline.swipeScale ? Math.abs(Math.log(totalSwipes + 1)) * 4 + Number(extension_settings.timeline.nodeHeight) : extension_settings.timeline.nodeHeight;
                 },
 
-                'shape': extension_settings.timeline.nodeShape, // or 'circle'
+                'shape': extension_settings.timeline.nodeShape,  // or 'circle'
                 'background-color': function (ele) {
                     return ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor;
                 },
@@ -153,16 +154,19 @@ export function setupStylesAndData(nodeData) {
                     return ele.data('is_user') ? getAlphaFromRGBA(theme.userNodeColor) : getAlphaFromRGBA(theme.charNodeColor);
                 },
                 'border-color': function (ele) {
+                    // NOTE: We highlight the checkpoint node itself based on the color theme, ignoring its 'borderColor' property.
+                    //       All the other nodes along the checkpoint path get highlighted with the checkpoint's random color.
                     return ele.data('isBookmark') ? theme.bookmarkColor : ele.data('borderColor') ? ele.data('borderColor') : ele.data('totalSwipes') ? (ele.data('is_user') ? theme.userNodeColor : theme.charNodeColor) : 'black';
                 },
                 'border-width': function (ele) {
                     return ele.data('isBookmark') || ele.data('totalSwipes') ? 5 : ele.data('borderColor') ? 3 : 0;
                 },
                 'border-opacity': function (ele) {
+                    // The remark of 'border-color' applies here, too.
                     return ele.data('isBookmark') ? getAlphaFromRGBA(theme.bookmarkColor) : ele.data('borderColor') ? 1 : ele.data('totalSwipes') > 0 ? 1 : 0;
                 },
                 'border-style': function (ele) {
-                    return ele.data('totalSwipes') > 0 ? 'double' : 'solid';
+                    return ele.data('totalSwipes') > 0 ? 'double' : 'solid';  // Halo around node with swipes
                 },
             },
         },
@@ -189,7 +193,7 @@ export function setupStylesAndData(nodeData) {
             },
         },
         {
-            selector: 'node[?isSwipe]',  // Select nodes with is_system property set to true
+            selector: 'node[?isSwipe]',  // Select nodes with isSwipe property set to true
             style: {
                 'background-opacity': .5,
                 'border-width': 3,
@@ -209,7 +213,7 @@ export function setupStylesAndData(nodeData) {
             },
         },
         {
-            selector: '.NoticeMe',  // This gets flashed on and off upon focusing the current chat node
+            selector: '.NoticeMe',  // This gets flashed on and off upon zooming to the current chat node
             style: {
                 'background-opacity': 0.5,
                 'width': extension_settings.timeline.nodeWidth * 0.9,
@@ -224,6 +228,7 @@ export function setupStylesAndData(nodeData) {
 
 /**
  * Highlights specific elements (nodes or edges) in a Cytoscape graph based on a given selector.
+ * Used e.g. in the text search functionality.
  *
  * Initially, all elements in the graph are dimmed. Based on the provided selector, matching nodes or edges are then
  * highlighted with a white underlay. If the selector pertains to an edge with a specific color, nodes with the same
@@ -237,7 +242,7 @@ export function setupStylesAndData(nodeData) {
 export function highlightElements(cy, selector) {
     cy.elements().style({ 'opacity': 0.2 });  // Dim all nodes and edges
 
-    // Defaults, for a node selector
+    // Defaults for when `selector` selects nodes.
     let underlayPadding = '5px';
     let underlayShape = 'ellipse';
 
@@ -255,12 +260,12 @@ export function highlightElements(cy, selector) {
             'underlay-shape': 'ellipse',
         });
 
-        // Configure padding and shape for edges
+        // For edges.
         underlayPadding = '2px';
         underlayShape = '';
     }
 
-    // For the original selector (any kind)
+    // Style the originally selected elements (any kind)
     cy.elements(selector).style({
         'opacity': 1,
         'underlay-color': 'white',

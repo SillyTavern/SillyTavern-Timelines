@@ -945,7 +945,7 @@ async function updateTimelineDataIfNeeded() {
     if (!lastContext || lastContext.characterId !== context.characterId) {
         let data = {};
 
-        if (!context.characterId) {
+        if (!context.characterId) {  // group chat
             let groupID = context.groupId;
             if (groupID) {
                 // Send the group where the ID within the dict is equal to groupID
@@ -989,7 +989,10 @@ function zoomToCurrentChatNode() {
     if (theCy) {
         // Get latest chat message in currently open chat (TODO: special considerations for group chats?)
         const context = getContext();
-        const mes = context.chat[context.chat.length - 1].mes;
+        const chat = context.chat;
+        const lastMessageId = chat.length - 1;
+        const lastMessageObj = chat[lastMessageId];
+        const mes = lastMessageObj.mes;
 
         // On the graph, find the node containing that message text.
         const selector = function (ele) { return ele.data('msg') === mes };
@@ -1004,10 +1007,10 @@ function zoomToCurrentChatNode() {
         });
 
         // Draw the user's attention to the node
-        function flashNode(node, howManyflashes) {
+        function flashNode(node, howManyFlashes) {
             const duration = 500;  // half-period
             node.flashClass('NoticeMe', duration);  // do the first flash now
-            for (let j = 1; j < howManyflashes; j++) {  // schedule the rest
+            for (let j = 1; j < howManyFlashes; j++) {  // schedule the rest
                 setTimeout(() => { node.flashClass('NoticeMe', duration); },
                            2 * j * duration);
             }

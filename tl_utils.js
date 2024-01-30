@@ -5,9 +5,7 @@ import { getTokenCount } from '../../../tokenizers.js';
 import { getContext } from '../../../extensions.js';
 import { debounce } from '../../../utils.js';
 
-
 const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
-
 
 /**
  * Navigates to a specific chat message in a chat session by adjusting the scroll position.
@@ -35,14 +33,13 @@ const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
  * 4. If the `branch` parameter is true, creates a new branch based on the message and navigates to it.
  * 5. If `swipeId` is provided and >= 0, navigates to the associated swipe after potentially creating a new branch.
  */
-
 export async function navigateToMessage(chatSessionName, messageId, swipeId = -1, branch = false) {
 
     // Remove extension from file name
     chatSessionName = chatSessionName.replace('.jsonl', '');
 
     // Switch to the requested chat session
-    await openCharacterChat(chatSessionName);  // TODO: does this work with group chats?
+    await openCharacterChat(chatSessionName);  // TODO: special considerations for group chats?
     const chat = $('#chat');
     const sessionLength = chat.children('.mes').length;
 
@@ -61,74 +58,81 @@ export async function navigateToMessage(chatSessionName, messageId, swipeId = -1
         }
     }
 
-    // Find the message div matching `messageId`, making it visible if hidden.
-    let message = $(`div[mesid=${messageId}]`);
-    while (!message.is(':visible')) {
-        console.info(`Message ${messageId} is not visible. Looking for it...`);
-        if (chat.children('.mes').not(':visible').length > 0) {  // maybe hidden?
-            console.info('Timelines: Showing hidden messages.');
-            const prevHeight = chat.prop('scrollHeight');
-            chat.children('.mes').not(':visible').slice(-power_user.lazy_load).show();
-            const newHeight = chat.prop('scrollHeight');
-            chat.scrollTop(newHeight - prevHeight);
-        } else {  // maybe need to show more messages?
-            const showMoreBtn = $('#show_more_messages');
-            if (showMoreBtn.length) {
-                console.info('Timelines: Showing more messages.');
-                showMoreBtn.trigger('mouseup');
-            } else {  // no more hiding places
-                console.info(`Timelines: Message ${messageId} in ${chatSessionName} not found. Cannot navigate to it.`);
-                closeOpenDrawers();
-                return;
+    try {
+        // Find the message div matching `messageId`, making it visible if hidden.
+        let message = $(`div[mesid=${messageId}]`);
+        while (!message.is(':visible')) {
+            console.info(`Message ${messageId} is not visible. Looking for it...`);
+            if (chat.children('.mes').not(':visible').length > 0) {  // maybe hidden?
+                console.info('Timelines: Showing hidden messages.');
+                const prevHeight = chat.prop('scrollHeight');
+                chat.children('.mes').not(':visible').slice(-power_user.lazy_load).show();
+                const newHeight = chat.prop('scrollHeight');
+                chat.scrollTop(newHeight - prevHeight);
+            } else {  // maybe need to show more messages?
+                const showMoreBtn = $('#show_more_messages');
+                if (showMoreBtn.length) {
+                    console.info('Timelines: Showing more messages.');
+                    showMoreBtn.trigger('mouseup');
+                } else {  // no more hiding places
+                    console.info(`Timelines: Message ${messageId} in ${chatSessionName} not found. Cannot navigate to it.`);
+                    return;
+                }
             }
+            message = $(`div[mesid=${messageId}]`);  // search again
         }
-        message = $(`div[mesid=${messageId}]`);  // search again
-    }
 
-    if (branch) {  // Create and open a new branch at target message (and open its target swipe, if any)
-        console.info(`Timelines: New chat branch requested by user at message ${messageId} in ${chatSessionName}.`)
-        const name = await createBranch(messageId);
-        await openCharacterChat(name);
-        console.info(`Timelines: Created chat branch ${name}.`)
-        if (swipeId >= 0) {  // Navigate to the requested swipe, if any.
-            console.info(`Timelines: Displaying swipe ${swipeId + 1} of message ${messageId} in ${name}.`)
-            goToSwipe(swipeId, messageId);
-        }
-    }
-    else if (swipeId >= 0) {  // Navigate to a swipe, trying to avoid creating a branch
-        // - If the target is the last message in the chat, we can just navigate to the requested swipe.
-        // - But if not, the request cannot be satisfied, because the stored swipes are hidden by the
-        //   later messages. In this case we create a new branch.
-        let name = chatSessionName;
-        const canNavigateToSwipe = (messageId === (sessionLength - 1));
-        if (canNavigateToSwipe) {
-            console.info(`Timelines: Message ${messageId} is the last message in ${chatSessionName}. Swipes are available.`)
-        } else {
-            console.info(`Timelines: Creating new chat branch to reveal stored swipes at non-last message ${messageId} in ${chatSessionName}.`)
-            name = await createBranch(messageId);
+        if (branch) {  // Create and open a new branch at target message (and open its target swipe, if any)
+            console.info(`Timelines: New chat branch requested by user at message ${messageId} in ${chatSessionName}.`)
+            const name = await createBranch(messageId);
             await openCharacterChat(name);
             console.info(`Timelines: Created chat branch ${name}.`)
+            if (swipeId >= 0) {  // Navigate to the requested swipe, if any.
+                console.info(`Timelines: Displaying swipe ${swipeId + 1} of message ${messageId} in ${name}.`)
+                goToSwipe(swipeId);  // always applies to the last message in the chat
+            }
         }
-        console.info(`Timelines: Displaying swipe ${swipeId + 1} of message ${messageId} in ${name}.`)
-        goToSwipe(swipeId, messageId);
-    }
-    else {  // Easy case: no branching, no swipes - just navigate to the target message by scrolling the chat.
-        if (message.length) {  // found the div?
-            console.info(`Timelines: Scrolling chat to message ${messageId} in ${chatSessionName}.`)
-            let scrollPosition = chat.scrollTop() + message.position().top;
-            chat.animate({ scrollTop: scrollPosition }, 500);
-        } else {
-            console.error(`Timelines: Message ${messageId} not found in ${chatSessionName}.`);
+        else if (swipeId >= 0) {  // Navigate to a swipe, trying to avoid creating a branch
+            // - If the target is the last message in the chat, we can just navigate to the requested swipe.
+            // - But if not, the request cannot be satisfied, because the stored swipes are hidden by the
+            //   later messages. In this case we create a new branch.
+            let name = chatSessionName;
+            const canNavigateToSwipe = (messageId === (sessionLength - 1));
+            if (canNavigateToSwipe) {
+                console.info(`Timelines: Message ${messageId} is the last message in ${chatSessionName}. Swipes are available.`)
+            } else {
+                console.info(`Timelines: Creating new chat branch to reveal stored swipes at non-last message ${messageId} in ${chatSessionName}.`)
+                name = await createBranch(messageId);
+                await openCharacterChat(name);
+                console.info(`Timelines: Created chat branch ${name}.`)
+            }
+            console.info(`Timelines: Displaying swipe ${swipeId + 1} of message ${messageId} in ${name}.`)
+            goToSwipe(swipeId);  // always applies to the last message in the chat
         }
+        else {  // Easy case: no branching, no swipes - just navigate to the target message by scrolling the chat.
+            if (message.length) {  // found the div?
+                console.info(`Timelines: Scrolling chat to message ${messageId} in ${chatSessionName}.`)
+                let scrollPosition = chat.scrollTop() + message.position().top;
+                chat.animate({ scrollTop: scrollPosition }, 500);
+            } else {
+                console.error(`Timelines: Message ${messageId} not found in ${chatSessionName}.`);
+            }
+        }
+    } finally {
+        closeOpenDrawers();
     }
-
-    closeOpenDrawers();
 }
 
 /**
  * Closes any open drawers that are not pinned.
  * It also toggles the display icons and manages the animation during the transition.
  */
+// TODO: The `openDrawer` style class appears nowhere else in this project.
+// TODO: Does Timelines need this to interact with the main parts of ST (which does use `openDrawer`), or is this actually a no-op?
+// This is currently called from:
+//   - The handler registered to `cy.ready` (`index.js`)
+//   - `onTimelineButtonClick` (`index.js`)
+//   - Upon returning from `navigateToMessage` (`tl_utils.js`)
 export function closeOpenDrawers() {
     var openDrawers = $('.openDrawer').not('.pinnedOpen');
 
@@ -152,7 +156,7 @@ export function closeModal() {
         return;
     }
 
-    // Append the modal back to its original parent when closed
+    // Append the modal back to its original parent
     document.querySelector('.timeline-view-settings_block').appendChild(modal);
     modal.style.display = 'none';
 }
@@ -180,33 +184,27 @@ export function handleModalDisplay() {
         return;
     }
 
-
-    function closeTippy() {
-        // If Tippy uses a specific class or attribute, you can target it more precisely
+    function closeTippy() {  // Hide the Tippy tooltip
         let tippyBoxes = document.querySelectorAll('.tippy-box');
-
         tippyBoxes.forEach(box => {
             let parent = box.parentElement;
-            if (parent && parent._tippy) {
+            if (parent && parent._tippy) {  // `_tippy` is stored on the graph node
                 parent._tippy.hide();
             }
         });
     }
 
-
+    // The "close" button
     closeBtn.onclick = function () {
-        // Append the modal back to its original parent when closed
-        document.querySelector('.timeline-view-settings_block').appendChild(modal);
-        modal.style.display = 'none';
-        closeTippy();  // Hide the Tippy tooltip
+        closeModal();
+        closeTippy();
     };
 
+    // When clicked outside
     window.onclick = function (event) {
         if (event.target == modal) {
-            // Append the modal back to its original parent when clicked outside
-            document.querySelector('.timeline-view-settings_block').appendChild(modal);
-            modal.style.display = 'none';
-            closeTippy();  // Hide the Tippy tooltip
+            closeModal();
+            closeTippy();
         }
     };
 
@@ -216,13 +214,12 @@ export function handleModalDisplay() {
 }
 
 /**
- * Navigates to a specific swipe within a chat based on the given swipe ID and updates the chat data and UI accordingly.
+ * Navigates to a specific swipe within the last message of a chat, based on the given swipe ID, and updates the chat data and UI accordingly.
  *
  * This function adjusts the chat data to reflect the content of the specified swipe and updates the UI to display it.
  * It also handles edge cases such as swipe ID bounds and potential cleanup of extra properties.
  *
  * @param {number} targetSwipeId - The ID of the swipe to navigate to.
- * @param {number} message_id - The ID of the message associated with the swipe.
  * @returns {Promise<void>} Resolves once the swipe navigation and associated updates are complete.
  *
  * Behavior:
@@ -233,46 +230,49 @@ export function handleModalDisplay() {
  * 5. Emits a 'MESSAGE_SWIPED' event and saves the chat data.
  */
 
-async function goToSwipe(targetSwipeId, message_id) {
-    let chat = getContext().chat;
+async function goToSwipe(targetSwipeId) {
+    const context = getContext();
+    const chat = context.chat;
+    const lastMessageId = chat.length - 1;
+    const lastMessageObj = chat[lastMessageId];
 
     // Set the desired swipe ID
-    chat[chat.length - 1]['swipe_id'] = targetSwipeId;
+    lastMessageObj['swipe_id'] = targetSwipeId;
 
     // Validate swipe ID bounds
-    if (chat[chat.length - 1]['swipe_id'] < 0) {
-        chat[chat.length - 1]['swipe_id'] = chat[chat.length - 1]['swipes'].length - 1;
+    if (lastMessageObj['swipe_id'] < 0) {
+        lastMessageObj['swipe_id'] = lastMessageObj['swipes'].length - 1;
     }
-    console.debug(chat[chat.length - 1]);
-    if (chat[chat.length - 1]['swipe_id'] >= chat[chat.length - 1]['swipes'].length) {
-        chat[chat.length - 1]['swipe_id'] = 0; // Reset to first if exceeding bounds
+    console.debug(lastMessageObj);
+    if (lastMessageObj['swipe_id'] >= lastMessageObj['swipes'].length) {
+        lastMessageObj['swipe_id'] = 0; // Reset to first if exceeding bounds
     }
 
     // Update chat data based on the new swipe ID
-    if (!Array.isArray(chat[chat.length - 1]['swipe_info'])) {
-        chat[chat.length - 1]['swipe_info'] = [];
+    if (!Array.isArray(lastMessageObj['swipe_info'])) {
+        lastMessageObj['swipe_info'] = [];
     }
 
-    chat[chat.length - 1]['mes'] = chat[chat.length - 1]['swipes'][chat[chat.length - 1]['swipe_id']];
-    chat[chat.length - 1]['send_date'] = chat[chat.length - 1].swipe_info[chat[chat.length - 1]['swipe_id']]?.send_date || chat[chat.length - 1].send_date;
-    chat[chat.length - 1]['extra'] = JSON.parse(JSON.stringify(chat[chat.length - 1].swipe_info[chat[chat.length - 1]['swipe_id']]?.extra || chat[chat.length - 1].extra));
+    lastMessageObj['mes'] = lastMessageObj['swipes'][lastMessageObj['swipe_id']];
+    lastMessageObj['send_date'] = lastMessageObj.swipe_info[lastMessageObj['swipe_id']]?.send_date || lastMessageObj.send_date;
+    lastMessageObj['extra'] = JSON.parse(JSON.stringify(lastMessageObj.swipe_info[lastMessageObj['swipe_id']]?.extra || lastMessageObj.extra));
 
     // Clean up any extra properties if needed
-    if (chat[chat.length - 1].extra) {
-        if (chat[chat.length - 1].extra.memory) delete chat[chat.length - 1].extra.memory;
-        if (chat[chat.length - 1].extra.display_text) delete chat[chat.length - 1].extra.display_text;
+    if (lastMessageObj.extra) {
+        if (lastMessageObj.extra.memory) delete lastMessageObj.extra.memory;
+        if (lastMessageObj.extra.display_text) delete lastMessageObj.extra.display_text;
     }
 
     // Update UI with the new message data
-    addOneMessage(chat[chat.length - 1], { type: 'swipe' });
+    addOneMessage(lastMessageObj, { type: 'swipe' });
 
     // Update token count if enabled
     if (power_user.message_token_count_enabled) {
-        const swipeMessage = $('#chat').find(`[mesid="${message_id}"]`);
-        const tokenCount = getTokenCount(chat[chat.length - 1].mes, 0);
-        chat[chat.length - 1]['extra']['token_count'] = tokenCount;
+        const swipeMessage = $('#chat').find(`[mesid="${lastMessageId}"]`);
+        const tokenCount = getTokenCount(lastMessageObj.mes, 0);
+        lastMessageObj['extra']['token_count'] = tokenCount;
         swipeMessage.find('.tokenCounterDisplay').text(`${tokenCount}t`);
     }
-    await eventSource.emit(event_types.MESSAGE_SWIPED, (chat.length - 1));
+    await eventSource.emit(event_types.MESSAGE_SWIPED, lastMessageId);
     saveChatDebounced();
 }
