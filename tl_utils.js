@@ -150,7 +150,6 @@ export function closeOpenDrawers() {
  */
 export function closeModal() {
     let modal = document.getElementById('timelinesModal');
-
     if (!modal) {
         console.error('Modal not found!');
         return;
@@ -169,16 +168,12 @@ export function closeModal() {
  */
 export function handleModalDisplay() {
     let modal = document.getElementById('timelinesModal');
-
-    // Ensure that modal exists
     if (!modal) {
         console.error('Modal not found!');
         return;
     }
 
     let closeBtn = modal.getElementsByClassName('close')[0];
-
-    // Ensure that close button exists
     if (!closeBtn) {
         console.error('Close button not found!');
         return;
