@@ -1,5 +1,4 @@
 // TODO: Settings: remove `Lock Nodes` (does nothing)
-// TODO: Settings: add `Auto-expand Swipes`
 // TODO: Settings: add `Max zoom level` (optional)
 // TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search)
 // TODO: Icon sizes at the top right of the timeline view should match each other.
@@ -91,6 +90,7 @@ let defaultSettings = {
     userNodeColor: '#ADD8E6',
     edgeColor: '#555',
     lockNodes: true,
+    autoExpandSwipes: false
 };
 
 let currentlyHighlighted = null;  // selector for active legend item
@@ -645,21 +645,27 @@ function getTooltipReference(ele) {
  * Toggles the display of swipe nodes in the Cytoscape graph.
  *
  * @param {Object} cy - The Cytoscape instance.
+ * @param {Boolean} visible - Optional; if given, set the swipe node visible state instead of toggling it.
  *
- * If swipe nodes are currently displayed, they are removed along with their connected edges.
- * If swipe nodes are not displayed, they are added to the graph using the stored data in the parent nodes.
+ * When showing, swipe nodes are added to the graph using the stored data in the parent nodes.
+ * When hiding, swipe nodes are removed along with their connected edges.
  */
 
-function toggleSwipes(cy) {
+function toggleSwipes(cy, visible) {
     // Check if there's any swipe node in the graph
     const swipeNodes = cy.nodes('[?isSwipe]');
+    const wasVisible = Boolean(swipeNodes.length > 0);
 
-    if (swipeNodes.length > 0) {
-        // If there are swipe nodes, remove them along with their edges
+    if (wasVisible) {  // Remove all old swipe nodes and edges, if any
         swipeNodes.connectedEdges().remove();
         swipeNodes.remove();
-    } else {
-        // If there are no swipe nodes, add them from the storedSwipes data in parent nodes
+    }
+
+    if (visible === undefined) {  // New `visible` state not specified, toggle
+        visible = !wasVisible;
+    }
+
+    if (visible) {
         cy.nodes().forEach(node => {
             const storedSwipes = node.data('storedSwipes');
             if (storedSwipes && storedSwipes.length > 0) {
@@ -737,7 +743,7 @@ function setupEventHandlers(cy, nodeData) {
 
     let zoomtocurrentBtn = modal.getElementsByClassName('zoomtocurrent')[0];
     zoomtocurrentBtn.onclick = function () {
-        zoomToCurrentChatNode();
+        zoomToCurrentChatNode(cy);
     };
 
     cy.ready(function () {
@@ -983,40 +989,40 @@ async function updateTimelineDataIfNeeded() {
 }
 
 /**
- * If the Cytoscape instance is ready, centers and zooms to the chat node containing the current chat message.
+ * Centers and zooms to the chat node containing the current chat message.
+ *
+ * @param {Object} cy - The Cytoscape instance.
  */
-function zoomToCurrentChatNode() {
-    if (theCy) {
-        // Get latest chat message in currently open chat (TODO: special considerations for group chats?)
-        const context = getContext();
-        const chat = context.chat;
-        const lastMessageId = chat.length - 1;
-        const lastMessageObj = chat[lastMessageId];
-        const mes = lastMessageObj.mes;
+function zoomToCurrentChatNode(cy) {
+    // Get latest chat message in currently open chat (TODO: special considerations for group chats?)
+    const context = getContext();
+    const chat = context.chat;
+    const lastMessageId = chat.length - 1;
+    const lastMessageObj = chat[lastMessageId];
+    const mes = lastMessageObj.mes;
 
-        // On the graph, find the node containing that message text.
-        const selector = function (ele) { return ele.data('msg') === mes };
-        const newCenterNode = theCy.filter(selector);
-        resetLegendHighlight(theCy);
+    // On the graph, find the node containing that message text.
+    const selector = function (ele) { return ele.data('msg') === mes };
+    const newCenterNode = cy.filter(selector);
+    resetLegendHighlight(cy);
 
-        // Center and zoom in
-        theCy.stop().animate({
-            center: { eles: newCenterNode },
-            zoom: 1.0,
-            duration: 300,  // Adjust the duration as needed for a smooth transition
-        });
+    // Center and zoom in
+    cy.stop().animate({
+        center: { eles: newCenterNode },
+        zoom: 1.0,
+        duration: 300,  // Adjust the duration as needed for a smooth transition
+    });
 
-        // Draw the user's attention to the node
-        function flashNode(node, howManyFlashes) {
-            const duration = 500;  // half-period
-            node.flashClass('NoticeMe', duration);  // do the first flash now
-            for (let j = 1; j < howManyFlashes; j++) {  // schedule the rest
-                setTimeout(() => { node.flashClass('NoticeMe', duration); },
-                           2 * j * duration);
-            }
+    // Draw the user's attention to the node
+    function flashNode(node, howManyFlashes) {
+        const duration = 500;  // half-period
+        node.flashClass('NoticeMe', duration);  // do the first flash now
+        for (let j = 1; j < howManyFlashes; j++) {  // schedule the rest
+            setTimeout(() => { node.flashClass('NoticeMe', duration); },
+                       2 * j * duration);
         }
-        flashNode(newCenterNode, 4);
     }
+    flashNode(newCenterNode, 4);
 }
 
 /**
@@ -1030,18 +1036,21 @@ async function onTimelineButtonClick() {
     const dataUpdated = await updateTimelineDataIfNeeded();
     handleModalDisplay();  // Show the timeline view, and wire the close button to close it.
     if (dataUpdated) {
-        renderCytoscapeDiagram(lastTimelineData);
+        renderCytoscapeDiagram(lastTimelineData);  // after this, the Cytoscape instance `theCy` is alive
+        toggleSwipes(theCy, extension_settings.timeline.autoExpandSwipes);
     }
     closeOpenDrawers();
 
     // Let the window layout settle itself for 500 ms before trying to zoom
     // (this avoids some failed pans/zooms).
-    setTimeout(zoomToCurrentChatNode, 500);
+    setTimeout(() => {
+        zoomToCurrentChatNode(theCy);
 
-    let searchElement = document.getElementById('transparent-search');
-    searchElement.focus();
-    searchElement.select();  // select content for easy erasing
-    searchElement.dispatchEvent(new Event('input'));  // apply the search
+        let searchElement = document.getElementById('transparent-search');
+        searchElement.focus();
+        searchElement.select();  // select content for easy erasing
+        // searchElement.dispatchEvent(new Event('input'));  // apply the search (maybe not - we're already zooming to the current chat)
+    }, 500);
 }
 
 /**
@@ -1088,6 +1097,7 @@ jQuery(async () => {
         'tl_show_legend': 'showLegend',
         'tl_use_chat_colors': 'useChatColors',
         'tl_lock_nodes': 'lockNodes',
+        'tl_auto_expand_swipes': 'autoExpandSwipes',
         'bookmark-color-picker': 'bookmarkColor',
         'edge-color-picker': 'edgeColor',
         'user-node-color-picker': 'userNodeColor',
