@@ -989,7 +989,7 @@ function zoomToCurrentChatNode() {
         const mes = context.chat[context.chat.length - 1].mes;
 
         // On the graph, find the node containing that message text.
-        const selector = function (ele) {return ele.data('msg') === mes};
+        const selector = function (ele) { return ele.data('msg') === mes };
         const newCenterNode = theCy.filter(selector);
         resetLegendHighlight(theCy);
 
