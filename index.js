@@ -67,7 +67,7 @@ import { event_types, eventSource, saveSettingsDebounced } from '../../../../scr
 import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
-import { toggleGraphOrientation, highlightNodesByQuery, getNodeDepth, setGraphOrientationBasedOnViewport } from './tl_graph.js';
+import { toggleGraphOrientation, highlightNodesByQuery, setGraphOrientationBasedOnViewport } from './tl_graph.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
 import { fixMarkdown } from '../../../power-user.js';
 
