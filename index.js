@@ -2,9 +2,10 @@
 // TODO: Settings: add `Max zoom level` (optional). See `cy.maxZoom` to implement this easily. Maybe `cy.minZoom`, too.
 //       Explain there that 1.0 is the zoom level where all sizes specified in pixels.
 // TODO: Settings: add `Jump to current chat zoom level` (default 1.0).
-// TODO: Hotkeys (Esc to close; Ctrl+F to focus search text entry; Tab to jump between chat branches matching a search).
+// TODO: Hotkeys (Tab to jump between chat branches matching a search).
 // TODO: Node full info panel placement - try to avoid hindering navigation of the timeline the node belongs to.
 // TODO: Icon sizes at the top right of the timeline view should match each other.
+// TODO: Refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
 // TODO: Finalize README.
 
 // @city-unit's original TODOs:
@@ -67,7 +68,7 @@ loadFile(`${extensionFolderPath}cytoscape-context-menus.min.js`, 'js');
 import { extension_settings, getContext } from '../../../extensions.js';
 import { event_types, eventSource, saveSettingsDebounced } from '../../../../script.js';
 
-import { navigateToMessage, closeModal, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
+import { navigateToMessage, closeModal, closeTippy, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
 import { toggleGraphOrientation, highlightNodesByQuery, setGraphOrientationBasedOnViewport } from './tl_graph.js';
@@ -1129,6 +1130,10 @@ jQuery(async () => {
         saveSettingsDebounced();
     });
 
+    $(document).on('keydown', function (event) {
+        processTimelinesHotkeys(event.originalEvent);
+    });
+
     loadSettings();
 });
 
@@ -1163,4 +1168,38 @@ function onInputChange(element, settingName, rgbaValue = null) {
     }
     lastContext = null; // Invalidate the last context to force a data update
     saveSettingsDebounced();
+}
+
+/**
+ * Processes hotkeys for the Timelines extension.
+ *
+ * @param {KeyboardEvent} event - The keyboard event.
+ */
+function processTimelinesHotkeys(event) {
+    // Only handle hotkeys when the timeline view is open
+    let modal = document.getElementById('timelinesModal');
+    if (modal.style.display === 'none') {
+        return;
+    }
+
+    // TODO: There's already a keydown handler on the document, from `RossAscends-mods.js`.
+    // The issue is that it has already triggered when we get here - so things like pressing
+    // arrow keys will cause swipes, although the chat is covered by the modal.
+    // This isn't a problem when the search field is focused; it understands arrow keys correctly.
+    // It's just that when the focus is elsewhere, arrow keys fall through.
+    // Attaching our handler to the modal instead does nothing (does not register keypresses).
+    event.stopImmediatePropagation();
+
+    // console.log(event);  // debug/development
+
+    if (event.ctrlKey && event.shiftKey && event.key === 'F') {  // Ctrl+F also triggers browser's search field
+        const searchElement = document.getElementById('transparent-search');
+        searchElement.focus();
+        searchElement.select();  // select content for easy erasing
+    }
+
+    if (event.key === 'Escape') {
+        closeModal();
+        closeTippy();
+    }
 }

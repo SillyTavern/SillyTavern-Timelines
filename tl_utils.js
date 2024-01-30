@@ -161,6 +161,19 @@ export function closeModal() {
 }
 
 /**
+ * Hides the Tippy tooltip. Used when closing the timeline view.
+ */
+export function closeTippy() {
+    let tippyBoxes = document.querySelectorAll('.tippy-box');
+    tippyBoxes.forEach(box => {
+        let parent = box.parentElement;
+        if (parent && parent._tippy) {  // `_tippy` is stored on the graph node
+            parent._tippy.hide();
+        }
+    });
+}
+
+/**
  * Manages the display state and behavior of the modal with ID "timelinesModal".
  * - Appends the modal to the body and shows it when called.
  * - Appends the modal back to its original parent in the DOM when it's closed.
@@ -177,16 +190,6 @@ export function handleModalDisplay() {
     if (!closeBtn) {
         console.error('Close button not found!');
         return;
-    }
-
-    function closeTippy() {  // Hide the Tippy tooltip
-        let tippyBoxes = document.querySelectorAll('.tippy-box');
-        tippyBoxes.forEach(box => {
-            let parent = box.parentElement;
-            if (parent && parent._tippy) {  // `_tippy` is stored on the graph node
-                parent._tippy.hide();
-            }
-        });
     }
 
     // The "close" button
