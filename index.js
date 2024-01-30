@@ -893,7 +893,8 @@ function setupEventHandlers(cy, nodeData) {
             node._tippy.hide();
         }
     });
-    // if user_message_rendered or character_message_rendered, we null the lastContext
+    // if user_message_rendered or character_message_rendered, we null the lastContext (so that the graph refreshes at the next `updateTimelineDataIfNeeded`)
+    // TODO: Are there other events we should catch?
     eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => {
         lastContext = null;
     },
@@ -902,7 +903,11 @@ function setupEventHandlers(cy, nodeData) {
         lastContext = null;
     },
     );
-    eventSource.on(event_types.CHATLOADED, () => {
+    eventSource.on(event_types.CHAT_DELETED, () => {
+        lastContext = null;
+    },
+    );
+    eventSource.on(event_types.CHATLOADED, () => {  // TODO: this seems wrong, no such constant?
         lastContext = null;
     },
     );
