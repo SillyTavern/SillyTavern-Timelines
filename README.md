@@ -5,7 +5,7 @@ An extension to allow for timeline based navigation of ST chat histories.
 
 ## Features
 
-- Display all chats with the current character. Chat messages with the same content will be shown as a single node on the timeline.
+- Display all chats with the current character. Chat messages with the same content are shown as a single node on the timeline.
 - Search all current character message content with realtime fulltext filtering.
 - Theming based on UI theme or custom theme.
 - Branch your chat from any chat or swipe.
@@ -18,36 +18,66 @@ Use ST's inbuilt extension installer.
 
 ### Usage
 
-Extensions > Timelines > View Timeline
+- Settings: *Extensions > Timelines*
+- Open the timeline view: *Extensions > Timelines > View Timeline*
+- Slash commands:
+  - `/tl` - Open the timeline view (same as pressing the *View Timeline* button)
+  - `/tl r` - Refresh the timeline graph
 
-- Nodes with swipes appear with a halo around them. There is also a setting to make them subtly larger.
-- Checkpoints (named branches) appear with a colored ring around them.
-- Checkpoint paths are colored and are visible in the legend.
-  - The color is random, but always the same for the same checkpoint name.
-  - Dead checkpoint links (pointing to deleted or renamed chat files) are automatically ignored when building the graph.
-    - Those checkpoints will not appear in the timeline view.
-  - **NOTE**: If you overwrite a checkpoint (by creating a new one at the same message in the same chat):
-    - Doing so severs the link to the chat file that was created when making the original checkpoint.
-    - Only the **new** checkpoint path will then appear in the timeline view.
-    - The chat file belonging to the old checkpoint will appear as an independent chat file (in the full info panel for a node), not connected to any checkpoint.
-- Long-pressing a node with swipes reveals the swipes on the graph.
-- Clicking a node opens the full info about it.
-  - At the bottom of the full info panel, you then have the options to go to that message in any of the chats it is part of, or to create a new chat branch from that message.
-  - On a swipe node, if the swipe is not on the last message in that particular chat timeline, it is not possible to go to the swipe without creating a new branch. In this situation, the button to go to the message is grayed out, but the button to create a branch is available.
-- Double-clicking a node goes straight to the message.
-  - If you double-click a swipe node, what happens depends on whether it is the last node in that particular chat timeline.
-  - On the last node, double-clicking a swipe opens the original chat, goes to the last message, and switches to that swipe.
-  - On a non-last node, double-clicking automatically creates a new branch so that the stored swipes become accessible. It then opens the new chat, goes to the (now-last) message, and switches to that swipe.
+For convenient one-click access, bind the `/tl` command to a custom Quick Reply button. A useful short label is "⏳" (U+23F3, HOURGLASS WITH FLOWING SAND).
+
+- *Nodes with swipes* appear with a halo around them.
+  - There is also a setting to make them subtly larger.
+- *Checkpoints* appear with a colored ring around them.
+- *Checkpoint paths* are colored accordingly, and are shown in the legend.
+  - The checkpoint color is random, but determined from the checkpoint name.
+  - A checkpoint is detected only when there is an intact checkpoint link in the chat file that originated the checkpoint. Dead links are ignored.
+
+Actions:
+
+- *Opening the timeline view* auto-zooms to the current chat, and flashes the last node *in that chat* to clearly show it on the graph.
+  - This might not be the latest node on the timeline, if there is another chat that still continues after that point.
+  - There is also a button to zoom to the current chat.
+- *Hovering over a node* shows a short preview of the message text.
+- *Long-pressing a node* with swipes reveals the swipes on the graph.
+  - The timeline view allows you to see and access swipes also on previous messages, not just the last one.
+  - There is also a *Toggle swipes* button to reveal/hide swipes for the whole graph.
+- *Clicking a node* opens the full info about it.
+  - At the bottom of the full info panel, you can go to that message in any of the chats it is part of, or create a new chat branch starting from that message.
+  - On a swipe node, if the swipe is not on the last message in that particular chat timeline, it is not possible to go to the swipe without creating a new branch.
+    - In this situation, the button to go to the message is grayed out, but the button to create a branch is available.
+- *Double-clicking a node* goes straight to the message.
+  - If the same message appears in multiple chat files, the first one (as shown in the full info panel) is picked automatically.
+    - When this happens, a notification is shown with the chat file name.
+    - If it's not the chat file you wanted, just open the timelines view again, click on the node, and pick the correct chat file explicitly from the full info panel.
+  - If you double-click a swipe node, what happens depends on whether it is the last node in that particular chat.
+    - On the last node, double-clicking a swipe opens the original chat, goes to the last message, and switches to that swipe.
+    - On a non-last node, double-clicking automatically creates a new branch, opens the new chat, goes to the (now-last) message, and switches to that swipe.
+- *Clicking a legend entry* highlights it and zooms into it. Clicking the same entry again zooms out.
+- *Typing into fulltext search* highlights and zooms to the search results in realtime. When no match, or if you clear the search, it zooms out.
 
 If you find yourself amid a profusion of branches, consider using ST's built-in *Manage chat files* view (or a file manager) to delete any extra ones.
 
-The extension adds a slash command:
+### Checkpoints
 
-- `/tl` - open the timeline view
-- `/tl r` - refresh the timeline graph
+While checkpoints are a general ST feature, their behavior becomes much more visible in *Timelines*, so we explain it briefly here.
 
-Binding the `/tl` command to a custom Quick Reply button gives convenient one-click access to the timeline view. For a short name for the button, consider "⏳" (U+23F3, HOURGLASS WITH FLOWING SAND).
+A checkpoint is just a named chat branch.
 
+*Timelines* itself only creates (unnamed) branches. Checkpoints are created in the ST main GUI. Go to the chat message you want, and then press the *Checkpoint* button in the *Message Actions* for that message. The actions are in the "..." menu, unless you have enabled *Expand Message Actions* in your *User Settings* (advanced mode).
+
+- Creating a checkpoint spawns a new chat file (the *checkpoint chat file*), and inserts a *checkpoint link* into the originating chat file.
+  - The link belongs to a specific message. Each chat message can have at most one checkpoint link.
+  - As of ST 1.11.3, checkpoint links cannot be deleted in the GUI (but this does not matter much).
+- If you later overwrite a checkpoint, by creating a new one at the same message in the same chat, doing so severs the original link.
+- If you delete or rename the checkpoint chat file, this leaves a dead link in the originating chat file.
+
+*Timelines* tracks checkpoints by following the checkpoint links, and ignoring any dead links. Therefore:
+
+- If you delete or rename a checkpoint chat file, that checkpoint vanishes from the timeline view.
+  - The renamed checkpoint chat file then appears as an independent chat file (in the full info panel for nodes containing its messages), not connected to any checkpoint in the timeline view.
+- If you overwrite a checkpoint, only the **new** checkpoint is tracked in the timeline view, because only the new checkpoint has a link.
+  - The checkpoint chat file for the old checkpoint then appears as an independent chat file in the timeline view.
 
 
 ## Prerequisites
