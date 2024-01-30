@@ -209,7 +209,7 @@ export function handleModalDisplay() {
         }
     };
 
-    // Append the modal to the body when showing it
+    // Append the modal to the document body to show it
     document.body.appendChild(modal);
     modal.style.display = 'block';
 }
