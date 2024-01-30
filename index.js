@@ -539,7 +539,7 @@ function resetLegendHighlight(cy)
  * Selects elements for zooming to fit, and calculates padding.
  * This is the higher-level function that uses `calculateFitZoom`, which see.
  *
- * Leaves one node size of padding if zoomed in (= closer than 100%), and 20px otherwise.
+ * Leaves one node size of padding if zoomed in (= 100% or closer), and 20px otherwise.
  *
  * @param {Object} cy - The Cytoscape instance.
  * @param {Object} selector - Anything `cy.filter` accepts. The thing(s) being zoomed to fit.
