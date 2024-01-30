@@ -229,8 +229,7 @@ export function handleModalDisplay() {
  * 4. Optionally updates the token count for the message if enabled.
  * 5. Emits a 'MESSAGE_SWIPED' event and saves the chat data.
  */
-
-async function goToSwipe(targetSwipeId) {
+async function goToSwipe(targetSwipeId) {  // TODO: To avoid duplication, this function could be moved to the main ST frontend?
     const context = getContext();
     const chat = context.chat;
     const lastMessageId = chat.length - 1;
