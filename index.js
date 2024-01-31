@@ -274,7 +274,9 @@ function makeTapTippy(ele) {
                 dataItems.push({ content: `Swipes: ${ele.data('totalSwipes')}`, className: 'timestamp' });
             }
 
-            // Format the heading section HTML
+            // Build the HTML
+
+            // Heading section
             dataItems.forEach(dataItem => {
                 let p = document.createElement('div');
                 p.classList.add(dataItem.className);
@@ -282,16 +284,7 @@ function makeTapTippy(ele) {
                 div.appendChild(p);
             });
 
-            // Insert an <hr> between name, date, and the message content
-            div.appendChild(document.createElement('hr'));
-
-            // Add the message content
-            let mesDiv = document.createElement('div');
-            mesDiv.classList.add('mes_text');
-            mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
-            div.appendChild(mesDiv);
-
-            // Insert an <hr> before adding the interactive menu based on `chat_sessions`
+            // --------------------------------------------------------------------------------
             div.appendChild(document.createElement('hr'));
 
             // Add buttons: navigate to the message, create a new branch at the message
@@ -352,6 +345,15 @@ function makeTapTippy(ele) {
                 }
             }
             div.appendChild(menuDiv);
+
+            // --------------------------------------------------------------------------------
+            div.appendChild(document.createElement('hr'));
+
+            // Add the message content
+            let mesDiv = document.createElement('div');
+            mesDiv.classList.add('mes_text');
+            mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
+            div.appendChild(mesDiv);
 
             return div;
         },

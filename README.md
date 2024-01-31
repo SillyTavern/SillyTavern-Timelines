@@ -49,8 +49,8 @@ Actions:
   - The timeline view allows you to see and access swipes also on previous messages, not just the last one.
   - There is also a *Toggle swipes* button to reveal/hide swipes for the whole graph.
   - There is a setting to *Auto-expand Swipes* when the timeline view first opens, and when the graph is refreshed.
-- *Clicking a node* opens the full info about it.
-  - At the bottom of the full info panel, you can go to that message in any of the chats it is part of, or create a new chat branch starting from that message.
+- *Clicking a node* opens a full info panel about it.
+  - The panel has buttons to go to that message in any of the chats it is part of, or to create a new chat branch starting from that message.
   - On a swipe node, if the swipe is not on the last message in that particular chat timeline, it is not possible to go to the swipe without creating a new branch.
     - In this situation, the button to go to the message is grayed out, but the button to create a branch is available.
 - *Double-clicking a node* goes straight to the message.
