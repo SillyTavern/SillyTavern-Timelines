@@ -95,7 +95,7 @@ let defaultSettings = {
     enableMinZoom: true,
     minZoom: 0.1,
     enableMaxZoom: true,
-    maxZoom: 10.0,
+    maxZoom: 3.0,
 };
 
 let currentlyHighlighted = null;  // selector for active legend item
@@ -1183,7 +1183,7 @@ function onInputChange(element, settingName, rgbaValue = null) {
 
     // Enforce consistency between the various zoom settings
     let otherSetting = undefined;  // for triggering a linked change on one other setting
-    if (elementId.includes('zoom')) {
+    if (elementId.includes('_zoom_')) {
         // enable/disable min/max sliders based on checkbox state
         if (elementId === 'tl_zoom_min_cb') {
             const enabled = Boolean(value);

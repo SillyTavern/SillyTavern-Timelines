@@ -34,19 +34,23 @@
                     <label for="tl_avatar_as_root" title="Show the AI character's avatar as the root node. When off, show the root node as blank." data-i18n="[title]Show the AI character's avatar as the root node. When off, show the root node as blank.">Avatar As Root</label>
                     <input id="tl_avatar_as_root" type="checkbox" />
                 </div>
+                <!-- DANGER Will Robinson: `onInputChange` in `index.js` depends on some specific things here to update the Timelines settings GUI correctly:
+
+                   - The specific element IDs for the zoom settings trigger special handling; this is a group of five settings with non-trivial logic between them.
+                   - The 'floatingpoint' class disables integer rounding for displaying the value of a setting.
+                -->
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_zoom_current_chat">Zoom level when zooming to current chat (<span id="tl_zoom_current_chat_value"></span>)</label>
-                    <!-- The 'floatingpoint' class disables integer rounding for displaying the value of this setting in the Timelines settings GUI. -->
                     <input id="tl_zoom_current_chat" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
                     <input id="tl_zoom_min_cb" type="checkbox" />
-                    <label for="tl_zoom_min">Minimum allowed zoom level (<span id="tl_zoom_min_value"></span>)</label>
+                    <label for="tl_zoom_min">Minimum zoom level (<span id="tl_zoom_min_value"></span>)</label>
                     <input id="tl_zoom_min" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
                     <input id="tl_zoom_max_cb" type="checkbox" />
-                    <label for="tl_zoom_max">Maximum allowed zoom level (<span id="tl_zoom_max_value"></span>)</label>
+                    <label for="tl_zoom_max">Maximum zoom level (<span id="tl_zoom_max_value"></span>)</label>
                     <input id="tl_zoom_max" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
                 </div>
                 <small>
