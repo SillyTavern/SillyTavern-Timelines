@@ -165,10 +165,10 @@ let isTapTippyActive = false;
  * @returns {Object} - Returns the Tippy tooltip instance.
  */
 function makeTippy(ele, text) {
-    var ref = getTooltipReference(ele);
-    var dummyDomEle = document.createElement('div');
+    const ref = getTooltipReference(ele);
+    const dummyDomEle = document.createElement('div');
 
-    var tip = tippy(dummyDomEle, {
+    const tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref,
         trigger: 'mouseenter',
         delay: [1000, 1000], // 0ms delay for both show and hide
