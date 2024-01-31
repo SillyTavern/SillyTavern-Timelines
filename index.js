@@ -337,7 +337,7 @@ function makeTapTippy(ele) {
                     branchBtn.classList.add('menu_button');
                     branchBtn.classList.add('widthNatural');
                     // add title to branch button
-                    branchBtn.title = `Create a new branch from "${sessionName}", starting at this message, and open it.`;  // TODO: data-i18n?
+                    branchBtn.title = `Create a new branch from "${sessionName}", at this message, and open it.`;  // TODO: data-i18n?
                     branchBtn.addEventListener('click', function () {
                         if(ele.data('isSwipe'))
                             navigateToMessage(file_name, messageId, ele.data('swipeId'), true);
