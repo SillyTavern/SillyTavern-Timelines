@@ -1,12 +1,8 @@
 // @Technologicat's TODOs, early 2024:
-// TODO: Settings: add `Max zoom level` (optional). See `cy.maxZoom` to implement this easily. Maybe `cy.minZoom`, too.
-//       Explain there that 1.0 is the zoom level where all sizes specified in pixels.
-// TODO: Settings: add `Jump to current chat zoom level` (default 1.0).
-// TODO: Hotkeys (Tab to jump between chat branches matching a search).
 // TODO: Node full info panel placement - try to avoid hindering navigation of the timeline the node belongs to.
+// TODO: Hotkeys (Tab to jump between chat branches matching a search).
 // TODO: Icon sizes at the top right of the timeline view should match each other.
-// TODO: Refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
-// TODO: Finalize README.
+// TODO: Maybe refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
 
 // @city-unit's original TODOs:
 // TODO Edge labels?
@@ -94,7 +90,12 @@ let defaultSettings = {
     charNodeColor: '#FFFFFF',
     userNodeColor: '#ADD8E6',
     edgeColor: '#555',
-    autoExpandSwipes: false
+    autoExpandSwipes: false,
+    zoomToCurrentChatZoom: 1.0,
+    enableMinZoom: true,
+    minZoom: 0.1,
+    enableMaxZoom: true,
+    maxZoom: 10.0,
 };
 
 let currentlyHighlighted = null;  // selector for active legend item
@@ -141,6 +142,13 @@ async function loadSettings() {
     $('#tl_show_legend').prop('checked', extension_settings.timeline.showLegend).trigger('input');
     $('#tl_use_chat_colors').prop('checked', extension_settings.timeline.useChatColors).trigger('input');
     $('#tl_auto_expand_swipes').prop('checked', extension_settings.timeline.autoExpandSwipes).trigger('input');
+    $('#tl_zoom_current_chat').val(extension_settings.timeline.zoomToCurrentChatZoom).trigger('input');
+    $('#tl_zoom_min_cb').prop('checked', extension_settings.timeline.enableMinZoom).trigger('input');
+    $('#tl_zoom_min').val(extension_settings.timeline.minZoom).trigger('input');
+    $('#tl_zoom_min').prop("disabled", !extension_settings.timeline.enableMinZoom);
+    $('#tl_zoom_max_cb').prop('checked', extension_settings.timeline.enableMaxZoom).trigger('input');
+    $('#tl_zoom_max').val(extension_settings.timeline.maxZoom).trigger('input');
+    $('#tl_zoom_max').prop("disabled", !extension_settings.timeline.enableMaxZoom);
     $('#bookmark-color-picker').attr('color', extension_settings.timeline.bookmarkColor);
     $('#edge-color-picker').attr('color', extension_settings.timeline.edgeColor);
     $('#user-node-color-picker').attr('color', extension_settings.timeline.userNodeColor);
@@ -933,6 +941,12 @@ function setupEventHandlers(cy, nodeData) {
 function renderCytoscapeDiagram(nodeData) {
     const styles = setupStylesAndData(nodeData);
     const cy = initializeCytoscape(nodeData, styles);
+    if (extension_settings.timeline.enableMinZoom) {
+        cy.minZoom(Number(extension_settings.timeline.minZoom));
+    }
+    if (extension_settings.timeline.enableMaxZoom) {
+        cy.maxZoom(Number(extension_settings.timeline.maxZoom));
+    }
     theCy = cy;
 
     if (cy) {
@@ -1011,7 +1025,7 @@ function zoomToCurrentChatNode(cy) {
     // Center and zoom in
     cy.stop().animate({
         center: { eles: newCenterNode },
-        zoom: 1.0,
+        zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
         duration: 300,  // Adjust the duration as needed for a smooth transition
     });
 
@@ -1099,6 +1113,11 @@ jQuery(async () => {
         'tl_show_legend': 'showLegend',
         'tl_use_chat_colors': 'useChatColors',
         'tl_auto_expand_swipes': 'autoExpandSwipes',
+        'tl_zoom_current_chat': 'zoomToCurrentChatZoom',
+        'tl_zoom_min_cb': 'enableMinZoom',
+        'tl_zoom_min': 'minZoom',
+        'tl_zoom_max_cb': 'enableMaxZoom',
+        'tl_zoom_max': 'maxZoom',
         'bookmark-color-picker': 'bookmarkColor',
         'edge-color-picker': 'edgeColor',
         'user-node-color-picker': 'userNodeColor',
@@ -1148,13 +1167,11 @@ jQuery(async () => {
  * @param {Object|null} rgbaValue - The rgba value for color picker inputs (optional).
  */
 function onInputChange(element, settingName, rgbaValue = null) {
+    // Get new value from the GUI element
     let value;
-
-    // Check if the element is a checkbox
     if (element.is(':checkbox')) {
         value = element.prop('checked');
     }
-    // Check if the element is a color picker
     else if (element.is('toolcool-color-picker')) {
         value = rgbaValue;
     }
@@ -1162,13 +1179,88 @@ function onInputChange(element, settingName, rgbaValue = null) {
         value = element.val();
     }
 
-    extension_settings.timeline[settingName] = value;
+    const elementId = element.attr('id');
 
-    // Only update the label if the value is numeric
-    if (!isNaN(value)) {
-        $(`#${element.attr('id')}_value`).text(Math.round(value));
+    // Enforce consistency between the various zoom settings
+    let otherSetting = undefined;  // for triggering a linked change on one other setting
+    if (elementId.includes('zoom')) {
+        // enable/disable min/max sliders based on checkbox state
+        if (elementId === 'tl_zoom_min_cb') {
+            const enabled = Boolean(value);
+            $('#tl_zoom_min').prop("disabled", !enabled);
+            // `.addClass('disabled')` / `.removeClass('disabled')` doesn't change the visual appearance of a slider, so we don't bother.
+
+            // When the min is suddenly enabled, change the min to the zoomToCurrentChatZoom, if it is currently larger.
+            // This is better than changing zoomToCurrentChatZoom, because that was already enabled, but the min wasn't.
+            if (enabled && (Number(extension_settings.timeline.minZoom) > Number(extension_settings.timeline.zoomToCurrentChatZoom))) {
+                otherSetting = $('#tl_zoom_min');
+                otherSetting.val(extension_settings.timeline.zoomToCurrentChatZoom);  // clamp *the other setting*
+            }
+        }
+        if (elementId === 'tl_zoom_max_cb') {
+            const enabled = Boolean(value);
+            $('#tl_zoom_max').prop("disabled", !enabled);
+
+            if (enabled && (Number(extension_settings.timeline.maxZoom) < Number(extension_settings.timeline.zoomToCurrentChatZoom))) {
+                otherSetting = $('#tl_zoom_max');
+                otherSetting.val(extension_settings.timeline.zoomToCurrentChatZoom);  // clamp *the other setting*
+            }
+        }
+
+        if (elementId === 'tl_zoom_current_chat') {  // clamp to [min, max] when min/max enabled
+            if (extension_settings.timeline.enableMinZoom && (Number(value) < Number(extension_settings.timeline.minZoom))) {
+                value = extension_settings.timeline.minZoom;
+                $('#tl_zoom_current_chat').val(value);  // send clamped value back to GUI
+            }
+            if (extension_settings.timeline.enableMaxZoom && (Number(value) > Number(extension_settings.timeline.maxZoom))) {
+                value = extension_settings.timeline.maxZoom;
+                $('#tl_zoom_current_chat').val(value);  // send clamped value back to GUI
+            }
+        }
+
+        if (elementId === 'tl_zoom_min') {  // clamp to max; change zoomToCurrentChatZoom if changing min would make it smaller than new min
+            if (extension_settings.timeline.enableMaxZoom && (Number(value) > Number(extension_settings.timeline.maxZoom))) {
+                value = extension_settings.timeline.maxZoom;
+                $('#tl_zoom_min').val(value);  // send clamped value back to GUI
+            }
+            if (Number(value) > Number(extension_settings.timeline.zoomToCurrentChatZoom)) {
+                otherSetting = $('#tl_zoom_current_chat');
+                otherSetting.val(value);  // clamp *the other setting*
+            }
+        }
+        if (elementId === 'tl_zoom_max') {  // clamp to min; change zoomToCurrentChatZoom if changing max would make it larger than new max
+            if (extension_settings.timeline.enableMinZoom && (Number(value) < Number(extension_settings.timeline.minZoom))) {
+                value = extension_settings.timeline.minZoom;
+                $('#tl_zoom_max').val(value);  // send clamped value back to GUI
+            }
+            if (Number(value) < Number(extension_settings.timeline.zoomToCurrentChatZoom)) {
+                otherSetting = $('#tl_zoom_current_chat');
+                otherSetting.val(value);  // clamp *the other setting*
+            }
+        }
     }
+
+    // Only update the `..._value` label in the GUI if the value is numeric
+    if (!isNaN(value)) {
+        const isFloat = element.hasClass('floatingpoint');
+        let displayValue = value;
+        if (!isFloat) {  // round to integer unless tagged as a float
+            displayValue = Math.round(value);
+        }
+        $(`#${elementId}_value`).text(displayValue);
+    }
+
+    // Update the actual setting
+    extension_settings.timeline[settingName] = value;
     lastContext = null; // Invalidate the last context to force a data update
+
+    // If changing this setting triggered a linked update on another setting, process it now.
+    // We must do this *after* updating the actual settings object, so that one debounced save
+    // saves the new value of both settings.
+    if (otherSetting) {
+        otherSetting.trigger('input');
+    }
+
     saveSettingsDebounced();
 }
 
@@ -1186,15 +1278,18 @@ function processTimelinesHotkeys(event) {
 
     // TODO: There's already a keydown handler on the document, from `RossAscends-mods.js`.
     // The issue is that it has already triggered when we get here - so things like pressing
-    // arrow keys will cause swipes, although the chat is covered by the modal.
+    // arrow keys will cause swipes, although the main GUI is covered by the Timelines modal.
     // This isn't a problem when the search field is focused; it understands arrow keys correctly.
     // It's just that when the focus is elsewhere, arrow keys fall through.
-    // Attaching our handler to the modal instead does nothing (does not register keypresses).
+    // The alternative solution of attaching our handler to the modal (instead of to the document)
+    // fails to register keypresses.
+    //
+    // What this does is prevent the event from falling through any further while the modal is open.
     event.stopImmediatePropagation();
 
     // console.log(event);  // debug/development
 
-    if (event.ctrlKey && event.shiftKey && event.key === 'F') {  // Ctrl+F also triggers browser's search field
+    if (event.ctrlKey && event.shiftKey && event.key === 'F') {  // A bare "Ctrl+F" would also trigger the browser's search field
         const searchElement = document.getElementById('transparent-search');
         searchElement.focus();
         searchElement.select();  // select content for easy erasing
