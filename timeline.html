@@ -14,7 +14,7 @@
                 <input id="tl_tooltip_fixed" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <input value="Style Settings" class="menu_button" type="submit" id="toggleStyleSettings">
+                <input value="Style Settings" class="menu_button" type="submit" id="toggleStyleSettings" title="Settings for the visual appearance of the Timelines graph." data-i18n="[title]Settings for the visual appearance of the Timelines graph.">
             </div>
             <!-- The collapsible style settings section -->
             <div id="styleSettingsArea" class="hidden">
@@ -32,9 +32,12 @@
                     <input id="tl_swipe_scale" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_use_chat_colors" title="Use the colors of the ST GUI theme, instead of the colors configured specifically for this extension." data-i18n="[title]Use the colors of the ST GUI theme, instead of the colors configured specifically for this extension.">Use UI Theme</label>
+                    <label for="tl_use_chat_colors" title="Use the colors of the ST GUI theme, instead of the colors configured in Color Settings specifically for this extension." data-i18n="[title]Use the colors of the ST GUI theme, instead of the colors configured in Color Settings specifically for this extension.">Use UI Theme</label>
                     <input id="tl_use_chat_colors" type="checkbox" />
                 </div>
+                <small>
+                    All sizes are specified in pixels at zoom level 1.0. See <a href="https://js.cytoscape.org/">Cytoscape documentation</a> for the exact meanings.
+                </small>
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_node_width">Node Width (<span id="tl_node_width_value"></span>)</label>
                     <input id="tl_node_width" type="range" min="1" max="100" />
@@ -122,7 +125,7 @@
                 </div>
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <input value="Color Settings" class="menu_button" type="submit" id="toggleColorSettings">
+                <input value="Color Settings" class="menu_button" type="submit" id="toggleColorSettings" title="Color configuration for Timelines when 'Use UI Theme' in Style Settings is off." data-i18n="[title]Color configuration for Timelines when 'Use UI Theme' in Style Settings is off.">
             </div>
             <div id="colorSettingsArea" class="hidden">
                 <div class="timeline-view-settings_block flex-container">
@@ -143,7 +146,7 @@
                 </div>
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" />
+                <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" title="Open the timeline view. Same as the slash command '/tl'." data-i18n="[title]Open the timeline view. Same as the slash command '/tl'." />
             </div>
             <!-- The Modal -->
             <div class="timelines-modal-container hidden">  <!-- A place in the DOM to store the modal when not in use -->
