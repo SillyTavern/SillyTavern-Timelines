@@ -67,7 +67,7 @@ import { event_types, eventSource, saveSettingsDebounced } from '../../../../scr
 import { navigateToMessage, closeModal, closeTippy, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
-import { toggleGraphOrientation, highlightNodesByQuery, setGraphOrientationBasedOnViewport } from './tl_graph.js';
+import { toggleGraphOrientation, highlightNodesByQuery, setGraphOrientationBasedOnViewport, getGraphOrientation } from './tl_graph.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
 import { fixMarkdown } from '../../../power-user.js';
 
@@ -168,6 +168,21 @@ function makeTippy(ele, text) {
     const ref = getTooltipReference(ele);
     const dummyDomEle = document.createElement('div');
 
+    // Dynamic placement:
+    //   - On a swipe node, avoid covering other swipe nodes on the same message
+    //   - On any other node, avoid covering next/previous nodes on the same timeline
+    const isSwipe = Boolean(ele.data('isSwipe'));
+    const graphOrientation = getGraphOrientation();
+    let swipeTippyPlacement;
+    let generalTippyPlacement;
+    if (graphOrientation === 'LR') {  // graph LR -> swipes top-to-bottom
+        swipeTippyPlacement = 'right';  // don't cover other swipes
+        generalTippyPlacement = 'top';  // don't cover the same timeline
+    } else {  // graph TB -> swipes left-to-right
+        swipeTippyPlacement = 'bottom';
+        generalTippyPlacement = 'left';
+    }
+
     const tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref,
         trigger: 'mouseenter',
@@ -179,7 +194,7 @@ function makeTippy(ele, text) {
             return div;
         },
         arrow: true,
-        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'bottom',
+        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : (isSwipe ? swipeTippyPlacement : generalTippyPlacement),
         hideOnClick: true,
         sticky: 'reference',
         interactive: true,

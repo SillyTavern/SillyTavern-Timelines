@@ -30,6 +30,15 @@ export function setGraphOrientationBasedOnViewport(cy, layout) {
 }
 
 /**
+ * Returns the current orientation of the graph.
+ *
+ * @returns {string} 'TB' (top to bottom) or 'LR' (left to right).
+ */
+export function getGraphOrientation() {
+    return currentOrientation;
+}
+
+/**
  * Sets the orientation of the graph to the specified direction (either 'LR' for Left-to-Right
  * or 'TB' for Top-to-Bottom).
  *
