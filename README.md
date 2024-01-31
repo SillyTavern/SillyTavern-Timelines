@@ -22,7 +22,6 @@ Use ST's inbuilt extension installer.
 ### Usage
 
 - Settings: *Extensions > Timelines*
-  - All sizes are specified in pixels at zoom level 1.0 (e.g. when zoomed in to the current chat).
 - Open the timeline view: *Extensions > Timelines > View Timeline*
 - Slash commands:
   - `/tl` - Open the timeline view (same as pressing the *View Timeline* button)
