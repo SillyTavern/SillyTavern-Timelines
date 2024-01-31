@@ -262,19 +262,19 @@ function formatNodeMessage(mes) {
  */
 
 function makeTapTippy(ele) {
-    var ref = getTooltipReference(ele);
-    var dummyDomEle = document.createElement('div');
+    const ref = getTooltipReference(ele);
+    const dummyDomEle = document.createElement('div');
 
-    var tip = tippy(dummyDomEle, {
+    const tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref,
         trigger: 'manual',
         duration: 0,
         content: function () {
-            var div = document.createElement('div');
+            const div = document.createElement('div');
             div.classList.add('tap_tippy_content');
 
             // Set up the heading section
-            var dataItems = [
+            const dataItems = [
                 { content: ele.data('name'), className: 'name_text' },
                 { content: ele.data('send_date'), className: 'timestamp' },
             ];
@@ -296,12 +296,12 @@ function makeTapTippy(ele) {
             div.appendChild(document.createElement('hr'));
 
             // Add buttons: navigate to the message, create a new branch at the message
-            var menuDiv = document.createElement('div');
+            const menuDiv = document.createElement('div');
             menuDiv.classList.add('menu_div');
             if (ele.data('chat_sessions')) {
                 for (const [file_name, session_metadata] of Object.entries(ele.data('chat_sessions'))) {
                     // Create a container for the buttons
-                    let btnContainer = document.createElement('div');
+                    const btnContainer = document.createElement('div');
                     btnContainer.style.display = 'flex';
                     btnContainer.style.alignItems = 'center'; // To vertically center the buttons
 
@@ -311,7 +311,7 @@ function makeTapTippy(ele) {
                     const canNavigateToSwipe = (messageId === (session_metadata.length - 1));
 
                     // 1. Create the main button
-                    let navigateBtn = document.createElement('button');
+                    const navigateBtn = document.createElement('button');
                     navigateBtn.classList.add('menu_button');
                     navigateBtn.textContent = sessionName;
                     navigateBtn.title = `Find and open this message in "${sessionName}".`;  // TODO: data-i18n?
@@ -331,7 +331,7 @@ function makeTapTippy(ele) {
                     btnContainer.appendChild(navigateBtn);
 
                     // 2. Create the branch button (arrow to the right)
-                    let branchBtn = document.createElement('button');
+                    const branchBtn = document.createElement('button');
                     branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
                     branchBtn.textContent = '→'; // Arrow to the right
                     branchBtn.classList.add('menu_button');
@@ -358,7 +358,7 @@ function makeTapTippy(ele) {
             div.appendChild(document.createElement('hr'));
 
             // Add the message content
-            let mesDiv = document.createElement('div');
+            const mesDiv = document.createElement('div');
             mesDiv.classList.add('mes_text');
             mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
             div.appendChild(mesDiv);
