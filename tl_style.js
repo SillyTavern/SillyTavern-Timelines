@@ -175,6 +175,7 @@ export function setupStylesAndData(nodeData) {
             style: {
                 'background-image': extension_settings.timeline.avatarAsRoot ? avatarImg : 'none',
                 'background-fit': extension_settings.timeline.avatarAsRoot ? 'cover' : 'none',
+                // TODO: Ideally, we should determine the aspect ratio from the avatar image.
                 'width': extension_settings.timeline.avatarAsRoot ? '40px' : extension_settings.timeline.nodeWidth,
                 'height': extension_settings.timeline.avatarAsRoot ? '50px' : extension_settings.timeline.nodeHeight,
                 'shape': extension_settings.timeline.avatarAsRoot ? 'rectangle' : extension_settings.timeline.nodeShape,
