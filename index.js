@@ -694,17 +694,28 @@ function initializeCytoscape(nodeData, styles) {
 }
 
 /**
+ * Gets the client bounding rectangle of the element with the id 'fixedReference'.
+ *
+ * @returns {DOMRect} - The client bounding rectangle of the specified element.
+ */
+function getFixedReferenceClientRect() {
+    return document.querySelector('#fixedReference').getBoundingClientRect();
+}
+
+/**
  * Determines the reference position for the tooltip based on the configuration settings.
  *
  * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip reference is being determined.
- * @returns {Function} - A function returning the client bounding rectangle of the reference element, as a DOMRect.
+ * @returns {Function} - A function returning the client bounding rectangle of the reference element.
  *
  * If the fixedTooltip setting is enabled, the reference is the bottom-left corner of the screen;
  * otherwise, it is the position of the provided Cytoscape element.
  */
 function getTooltipReference(ele) {
     if (extension_settings.timeline.fixedTooltip) {
-        return document.querySelector('#fixedReference').getBoundingClientRect;  // Reference: zero-size div fixed at the bottom-left corner (see `timeline.html`)
+        // TODO: No idea why we need to wrap this into a function instead of just returning the bound method itself
+        //       (maybe the query selector instance gets GC'd too early?), but there you have it.
+        return getFixedReferenceClientRect;  // Reference: zero-size div fixed at the bottom-left corner (see `timeline.html`)
     } else {
         return ele.popperRef().getBoundingClientRect;  // Node's position
     }
