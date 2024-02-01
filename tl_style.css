@@ -1,12 +1,11 @@
-
-/* All style elements for your extension go here */
-#myOverviewDiv {
+#myOverviewDiv {  /* TODO: unused? */
     width: 200px;
     height: 200px;
     border: 1px solid black;
     /* other styling as desired... */
 }
-/* The Modal */
+
+/* The invisible outer modal, covering the whole viewport */
 .modal {
     display: none;
     position: fixed;
@@ -20,6 +19,7 @@
     /* covers the entire height of the viewport */
 }
 
+/* The inner modal, containing the actual Timeslines window */
 #networkContainer {
     background-color: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(var(--SmartThemeBlurStrength));
@@ -38,7 +38,7 @@
 }
 
 /* Modal Content */
-.modal-content {
+.modal-content {  /* TODO: unused? */
     background-color: rgba(255, 255, 255, 0.7);
     /* Semi-transparent white background */
     backdrop-filter: blur(var(--SmartThemeBlurStrength));
@@ -64,7 +64,13 @@
     /* allows scrolling if the content is larger than the modal */
 }
 
-#timelinesDiagramDiv {
+.graph-container {  /* Top-level container for the timeline graph and the legend */
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+#timelinesDiagramDiv {  /* The container for the timeline graph */
     /* Make the diagram take the full space of the modal content */
     position: absolute;
     top: 0;
@@ -73,10 +79,48 @@
     bottom: 0;
 }
 
+.legend-bottom-right {  /* The container for the legend */
+    position: absolute;
+    bottom: 10px; /* Offset from the bottom */
+    right: 10px; /* Offset from the right */
+    z-index: 10; /* Ensures it stays on top */
+    overflow-y: scroll;
+    max-height: 90%;
+    border: 1px solid var(--SmartThemeBorderColor);
+    padding: 5px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.7); /* Translucent background */
+    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+}
+
+.legend-container {  /* TODO: unused? */
+    border: 1px solid #ccc;
+    padding: 10px;
+    max-width: 200px;
+    background-color: #f9f9f9;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin: 8px 0;
+}
+
+.legend-symbol {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%; /* Makes it a circle */
+    margin-right: 10px;
+}
+
+.legend-text {
+    flex: 1;
+}
+
 .active-legend {
     box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.1),
-        /* existing shadow */
-        inset 0 0 0 2px rgba(0, 0, 0, 0.3);
+                /* existing shadow */
+                inset 0 0 0 2px rgba(0, 0, 0, 0.3);
     /* simulating the border */
     border-radius: 5px;
     background-color: rgba(255, 255, 255, 0.1);
@@ -94,7 +138,13 @@
         border: none;
         padding: 0;
 }
-/* The Expand Button */
+.close:hover {
+    color: red;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* The Expand (Toggle Swipes) Button */
 .expand {
     color: #aaaaaa;
     float: right;
@@ -107,6 +157,12 @@
         padding: 0;
         padding-right: 10px;
 }
+.expand:hover {
+    color: #808080;
+    text-decoration: none;
+    cursor: pointer;
+}
+
 /* The Rotate Button */
 .rotate {
     color: #aaaaaa;
@@ -120,6 +176,12 @@
         padding: 0;
         padding-right: 10px;
 }
+.rotate:hover {
+    color: #808080;
+    text-decoration: none;
+    cursor: pointer;
+}
+
 /* The Reload Button */
 .reload {
     color: #aaaaaa;
@@ -133,6 +195,12 @@
     padding: 0;
     padding-right: 10px;
 }
+.reload:hover {
+    color: #808080;
+    text-decoration: none;
+    cursor: pointer;
+}
+
 /* The Zoom to Fit Button */
 .zoomtofit {
     color: #aaaaaa;
@@ -146,6 +214,12 @@
     padding: 0;
     padding-right: 10px;
 }
+.zoomtofit:hover {
+    color: #808080;
+    text-decoration: none;
+    cursor: pointer;
+}
+
 /* The Zoom to Current Button */
 .zoomtocurrent {
     color: #aaaaaa;
@@ -159,39 +233,15 @@
     padding: 0;
     padding-right: 10px;
 }
-
-.rotate:hover {
-    color: #808080;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.expand:hover {
-    color: #808080;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.reload:hover {
-    color: #808080;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.zoomtofit:hover {
-    color: #808080;
-    text-decoration: none;
-    cursor: pointer;
-}
-
 .zoomtocurrent:hover {
     color: #808080;
     text-decoration: none;
     cursor: pointer;
 }
 
-.timelineButton {color: #aaaaaa;
-position: absolute;
+.timelineButton {  /* TODO: unused? */
+    color: #aaaaaa;
+    position: absolute;
     right: 10px;
     bottom: 10px;
     font-size: 28px;
@@ -203,58 +253,11 @@ position: absolute;
     padding: 0;
 }
 
-.close:hover {
-    color: red;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-.legend-container {
-    border: 1px solid #ccc;
-    padding: 10px;
-    max-width: 200px;
-    background-color: #f9f9f9;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    margin: 8px 0;
-}
-
-.legend-symbol {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    /* Makes it a circle */
-    margin-right: 10px;
-}
-
-.legend-text {
-    flex: 1;
-}
-
-.graph-container {
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-}
-
-.legend-bottom-right {
-    position: absolute;
-    bottom: 10px;
-    /* Offset from the bottom */
-    right: 10px;
-    /* Offset from the right */
-    z-index: 10;
-    /* Ensures it stays on top */
-}
-
 .hidden {
     display: none;
 }
 
-#transparent-search {
+#transparent-search {  /* The text search field */
     background-color: transparent;
     border: none;
     outline: none;
@@ -267,8 +270,8 @@ position: absolute;
     z-index: 10;
 }
 
-.tippy-box {
-    background-color: rgba(255, 255, 255, 0.7);
+.tippy-box {  /* Pretty much everything rendered by Cytoscape or Tippy */
+    background-color: rgba(255, 255, 255, 0.7);  /* TODO: Overridden by Cytoscape theme, so we don't actually need this here? */
     backdrop-filter: blur(var(--SmartThemeBlurStrength));
     background-color: var(--SmartThemeBlurTintColor);
     -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
@@ -276,45 +279,34 @@ position: absolute;
     padding: 20px;
     border: 1px solid var(--SmartThemeShadowColor);
     max-width: 80vw;
-    width: auto;
-    /* To make it responsive */
+    width: auto; /* To make it responsive */
     max-height: 80vh;
     height: auto;
     /* overflow: auto; */
-    border-radius: 4px;
-    /* Optional: if you want rounded corners */
+    border-radius: 4px; /* Optional: if you want rounded corners */
 }
 
 .tippy-box button:hover {
     background-color: #0056b3;
 }
 
-.tippy-box .mes_text {
-    max-height: 70vh;
-    max-width: 70vw;
+.tap_tippy_content {  /* The full info panel */
+    max-height: 75vh;
+    max-width: 80vw;
+    overflow: auto;
+}
+
+.tippy-box .menu_div {  /* Navigation buttons section in the full info panel */
+    max-height: 45vh;
     overflow-y: auto;
 }
 
-.tippy-box .menu_div {
-    overflow-y: auto;
-    max-height: 50vh;
-}
-
-.tippy-box .menu_button {
+.tippy-box .menu_button {  /* Each individual navigation button in teh full info panel */
     width: 100%;
 }
 
-.tap_tippy_content {
-    overflow: auto;
-    max-height: 75vh;
-    max-width: 80vw;
-}
-
-.legend-bottom-right {
-overflow-y: scroll;
-    max-height: 90%;
-    border: 1px solid var(--SmartThemeBorderColor);
-    padding: 5px;
-    border-radius: 5px;
-    backdrop-filter: blur(var(--SmartThemeBlurStrength));
+.tippy-box .mes_text {  /* Message content section in the full info panel */
+    max-height: 50vh;
+    max-width: 70vw;
+    overflow-y: auto;
 }
