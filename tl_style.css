@@ -1,10 +1,3 @@
-#myOverviewDiv {  /* TODO: unused? */
-    width: 200px;
-    height: 200px;
-    border: 1px solid black;
-    /* other styling as desired... */
-}
-
 /* The invisible outer modal, covering the whole viewport */
 .modal {
     display: none;
@@ -37,33 +30,6 @@
     overflow: hidden;
 }
 
-/* Modal Content */
-.modal-content {  /* TODO: unused? */
-    background-color: rgba(255, 255, 255, 0.7);
-    /* Semi-transparent white background */
-    backdrop-filter: blur(var(--SmartThemeBlurStrength));
-    background-color: var(--SmartThemeBlurTintColor);
-    -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
-    text-shadow: 0px 0px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor);
-    /* Apply blur to the background elements */
-    padding: 20px;
-    border: 1px solid #888;
-    width: 90vw;
-    /* 80% of the view width */
-    height: 90vh;
-    /* 80% of the view height */
-    position: absolute;
-    /* this is necessary for centering */
-    top: 50%;
-    /* center vertically */
-    left: 50%;
-    /* center horizontally */
-    transform: translate(-50%, -50%);
-    /* shift back by 50% of its width and height */
-    overflow: auto;
-    /* allows scrolling if the content is larger than the modal */
-}
-
 .graph-container {  /* Top-level container for the timeline graph and the legend */
     height: 100%;
     width: 100%;
@@ -93,13 +59,6 @@
     backdrop-filter: blur(var(--SmartThemeBlurStrength));
 }
 
-.legend-container {  /* TODO: unused? */
-    border: 1px solid #ccc;
-    padding: 10px;
-    max-width: 200px;
-    background-color: #f9f9f9;
-}
-
 .legend-item {
     display: flex;
     align-items: center;
@@ -118,10 +77,8 @@
 }
 
 .active-legend {
-    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.1),
-                /* existing shadow */
-                inset 0 0 0 2px rgba(0, 0, 0, 0.3);
-    /* simulating the border */
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.1), /* existing shadow */
+                inset 0 0 0 2px rgba(0, 0, 0, 0.3); /* simulating the border */
     border-radius: 5px;
     background-color: rgba(255, 255, 255, 0.1);
 }
@@ -239,20 +196,6 @@
     cursor: pointer;
 }
 
-.timelineButton {  /* TODO: unused? */
-    color: #aaaaaa;
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    font-size: 28px;
-    font-weight: bold;
-    z-index: 3;
-    position: absolute;
-    background: none;
-    border: none;
-    padding: 0;
-}
-
 .hidden {
     display: none;
 }
@@ -271,7 +214,7 @@
 }
 
 .tippy-box {  /* Pretty much everything rendered by Cytoscape or Tippy */
-    background-color: rgba(255, 255, 255, 0.7);  /* TODO: Overridden by Cytoscape theme, so we don't actually need this here? */
+    background-color: rgba(255, 255, 255, 0.7);  /* TODO: Overridden by Cytoscape theme, so we don't actually need this here? (same for some other `background-color` items) */
     backdrop-filter: blur(var(--SmartThemeBlurStrength));
     background-color: var(--SmartThemeBlurTintColor);
     -webkit-backdrop-filter: blur(var(--SmartThemeBlurStrength));
@@ -301,7 +244,7 @@
     overflow-y: auto;
 }
 
-.tippy-box .menu_button {  /* Each individual navigation button in teh full info panel */
+.tippy-box .menu_button {  /* Each individual navigation button in the full info panel */
     width: 100%;
 }
 
