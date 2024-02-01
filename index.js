@@ -408,8 +408,16 @@ function makeTapTippy(ele) {
             // --------------------------------------------------------------------------------
             div.appendChild(document.createElement('hr'));
 
-            // Add the message content
+            // Add the message content.
+            // Prevent a double-scrollbar situation when there is lots of text in the message.
+            // TODO: If possible, the best solution would be to get the maximum size of the tooltip Tippy is going to create.
+            //       Note, however, that for the AI's greeting message node specifically, there will be so many navigation buttons
+            //       that they will already overflow the maximum size. The value here is something reasonable that works well
+            //       with a moderate number of navigation buttons in the panel.
             const mesDiv = document.createElement('div');
+            const viewportHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+            const maxHeightFraction = 0.5;  // of total viewport height, for the message text content in the full info panel.
+            mesDiv.style.maxHeight = `${maxHeightFraction * viewportHeight}px`;
             mesDiv.classList.add('mes_text');
             mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
             div.appendChild(mesDiv);
