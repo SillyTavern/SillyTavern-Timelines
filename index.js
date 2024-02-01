@@ -567,12 +567,12 @@ function createLegendItem(cy, container, item, type) {
             highlightElements(cy, selector);
             legendItem.classList.add('active-legend');
             currentlyHighlighted = selector;
-        }
 
-        // Zoom to the highlighted elements (or zoom out if none)
-        const [eles, padding] = filterElementsAndPad(cy, currentlyHighlighted);
-        cy.stop().animate({fit: { eles: eles, padding: padding },
-                           duration: 300});
+            // Zoom to the highlighted elements
+            const [eles, padding] = filterElementsAndPad(cy, currentlyHighlighted);
+            cy.stop().animate({fit: { eles: eles, padding: padding },
+                               duration: 300});
+        }
     });
 
     if (type === 'circle') {

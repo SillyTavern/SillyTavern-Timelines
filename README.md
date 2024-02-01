@@ -59,7 +59,7 @@ Actions:
   - If you double-click a swipe node, what happens depends on whether it is the last node in that particular chat.
     - On the last node, double-clicking a swipe opens the original chat, goes to the last message, and switches to that swipe.
     - On a non-last node, double-clicking automatically creates a new branch, opens the new chat, goes to the (now-last) message, and switches to that swipe.
-- *Clicking a legend entry* highlights it and zooms into it. Clicking the same entry again zooms out.
+- *Clicking a legend entry* highlights it and zooms into it. Clicking the same entry again removes the highlight.
 - *Typing into fulltext search* highlights and zooms to the search results in realtime. When no match, or if you clear the search, it zooms out.
 
 ### Checkpoints
