@@ -160,6 +160,48 @@ async function loadSettings() {
 let isTapTippyActive = false;
 
 /**
+ * Determines preferred and fallback placements for a Tippy tooltip.
+ *
+ * Accounts for graph orientation, and avoids covering those nearby nodes that are
+ * most likely to be important.
+ *
+ * @param {Boolean} isSwipe - If true, get placements for a swipe node.
+ *                            If false, get placements for a general node.
+ * @returns {Object} - A dictionary with keys `preferred` and `fallback`.
+ *                     The `fallback` item can be used with `popperOptions` to customize `flip`.
+ *                     How to:
+ *                       https://atomiks.github.io/tippyjs/v6/all-props/#placement
+ *                       https://popper.js.org/docs/v2/modifiers/flip/
+ */
+function getTippyPlacements(isSwipe) {
+    const graphOrientation = getGraphOrientation();
+    let placements = {};
+    if (graphOrientation === 'LR') {  // graph LR -> regular nodes left-to-right, swipes top-to-bottom
+        if (!isSwipe) {
+            // If possible, don't cover next/previous nodes on the same timeline. (top/bottom, try all alignments)
+            // Then prefer to cover previous nodes (left), and finally, next nodes (right).
+            // https://atomiks.github.io/tippyjs/#placements
+            placements.preferred = 'top';
+            placements.fallback = ['top-start', 'top-end', 'bottom', 'bottom-start', 'bottom-end', 'left', 'right'];
+        } else {
+            // If possible, don't cover other swipe nodes on the same message. (right/left, try all alignments)
+            // Then prefer to cover previous swipes (top), and finally, next swipes (bottom).
+            placements.preferred = 'right';  // don't cover other swipes
+            placements.fallback = ['right-start', 'right-end', 'left', 'left-start', 'left-end', 'top', 'bottom'];
+        }
+    } else {  // graph TB -> regular nodes top-to-bottom, swipes left-to-right
+        if (!isSwipe) {
+            placements.preferred = 'left';
+            placements.fallback = ['left-start', 'left-end', 'right', 'right-start', 'right-end', 'top', 'bottom'];
+        } else {
+            placements.preferred = 'bottom';
+            placements.fallback = ['bottom-start', 'bottom-end', 'top', 'top-start', 'top-end', 'left', 'right'];
+        }
+    }
+    return placements;
+}
+
+/**
  * Creates a Tippy tooltip for a given Cytoscape element with specified content.
  *
  * @param {Object} ele - The Cytoscape element (node/edge) to attach the tooltip to.
@@ -168,22 +210,10 @@ let isTapTippyActive = false;
  */
 function makeTippy(ele, text) {
     const ref = getTooltipReference(ele);
-    const dummyDomEle = document.createElement('div');
-
-    // Dynamic placement:
-    //   - On a swipe node, avoid covering other swipe nodes on the same message
-    //   - On any other node, avoid covering next/previous nodes on the same timeline
     const isSwipe = Boolean(ele.data('isSwipe'));
-    const graphOrientation = getGraphOrientation();
-    let swipeTippyPlacement;
-    let generalTippyPlacement;
-    if (graphOrientation === 'LR') {  // graph LR -> swipes top-to-bottom
-        swipeTippyPlacement = 'right';  // don't cover other swipes
-        generalTippyPlacement = 'top';  // don't cover the same timeline
-    } else {  // graph TB -> swipes left-to-right
-        swipeTippyPlacement = 'bottom';
-        generalTippyPlacement = 'left';
-    }
+    const placements = getTippyPlacements(isSwipe);
+
+    const dummyDomEle = document.createElement('div');
 
     const tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref,
@@ -196,7 +226,7 @@ function makeTippy(ele, text) {
             return div;
         },
         arrow: true,
-        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : (isSwipe ? swipeTippyPlacement : generalTippyPlacement),
+        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : placements.preferred,
         hideOnClick: true,
         sticky: 'reference',
         interactive: true,
@@ -281,6 +311,9 @@ function formatNodeMessage(mes) {
 
 function makeTapTippy(ele) {
     const ref = getTooltipReference(ele);
+    const isSwipe = Boolean(ele.data('isSwipe'));
+    const placements = getTippyPlacements(isSwipe);
+
     const dummyDomEle = document.createElement('div');
 
     const tip = tippy(dummyDomEle, {
@@ -384,7 +417,7 @@ function makeTapTippy(ele) {
             return div;
         },
         arrow: true,
-        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : 'auto',
+        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : placements.preferred,
         hideOnClick: false,
         sticky: 'reference',
         interactive: true,
@@ -409,6 +442,7 @@ function makeTapTippy(ele) {
                     name: 'flip',
                     options: {
                         boundary: document.querySelector('#timelinesDiagramDiv'),
+                        fallbackPlacements: placements.fallback,
                     },
                 },
                 {
