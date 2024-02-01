@@ -250,6 +250,7 @@ function formatNodeMessage(mes) {
 
     // 7. Handle <code> tags
     // TODO: Does this ever trigger? We replace < > a the beginning with HTML entities.
+    // TODO: Is the opening tag matcher correct? If there are multiple `<code>...</code>` sections in the message, and the capture is greedy...
     mes = mes.replace(/<code(.*)>[\s\S]*?<\/code>/g, function (match) {
         return match.replace(/\n/gm, '\u0000');
     });
