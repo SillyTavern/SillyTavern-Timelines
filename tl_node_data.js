@@ -312,6 +312,7 @@ function updatePreviousNodes(previousNodes, nodeKey, group) {
  * @param {Array} nodeData - A list of node objects constructed by the buildNodes function.
  * @returns {Array} nodeData - The potentially modified list of node objects.
  */
+// TODO: Could be removed. Strictly, we don't need a placeholder, unless the intention is to be able to monkey-patch a different function in at runtime (which, it seems, it isn't).
 function postprocessNodes(nodeData) {
     // Placeholder for now; add additional steps if needed
     return nodeData;
