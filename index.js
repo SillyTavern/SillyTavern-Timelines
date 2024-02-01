@@ -1,5 +1,4 @@
 // @Technologicat's TODOs, early 2024:
-// TODO: Node full info panel placement - try to avoid hindering navigation of the timeline the node belongs to.
 // TODO: Hotkeys (Tab to jump between chat branches matching a search).
 // TODO: Icon sizes at the top right of the timeline view should match each other.
 // TODO: Maybe refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
