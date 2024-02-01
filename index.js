@@ -96,6 +96,7 @@ let defaultSettings = {
     minZoom: 0.1,
     enableMaxZoom: true,
     maxZoom: 3.0,
+    gpuAcceleration: true,
 };
 
 let currentlyHighlighted = null;  // selector for active legend item
@@ -135,6 +136,7 @@ async function loadSettings() {
     $('#tl_spacing_factor').val(extension_settings.timeline.spacingFactor).trigger('input');
     $('#tl_align').val(extension_settings.timeline.align).trigger('input');
     $('#tl_tooltip_fixed').prop('checked', extension_settings.timeline.fixedTooltip).trigger('input');
+    $('#tl_gpu_acceleration').prop('checked', extension_settings.timeline.gpuAcceleration).trigger('input');
     $('#tl_node_shape').val(extension_settings.timeline.nodeShape).trigger('input');
     $('#tl_curve_style').val(extension_settings.timeline.curveStyle).trigger('input');
     $('#tl_swipe_scale').prop('checked', extension_settings.timeline.swipeScale).trigger('input');
@@ -412,7 +414,7 @@ function makeTapTippy(ele) {
                     name: 'computeStyles',
                     options: {
                         adaptive: true,
-                        gpuAcceleration: false, // turning this off can fix the arrow being off (sometimes)
+                        gpuAcceleration: extension_settings.timeline.gpuAcceleration,
                         zIndex: 9999,
                     },
                 },
@@ -1115,6 +1117,7 @@ jQuery(async () => {
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
         'tl_tooltip_fixed': 'fixedTooltip',
+        'tl_gpu_acceleration': 'gpuAcceleration',
         'tl_align': 'align',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
