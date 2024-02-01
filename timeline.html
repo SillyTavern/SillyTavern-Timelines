@@ -6,11 +6,11 @@
         </div>
         <div class="inline-drawer-content">
             <div class="timeline-view-settings_block flex-container">
-                <label for="tl_auto_expand_swipes" title="Expand swipe nodes when the timeline view first opens, and whenever the graph is refreshed." data-i18n="[title]Expand swipe nodes when the timeline view first opens, and whenever the graph is refreshed.">Auto-expand Swipes</label>
-                <input id="tl_auto_expand_swipes" type="checkbox" />
+                <label for="tl_hover_tooltip_fixed" title="Always show the node tooltip at the bottom left of the timeline view. When off, show it near the node." data-i18n="[title]Always show the node tooltip at the bottom left of the timeline view. When off, show it near the node.">Fixed Position for Tooltip</label>
+                <input id="tl_hover_tooltip_fixed" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <label for="tl_tooltip_fixed" title="Always show the node tooltip (hover) and node full info panel (click) at the bottom left of the screen. When off, show them near the node." data-i18n="[title]Always show the node tooltip (hover) and node full info panel (click) at the bottom left of the screen. When off, show them near the node.">Fixed Position for Tooltip and Full Info</label>
+                <label for="tl_tooltip_fixed" title="Always show the node full info panel at the bottom left of the timeline view. When off, show it near the node." data-i18n="[title]Always show the node full info panel at the bottom left of the timeline view. When off, show it near the node.">Fixed Position for Full Info Panel</label>
                 <input id="tl_tooltip_fixed" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
@@ -31,11 +31,15 @@
                     <input id="tl_show_legend" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_swipe_scale" title="When enabled, nodes that have swipes will appear subtly larger." data-i18n="[title]When enabled, nodes that have swipes will appear subtly larger.">Scale Nodes with Swipes</label>
+                    <label for="tl_auto_expand_swipes" title="Expand swipe nodes when the timeline view first opens, and whenever the graph is refreshed. When off, you can expand them by long-pressing a node, or by pressing the Toggle Swipes button." data-i18n="[title]Expand swipe nodes when the timeline view first opens, and whenever the graph is refreshed. When off, you can expand them by long-pressing a node, or by pressing the Toggle Swipes button.">Auto-expand Swipe Nodes</label>
+                    <input id="tl_auto_expand_swipes" type="checkbox" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_swipe_scale" title="When enabled, nodes that have swipes splitting off of them will appear subtly larger, in addition to having the double border." data-i18n="[title]When enabled, nodes that have swipes splitting off of them will appear subtly larger, in addition to having the double border.">Scale Swipe Parent Nodes</label>
                     <input id="tl_swipe_scale" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_avatar_as_root" title="Show the AI character's avatar as the root node. When off, show the root node as blank." data-i18n="[title]Show the AI character's avatar as the root node. When off, show the root node as blank.">Avatar As Root</label>
+                    <label for="tl_avatar_as_root" title="Show the AI character's avatar as the graph root node. When off, the root node is blank." data-i18n="[title]Show the AI character's avatar as the graph root node. When off, the root node is blank.">Avatar As Root Node</label>
                     <input id="tl_avatar_as_root" type="checkbox" />
                 </div>
                 <!-- DANGER Will Robinson: `onInputChange` in `index.js` depends on some specific things here to update the Timelines settings GUI correctly:

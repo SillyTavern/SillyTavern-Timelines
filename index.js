@@ -78,7 +78,8 @@ let defaultSettings = {
     edgeSeparation: 10,
     rankSeparation: 50,
     spacingFactor: 1,
-    tooltipFixed : false,
+    fixedTooltip : false,
+    fixedHoverTooltip : false,
     align: 'UL',
     nodeShape: 'ellipse',
     curveStyle: 'taxi',
@@ -136,6 +137,7 @@ async function loadSettings() {
     $('#tl_spacing_factor').val(extension_settings.timeline.spacingFactor).trigger('input');
     $('#tl_align').val(extension_settings.timeline.align).trigger('input');
     $('#tl_tooltip_fixed').prop('checked', extension_settings.timeline.fixedTooltip).trigger('input');
+    $('#tl_hover_tooltip_fixed').prop('checked', extension_settings.timeline.fixedHoverTooltip).trigger('input');
     $('#tl_gpu_acceleration').prop('checked', extension_settings.timeline.gpuAcceleration).trigger('input');
     $('#tl_node_shape').val(extension_settings.timeline.nodeShape).trigger('input');
     $('#tl_curve_style').val(extension_settings.timeline.curveStyle).trigger('input');
@@ -209,7 +211,7 @@ function getTippyPlacements(isSwipe) {
  * @returns {Object} - Returns the Tippy tooltip instance.
  */
 function makeTippy(ele, text) {
-    const ref = getTooltipReference(ele);
+    const ref = getTooltipReference(ele, 'hover');
     const isSwipe = Boolean(ele.data('isSwipe'));
     const placements = getTippyPlacements(isSwipe);
 
@@ -226,7 +228,7 @@ function makeTippy(ele, text) {
             return div;
         },
         arrow: true,
-        placement: extension_settings.timeline.fixedTooltip ? 'top-start' : placements.preferred,
+        placement: extension_settings.timeline.fixedHoverTooltip ? 'top-start' : placements.preferred,
         hideOnClick: true,
         sticky: 'reference',
         interactive: true,
@@ -310,7 +312,7 @@ function formatNodeMessage(mes) {
  */
 
 function makeTapTippy(ele) {
-    const ref = getTooltipReference(ele);
+    const ref = getTooltipReference(ele, 'full_info_panel');
     const isSwipe = Boolean(ele.data('isSwipe'));
     const placements = getTippyPlacements(isSwipe);
 
@@ -698,13 +700,15 @@ function getFixedReferenceClientRect() {
  * Determines the reference position for the tooltip based on the configuration settings.
  *
  * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip reference is being determined.
+ * @param {string} kind - Tooltip kind: one of "hover", "full_info_panel".
  * @returns {Function} - A function returning the client bounding rectangle of the reference element.
  *
  * If the fixedTooltip setting is enabled, the reference is the bottom-left corner of the screen;
  * otherwise, it is the position of the provided Cytoscape element.
  */
-function getTooltipReference(ele) {
-    if (extension_settings.timeline.fixedTooltip) {
+function getTooltipReference(ele, kind) {
+    const fixedPosition = (kind === "hover") ? extension_settings.timeline.fixedHoverTooltip : extension_settings.timeline.fixedTooltip;
+    if (fixedPosition) {
         // TODO: No idea why we need to wrap this into a function instead of just returning the bound method itself
         //       (maybe the query selector instance gets GC'd too early?), but there you have it.
         return getFixedReferenceClientRect;  // Reference: zero-size div fixed at the bottom-left corner (see `timeline.html`)
@@ -1163,6 +1167,7 @@ jQuery(async () => {
         'tl_rank_separation': 'rankSeparation',
         'tl_spacing_factor': 'spacingFactor',
         'tl_tooltip_fixed': 'fixedTooltip',
+        'tl_hover_tooltip_fixed': 'fixedHoverTooltip',
         'tl_gpu_acceleration': 'gpuAcceleration',
         'tl_align': 'align',
         'tl_node_shape': 'nodeShape',
