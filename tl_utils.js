@@ -156,7 +156,7 @@ export function closeModal() {
     }
 
     // Append the modal back to its original parent (to store it while closed)
-    document.querySelector('.timelines-modal-container').appendChild(modal);
+    document.querySelector('.timelines-modal-storage').appendChild(modal);
     modal.style.display = 'none';
 }
 
