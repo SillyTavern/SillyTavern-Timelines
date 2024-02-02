@@ -825,6 +825,7 @@ function setupEventHandlers(cy, nodeData) {
         zoomToCurrentChatNode(cy);
     };
 
+    // Close the node full info panel, if it is open.
     function closeActiveTapTippy() {
         if (activeTapTippy) {
             activeTapTippy.hide();
