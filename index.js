@@ -373,7 +373,7 @@ function makeTapTippy(ele) {
                             const chat_depth = ele.data('chat_depth');
                             const chat_sessions = ele.data('chat_sessions');
                             const isSwipe = ele.data('isSwipe');  // this only exists (and is `true`) on swipe nodes
-                            if (chat_depth === undefined || chat_sessions === undefined) {  // likely not a node
+                            if (chat_depth === undefined || chat_sessions === undefined) {  // the root node doesn't have these
                                 return false;
                             }
                             if (chat_depth === (messageId + depthOffset) && !isSwipe && Object.keys(chat_sessions).includes(file_name)) {
