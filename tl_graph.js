@@ -1,6 +1,6 @@
 import { highlightElements, restoreElements } from './tl_style.js';
-let currentOrientation = 'TB'; // starting orientation
 
+let currentOrientation = 'TB';  // starting orientation
 
 /**
  * Toggles the orientation of the graph between Left-to-Right (LR) and Top-to-Bottom (TB).
@@ -27,6 +27,15 @@ export function setGraphOrientationBasedOnViewport(cy, layout) {
 
     const orientation = (viewportWidth > viewportHeight) ? 'LR' : 'TB';
     setOrientation(cy, orientation, layout);
+}
+
+/**
+ * Returns the current orientation of the graph.
+ *
+ * @returns {string} 'TB' (top to bottom) or 'LR' (left to right).
+ */
+export function getGraphOrientation() {
+    return currentOrientation;
 }
 
 /**
@@ -57,6 +66,8 @@ function setOrientation(cy, orientation, layout) {
  *
  * @param {Object} cy - The Cytoscape instance representing the graph.
  * @param {string} query - The query used to match and highlight nodes.
+ * @returns {function} The selector that was used to match and highlight nodes, built from the query,
+ *                     or `undefined` if no match (so that you can e.g. pass this to `cy.filter` to select all).
  */
 export function highlightNodesByQuery(cy, query) {
     // If there's no query, restore elements to their original state.
@@ -66,15 +77,28 @@ export function highlightNodesByQuery(cy, query) {
     }
 
     // Create a selector for nodes where the 'msg' property contains the query
-    let selector = `node[msg @*= "${query}"]`;
+    // const selector = `node[msg @*= "${query}"]`;
+    const selector = function (ele) {  // safe against special characters in `query`
+        if (ele.group() !== 'nodes') {
+            return false;
+        }
+        const msg = ele.data('msg');
+        if (msg && msg.toLowerCase().includes(query.toLowerCase())) {
+            return true;
+        }
+        return false;
+    }
 
-    // If no nodes match the selector, restore elements. Otherwise, highlight.
+    // If no nodes match the selector, restore elements.
     if (cy.elements(selector).length === 0) {
         restoreElements(cy);
-    } else {
-        restoreElements(cy);
-        highlightElements(cy, selector);
+        return undefined;
     }
+
+    // Otherwise, highlight.
+    restoreElements(cy);
+    highlightElements(cy, selector);
+    return selector;
 }
 
 /**

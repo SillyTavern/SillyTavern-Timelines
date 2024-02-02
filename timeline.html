@@ -6,35 +6,64 @@
         </div>
         <div class="inline-drawer-content">
             <div class="timeline-view-settings_block flex-container">
-                <label for="tl_lock_nodes">Lock Nodes</label>
-                <input id="tl_lock_nodes" type="checkbox" />
+                <label for="tl_hover_tooltip_fixed" title="Always show the node tooltip at the bottom left of the timeline view. When off, show it near the node." data-i18n="[title]Always show the node tooltip at the bottom left of the timeline view. When off, show it near the node.">Fixed Position for Tooltip</label>
+                <input id="tl_hover_tooltip_fixed" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <label for="tl_tooltip_fixed" title="When you click on a node, always show the node content at the bottom left. When off, show it near the node clicked." data-i18n="[title]When you click on a node, always show the node content at the bottom left. When off, show it near the node clicked.">Fixed Tooltip</label>
+                <label for="tl_tooltip_fixed" title="Always show the node full info panel at the bottom left of the timeline view. When off, show it near the node." data-i18n="[title]Always show the node full info panel at the bottom left of the timeline view. When off, show it near the node.">Fixed Position for Full Info Panel</label>
                 <input id="tl_tooltip_fixed" type="checkbox" />
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <input value="Style Settings" class="menu_button" type="submit" id="toggleStyleSettings">
+                <label for="tl_gpu_acceleration" title="Use GPU acceleration for positioning the full info panel that appears when you click a node. If the tooltip arrow tends to disappear, turning this off may help." data-i18n="[title]Use GPU acceleration for positioning the full info panel that appears when you click a node. If the tooltip arrow tends to disappear, turning this off may help.">GPU Accelerated Full Info Panel</label>
+                <input id="tl_gpu_acceleration" type="checkbox" />
+            </div>
+            <div class="timeline-view-settings_block flex-container">
+                <input value="Style Settings" class="menu_button" type="submit" id="toggleStyleSettings" title="Settings for the visual appearance of the Timelines graph." data-i18n="[title]Settings for the visual appearance of the Timelines graph.">
             </div>
             <!-- The collapsible style settings section -->
             <div id="styleSettingsArea" class="hidden">
-                <!-- Moved tl_avatar_as_root checkbox -->
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_avatar_as_root" title="Show the AI character's avatar as the root node. When off, show the root node as blank." data-i18n="[title]Show the AI character's avatar as the root node. When off, show the root node as blank.">Avatar As Root</label>
-                    <input id="tl_avatar_as_root" type="checkbox" />
+                    <label for="tl_use_chat_colors" title="Use the colors of the ST GUI theme, instead of the colors configured in Color Settings specifically for this extension." data-i18n="[title]Use the colors of the ST GUI theme, instead of the colors configured in Color Settings specifically for this extension.">Use UI Theme</label>
+                    <input id="tl_use_chat_colors" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_show_legend" title="Show a legend for colors corresponding to different characters and chat checkpoints." data-i18n="[title]Show a legend for colors corresponding to different characters and chat checkpoints.">Show Legend</label>
                     <input id="tl_show_legend" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_swipe_scale" title="When enabled, nodes that have swipes will appear subtly larger." data-i18n="[title]When enabled, nodes that have swipes will appear subtly larger.">Scale nodes with swipes</label>
+                    <label for="tl_auto_expand_swipes" title="Expand swipe nodes when the timeline view first opens, and whenever the graph is refreshed. When off, you can expand them by long-pressing a node, or by pressing the Toggle Swipes button." data-i18n="[title]Expand swipe nodes when the timeline view first opens, and whenever the graph is refreshed. When off, you can expand them by long-pressing a node, or by pressing the Toggle Swipes button.">Auto-expand Swipe Nodes</label>
+                    <input id="tl_auto_expand_swipes" type="checkbox" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_swipe_scale" title="When enabled, nodes that have swipes splitting off of them will appear subtly larger, in addition to having the double border." data-i18n="[title]When enabled, nodes that have swipes splitting off of them will appear subtly larger, in addition to having the double border.">Scale Swipe Parent Nodes</label>
                     <input id="tl_swipe_scale" type="checkbox" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_use_chat_colors" title="Use the colors of the ST GUI theme, instead of the colors configured specifically for this extension." data-i18n="[title]Use the colors of the ST GUI theme, instead of the colors configured specifically for this extension.">Use UI Theme</label>
-                    <input id="tl_use_chat_colors" type="checkbox" />
+                    <label for="tl_avatar_as_root" title="Show the AI character's avatar as the graph root node. When off, the root node is blank." data-i18n="[title]Show the AI character's avatar as the graph root node. When off, the root node is blank.">Avatar As Root Node</label>
+                    <input id="tl_avatar_as_root" type="checkbox" />
                 </div>
+                <!-- DANGER Will Robinson: `onInputChange` in `index.js` depends on some specific things here to update the Timelines settings GUI correctly:
+
+                   - The specific element IDs for the zoom settings trigger special handling; this is a group of five settings with non-trivial logic between them.
+                   - The 'floatingpoint' class disables integer rounding for displaying the value of a setting.
+                -->
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_zoom_current_chat">Zoom level when zooming to current chat (<span id="tl_zoom_current_chat_value"></span>)</label>
+                    <input id="tl_zoom_current_chat" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <input id="tl_zoom_min_cb" type="checkbox" />
+                    <label for="tl_zoom_min">Minimum zoom level (<span id="tl_zoom_min_value"></span>)</label>
+                    <input id="tl_zoom_min" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <input id="tl_zoom_max_cb" type="checkbox" />
+                    <label for="tl_zoom_max">Maximum zoom level (<span id="tl_zoom_max_value"></span>)</label>
+                    <input id="tl_zoom_max" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
+                </div>
+                <small>
+                    All sizes are specified in pixels at zoom level 1.0. The size set here multiplied by the zoom level is the final on-screen size. See <a href="https://js.cytoscape.org/">Cytoscape documentation</a> for the exact meanings of the settings.
+                </small>
                 <div class="timeline-view-settings_block flex-container">
                     <label for="tl_node_width">Node Width (<span id="tl_node_width_value"></span>)</label>
                     <input id="tl_node_width" type="range" min="1" max="100" />
@@ -122,7 +151,7 @@
                 </div>
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <input value="Color Settings" class="menu_button" type="submit" id="toggleColorSettings">
+                <input value="Color Settings" class="menu_button" type="submit" id="toggleColorSettings" title="Color configuration for Timelines when 'Use UI Theme' in Style Settings is off." data-i18n="[title]Color configuration for Timelines when 'Use UI Theme' in Style Settings is off.">
             </div>
             <div id="colorSettingsArea" class="hidden">
                 <div class="timeline-view-settings_block flex-container">
@@ -143,24 +172,26 @@
                 </div>
             </div>
             <div class="timeline-view-settings_block flex-container">
-                <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" />
-                <!-- New button for comparison -->
+                <input id="show_timeline_view" class="menu_button" type="submit" value="Show Timeline" title="Open the timeline view. Same as the slash command '/tl'." data-i18n="[title]Open the timeline view. Same as the slash command '/tl'." />
             </div>
             <!-- The Modal -->
-            <div id="myModal" class="modal">
-                <!-- Modal content -->
-                <div id="networkContainer">
-                    <button class="close" title="Close">&times;</button>
-                    <button class="rotate" title="Rotate Graph">&orarr;</button>
-                    <button class="expand" title="Toggle Expand Swipes">&#x26D5;</button>
-                    <button class="reload" title="Reload Graph [/tl r]">&#x1f5d8;</button>
-                    <input id="transparent-search" type="text" placeholder="Search..." />
-                    <div class="graph-container">
-                        <!-- Relative positioned container -->
-                        <div id="myDiagramDiv"></div>
-                        <div id="legendDiv" class="legend-bottom-right"></div>
-                        <div id="fixedReference" style="position: fixed; bottom: 0; left: 0; width: 0; height: 0;"></div>
-                        <!-- Legend with absolute positioning -->
+            <div class="timelines-modal-storage hidden">  <!-- A place in the DOM to store the modal when not in use -->
+                <div id="timelinesModal" class="modal">  <!-- The transparent outer modal, covering the whole viewport -->
+                    <div id="networkContainer">  <!-- The inner modal, i.e. the actual content -->
+                        <button class="close fa-solid fa-x" title="Close"></button>
+                        <button class="rotate fa-solid fa-rotate-right" title="Rotate Graph"></button>
+                        <button class="expand fa-solid fa-expand" title="Toggle Expand Swipes"></button>
+                        <button class="reload fa-solid fa-sync" title="Reload Graph [/tl r]"></button>
+                        <button class="zoomtofit fa-solid fa-magnifying-glass-plus" title="Zoom to Fit"></button>
+                        <button class="zoomtocurrent fa-solid fa-magnifying-glass-location" title="Zoom to Current Chat"></button>
+                        <input id="transparent-search" type="text" placeholder="Search [Ctrl+Shift+F]..." />
+                        <div class="graph-container">
+                            <!-- Relative positioned container -->
+                            <div id="timelinesDiagramDiv"></div>
+                            <div id="legendDiv" class="legend-bottom-right"></div>
+                            <div id="fixedReference" style="position: fixed; bottom: 0; left: 0; width: 0; height: 0;"></div>
+                            <!-- Legend with absolute positioning -->
+                        </div>
                     </div>
                 </div>
             </div>

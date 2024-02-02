@@ -39,17 +39,18 @@ function preprocessChatSessions(channelHistory) {
  * @param {Array} allChats - A 2D array resulting from `preprocessChatSessions`, where each sub-array
  *                           corresponds to a message index and contains objects detailing the file name,
  *                           index, and actual message for each chat file.
+ * @param {Object} allChatFileNamesAndLengths - A dictionary `{file_name: length_in_messages}` for all existing chat files.
+ *                                              (Hint: See `prepareData` and `convertToCytoscapeElements`.)
  * @returns {Array} cyElements - A list of node and edge objects suitable for the Cytoscape graph library.
  *
  * Behavior:
  * 1. Initializes a root node and sets up tracking for previous nodes.
- * 2. Iterates over each message index, grouping messages by content.
- * 3. For each group of messages, constructs a node and an associated edge.
+ * 2. Iterates over each `messageId` (sequential numbering of chat messages), grouping messages at the same position by content.
+ * 3. For each message group, constructs a node and an associated edge.
  * 4. Handles special nodes, such as swipes, and ensures they are properly added.
  * 5. Returns the full list of constructed nodes and edges.
  */
-
-function buildNodes(allChats) {
+function buildNodes(allChats, allChatFileNamesAndLengths) {
     let cyElements = [];
     let keyCounter = 1;
     let previousNodes = {};
@@ -66,29 +67,37 @@ function buildNodes(allChats) {
         },
     });
 
-    // Initialize previousNodes
+    // Initialize previousNodes (anchoring the beginning of each chat to the graph root node)
     allChats[0].forEach(({ file_name }) => {
         previousNodes[file_name] = 'root';
     });
 
-    for (let messagesAtIndex = 0; messagesAtIndex < allChats.length; messagesAtIndex++) {
-        let groups = groupMessagesByContent(allChats[messagesAtIndex]);
+    for (let messageId = 0; messageId < allChats.length; messageId++) {
+        // Group messages at this `messageId` (according to sequential message numbering in chat session),
+        // across all chats, by their text content.
+        let groups = groupMessagesByContent(allChats[messageId]);
 
         for (const [text, group] of Object.entries(groups)) {
+            // Now `group` contains the messages, at this `messageId`, that have `text` as their text content.
+
             let nodeId = `message${keyCounter}`;
+
+            // TODO: `group[0]` seems arbitrary. It refers to the first session (chat file) that has a message with content `text` at this `messageId`.
+            //       It seems the design is that we want all messages with the same content, at the same position, to share the same parent node in the graph?
             let parentNodeId = previousNodes[group[0].file_name];
 
-            let node = createNode(nodeId, parentNodeId, text, group);
+            let node = createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNamesAndLengths);
 
-            // If it's not the first node, extract swipes and store node and edge data for the parent node
-            if (messagesAtIndex !== 0) {
+            // Extract swipes and store node and edge data for the parent node.
+            // In each chat, the AI's greeting message is at index 0.
+            if (messageId !== 0) {
                 let allSwipes = [];
                 group.forEach(messageObj => {
                     const swipes = messageObj.message.swipes || [];
                     allSwipes.push(...swipes);
                 });
 
-                // Deduplicating swipes and filtering out swipes with same content as the message
+                // Deduplicate swipes, and omit swipes with the same content as the message.
                 let uniqueSwipes = [...new Set(allSwipes)].filter(swipeText => swipeText !== text);
 
                 if (!parentSwipeData[parentNodeId]) {
@@ -104,13 +113,13 @@ function buildNodes(allChats) {
                 // Store node and edge data for each swipe in parentSwipeData
                 uniqueSwipes.forEach(swipeText => {
                     let swipeNodeId = `swipe${keyCounter}-${parentSwipeData[parentNodeId].totalSwipes}`;
-                    let swipeIndex = allSwipes.indexOf(swipeText);  // Fetching the index of the swipe from the original swipes list
+                    let swipeIndex = allSwipes.indexOf(swipeText);  // Index of the swipe in the original swipes list
                     let swipeNode = {
                         ...node,
                         id: swipeNodeId,
                         msg: swipeText,
                         isSwipe: true,
-                        swipeId: swipeIndex,  // Storing the index as swipeId in the node data
+                        swipeId: swipeIndex,  // Store the index as swipeId in the node data
                     };
                     delete swipeNode.swipes;
 
@@ -119,7 +128,7 @@ function buildNodes(allChats) {
                         source: parentNodeId,
                         target: swipeNodeId,
                         isSwipe: true,
-                        swipeId: swipeIndex,  // Storing the index as swipeId in the edge data
+                        swipeId: swipeIndex,  // Store the index as swipeId in the edge data
                     };
 
                     parentSwipeData[parentNodeId].storedSwipes.push({ node: swipeNode, edge: swipeEdge });
@@ -167,8 +176,12 @@ function buildNodes(allChats) {
  *
  * @param {string} nodeId - The unique ID to assign to the node.
  * @param {string} parentNodeId - The ID of the node from which this node originates (previous message).
+ * @param {number} messageId - ID of the message, in the sequential message numbering of the chat session.
+ *                             Note this is shared by all messages in the same message `group`.
  * @param {string} text - The message content.
  * @param {Array} group - A list of message objects that share the same content across chat files.
+ * @param {Object} allChatFileNamesAndLengths - A dictionary `{file_name: length_in_messages}` for all existing chat files.
+ *                                              (Hint: See `prepareData` and `convertToCytoscapeElements`.)
  * @returns {Object} - A Cytoscape node object with properties set based on the message details.
  *
  * Behavior:
@@ -176,7 +189,7 @@ function buildNodes(allChats) {
  * 2. Determines node properties, such as color for checkpoints, based on the message details.
  * 3. Constructs and returns the node object.
  */
-function createNode(nodeId, parentNodeId, text, group) {
+function createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNamesAndLengths) {
     let bookmark = group.find(({ message }) => {
         // Check if the message is from the system and if it indicates a checkpoint.
         //
@@ -210,8 +223,31 @@ function createNode(nodeId, parentNodeId, text, group) {
         fileNameForNode = group[0].file_name;
     }
 
+    // Omit dead link, if the checkpoint chat file (that the link points to) no longer exists.
+    //
+    // NOTE: For the opposite situation, we can't do anything here. It might be that a checkpoint link
+    // has been severed by overwriting it with a new one (on the same chat message), but the old
+    // checkpoint chat file still exists. In that case, only the new checkpoint will be shown in the legend,
+    // and the old one will appear only as an independent chat file in the buttons on the graph nodes
+    // that match its messages.
+    if (isBookmark && !allChatFileNamesAndLengths.hasOwnProperty(`${bookmarkName}.jsonl`)) {
+        console.info(`Timelines: createNode: omitting dead link to '${bookmarkName}'; link target chat file '${bookmarkName}.jsonl' does not exist`);
+        isBookmark = false;
+        bookmarkName = undefined;
+        fileNameForNode = undefined;
+    }
 
     let { is_name, is_user, name, send_date, is_system } = group[0].message;  // Added is_system here
+
+    // Find chat sessions that have this message (and their lengths)
+    let chat_sessions = {};
+    for (const {file_name} of group) {
+        // console.debug(`messageId (in chat) ${messageId}: graph node '${nodeId}' for chat '${file_name}' [${allChatFileNamesAndLengths[file_name]} messages]`);
+        chat_sessions[file_name] = {
+            messageId: messageId,
+            length: allChatFileNamesAndLengths[file_name],
+        };
+    }
 
     return {
         id: nodeId,
@@ -224,10 +260,8 @@ function createNode(nodeId, parentNodeId, text, group) {
         is_system: is_system,  // Added is_system to node properties
         name: name,
         send_date: send_date,
-        messageIndex: group[0].index,
-        color: isBookmark ? generateUniqueColor() : null,
-        chat_sessions: group.map(({ file_name }) => file_name),
-        chat_sessions_str: ';' + group.map(({ file_name }) => file_name).join(';') + ';',
+        color: isBookmark ? generateUniqueColor(text) : null,
+        chat_sessions: chat_sessions,  // ES2015 and later preserve string keys in their insertion order, so this can also be used as an ordered list of sessions.
     };
 }
 
@@ -249,9 +283,9 @@ function groupMessagesByContent(messages) {
             if (!groups[message.mes]) {
                 groups[message.mes] = [];
             }
-            groups[message.mes].push({ file_name, index, message });
+            groups[message.mes].push({ file_name, index, message });  // `index` is the index of this message object in the original `messages` array.
         } catch (e) {
-            console.log(`Message Grouping Error: ${e}: ${JSON.stringify(message, null, 4)}`);
+            console.error(`Message Grouping Error: ${e}: ${JSON.stringify(message, null, 4)}`);
         }
     });
     return groups;
@@ -278,6 +312,7 @@ function updatePreviousNodes(previousNodes, nodeKey, group) {
  * @param {Array} nodeData - A list of node objects constructed by the buildNodes function.
  * @returns {Array} nodeData - The potentially modified list of node objects.
  */
+// TODO: Could be removed. Strictly, we don't need a placeholder, unless the intention is to be able to monkey-patch a different function in at runtime (which, it seems, it isn't).
 function postprocessNodes(nodeData) {
     // Placeholder for now; add additional steps if needed
     return nodeData;
@@ -292,18 +327,80 @@ function postprocessNodes(nodeData) {
  */
 function convertToCytoscapeElements(chatHistory) {
     let allChats = preprocessChatSessions(chatHistory);
-    let nodeData = buildNodes(allChats);
+
+    // Gather chat session lengths (in number of messages) for last-message detection.
+    // dictmap {k: v} -> {k: v.length}
+    let allChatFileNamesAndLengths = {};
+    for (const [key, val] of Object.entries(chatHistory)) {
+        allChatFileNamesAndLengths[key] = val.length;
+    }
+
+    let nodeData = buildNodes(allChats, allChatFileNamesAndLengths);
     nodeData = postprocessNodes(nodeData);
     return nodeData;
 }
 
 /**
+ * Seedable RNG from https://stackoverflow.com/a/47593316
+ *
+ * "sfc32 is part of the PractRand random number testing suite (which it passes of course).
+ *  sfc32 has a 128-bit state and is very fast in JS."
+ */
+function sfc32(a, b, c, d) {
+    return function() {
+        a |= 0; b |= 0; c |= 0; d |= 0;
+        var t = (a + b | 0) + d | 0;
+        d = d + 1 | 0;
+        a = b ^ b >>> 9;
+        b = c + (c << 3) | 0;
+        c = (c << 21 | c >>> 11);
+        c = c + t | 0;
+        return (t >>> 0) / 4294967296;
+    }
+}
+
+/**
+  * Hash function for RNG seeding, from https://stackoverflow.com/a/47593316
+  *
+  * Side note: Only designed & tested for seed generation,
+  * may be suboptimal as a general 128-bit hash.
+  *
+  * @param {String} str - String to compute the seed from.
+  */
+function cyrb128(str) {
+    let h1 = 1779033703, h2 = 3144134277,
+        h3 = 1013904242, h4 = 2773480762;
+    for (let i = 0, k; i < str.length; i++) {
+        k = str.charCodeAt(i);
+        h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+        h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+        h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+        h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    h1 ^= (h2 ^ h3 ^ h4), h2 ^= h1, h3 ^= h1, h4 ^= h1;
+    return [h1>>>0, h2>>>0, h3>>>0, h4>>>0];
+}
+
+/**
  * Generate a unique random RGB color string.
  *
+ * @param {str} Optional. If given, the same `text` always maps to the same random color.
  * @returns {string} Random RGB color in the format "rgb(r, g, b)".
  */
-export function generateUniqueColor() {
-    const randomRGBValue = () => Math.floor(Math.random() * 256);
+export function generateUniqueColor(str) {
+    let random;
+    if (str) {
+        let seed = cyrb128(str);
+        random = sfc32(seed[0], seed[1], seed[2], seed[3]);
+    } else {
+        random = Math.random;
+    }
+
+    const randomRGBValue = () => Math.floor(random() * 256);
     return `rgb(${randomRGBValue()}, ${randomRGBValue()}, ${randomRGBValue()})`;
 }
 
