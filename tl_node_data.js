@@ -97,6 +97,7 @@ function buildGraph(allChats, allChatFileNamesAndLengths) {
                 uniqueSwipes = [...new Set(allSwipes)].filter(swipeText => swipeText !== text);
             }
 
+            // Treat each message in this message group. A message may have multiple parents (happens for a canned reply, used in several chats at the same chat depth).
             const uniqueParents = new Set();
             for (const messageObj of group) {
                 const parentNodeId = previousNodes[messageObj.file_name];
