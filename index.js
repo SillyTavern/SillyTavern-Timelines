@@ -852,10 +852,10 @@ function setupEventHandlers(cy, nodeData) {
     });
 
     cy.on('tap', 'node', function (evt) {
-        clearTimeout(showTimeout); // Clear any pending timeout for showing tooltip
+        clearTimeout(showTimeout);  // Clear any pending timeout for showing tooltip
         let node = evt.target;
         if (node._tippy) {
-            node._tippy.hide(); // Hide the tippy instance associated with the node
+            node._tippy.hide();  // Hide the tippy instance associated with the node
         }
         closeActiveTapTippy();
         activeTapTippy = makeTapTippy(node);
