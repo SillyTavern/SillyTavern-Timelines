@@ -169,6 +169,7 @@ export function closeTippy() {
         let parent = box.parentElement;
         if (parent && parent._tippy) {  // `_tippy` is stored on the graph node
             parent._tippy.hide();
+            parent._tippy = null;
         }
     });
 }
