@@ -1,4 +1,5 @@
 // @Technologicat's TODOs, early 2024:
+// TODO: When a node is hovered over or clicked, highlight its chat history edges.
 // TODO: Hotkeys (Tab to jump between chat branches matching a search).
 // TODO: Icon sizes at the top right of the timeline view should match each other.
 // TODO: Maybe refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
@@ -80,6 +81,7 @@ let defaultSettings = {
     fixedTooltip : false,
     fixedHoverTooltip : false,
     align: 'UL',
+    nodeRanker: 'tight-tree',
     nodeShape: 'ellipse',
     curveStyle: 'taxi',
     swipeScale: false,
@@ -138,6 +140,7 @@ async function loadSettings() {
     $('#tl_tooltip_fixed').prop('checked', extension_settings.timeline.fixedTooltip).trigger('input');
     $('#tl_hover_tooltip_fixed').prop('checked', extension_settings.timeline.fixedHoverTooltip).trigger('input');
     $('#tl_gpu_acceleration').prop('checked', extension_settings.timeline.gpuAcceleration).trigger('input');
+    $('#tl_node_ranker').val(extension_settings.timeline.nodeRanker).trigger('input');
     $('#tl_node_shape').val(extension_settings.timeline.nodeShape).trigger('input');
     $('#tl_curve_style').val(extension_settings.timeline.curveStyle).trigger('input');
     $('#tl_swipe_scale').prop('checked', extension_settings.timeline.swipeScale).trigger('input');
@@ -682,6 +685,7 @@ function initializeCytoscape(nodeData, styles) {
         layout: layout,
         wheelSensitivity: 0.2,  // Adjust as needed.
     });
+    theCy = cy;
 
     return cy;
 }
@@ -1002,15 +1006,13 @@ function setupEventHandlers(cy, nodeData) {
 function renderCytoscapeDiagram(nodeData) {
     const styles = setupStylesAndData(nodeData);
     const cy = initializeCytoscape(nodeData, styles);
-    if (extension_settings.timeline.enableMinZoom) {
-        cy.minZoom(Number(extension_settings.timeline.minZoom));
-    }
-    if (extension_settings.timeline.enableMaxZoom) {
-        cy.maxZoom(Number(extension_settings.timeline.maxZoom));
-    }
-    theCy = cy;
-
     if (cy) {
+        if (extension_settings.timeline.enableMinZoom) {
+            cy.minZoom(Number(extension_settings.timeline.minZoom));
+        }
+        if (extension_settings.timeline.enableMaxZoom) {
+            cy.maxZoom(Number(extension_settings.timeline.maxZoom));
+        }
         setupEventHandlers(cy, nodeData);
     }
 }
@@ -1051,14 +1053,15 @@ async function updateTimelineDataIfNeeded() {
         layout = {
             name: 'dagre',
             nodeDimensionsIncludeLabels: true,
-            nodeSep: extension_settings.timeline.nodeSeparation,
-            edgeSep: extension_settings.timeline.edgeSeparation,
-            rankSep: extension_settings.timeline.rankSeparation,
-            rankDir: 'LR',  // Left to Right
-            ranker: 'network-simplex',  // 'network-simplex', 'tight-tree' or 'longest-path
-            spacingFactor: extension_settings.timeline.spacingFactor,
-            acyclicer: 'greedy',
-            align: extension_settings.timeline.align,
+            nodeSep: extension_settings.timeline.nodeSeparation,  // Separation between adjacent nodes in the same rank
+            edgeSep: extension_settings.timeline.edgeSeparation,  // Separation between adjacent edges in the same rank
+            rankSep: extension_settings.timeline.rankSeparation,  // Separation between each rank in the layout
+            rankDir: 'LR',  // 'TB' for top to bottom flow, 'LR' for left to right (this is toggled by `toggleGraphOrientation`)
+            ranker: extension_settings.timeline.nodeRanker,  // Algorithm to compute node rank: 'network-simplex', 'tight-tree', or 'longest-path'
+            spacingFactor: extension_settings.timeline.spacingFactor,  // Multiplicative factor (>0) to expand or compress the overall area that the nodes take up
+            acyclicer: 'greedy',  // 'greedy' or undefined. We shouldn't need an acyclicer, but let's be careful.
+            align: extension_settings.timeline.align,  // Alignment for rank nodes. Can be 'UL', 'UR', 'DL', or 'DR', where U = up, D = down, L = left, and R = right
+            sort: function(a, b){ return a.data('id') < b.data('id') },  // Layout tie-breaker: prefer the element that our `buildGraph` created first.
         };
         return true; // Data was updated
     }
@@ -1071,6 +1074,11 @@ async function updateTimelineDataIfNeeded() {
  * @param {Object} cy - The Cytoscape instance.
  */
 function zoomToCurrentChatNode(cy) {
+    if (!cy) {
+        console.error('Timelines: no Cytoscape instance, cannot zoom to current chat node');
+        return;
+    }
+
     // Get latest chat message in currently open chat (TODO: special considerations for group chats?)
     const context = getContext();
     const chat = context.chat;
@@ -1169,6 +1177,7 @@ jQuery(async () => {
         'tl_hover_tooltip_fixed': 'fixedHoverTooltip',
         'tl_gpu_acceleration': 'gpuAcceleration',
         'tl_align': 'align',
+        'tl_node_ranker': 'nodeRanker',
         'tl_node_shape': 'nodeShape',
         'tl_curve_style': 'curveStyle',
         'tl_swipe_scale': 'swipeScale',

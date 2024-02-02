@@ -62,40 +62,42 @@
                     <input id="tl_zoom_max" type="range" class="floatingpoint" min="0.1" max="10.0" step="0.1" />
                 </div>
                 <small>
-                    All sizes are specified in pixels at zoom level 1.0. The size set here multiplied by the zoom level is the final on-screen size. See <a href="https://js.cytoscape.org/">Cytoscape documentation</a> for the exact meanings of the settings.
+                    All sizes are specified in pixels at zoom level 1.0. The size set here multiplied by the zoom level is the final on-screen size. <!-- See <a href="https://js.cytoscape.org/">Cytoscape documentation</a> for the exact meanings of the settings. -->
                 </small>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_node_width">Node Width (<span id="tl_node_width_value"></span>)</label>
+                    <label for="tl_node_width" title="Width of a node, in pixels at zoom level 1.0." data-i18n="[title]Width of a node, in pixels at zoom level 1.0.">Node Width (<span id="tl_node_width_value"></span>)</label>
                     <input id="tl_node_width" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_node_height">Node Height (<span id="tl_node_height_value"></span>)</label>
+                    <label for="tl_node_height" title="Height of a node, in pixels at zoom level 1.0." data-i18n="[title]Height of a node, in pixels at zoom level 1.0.">Node Height (<span id="tl_node_height_value"></span>)</label>
                     <input id="tl_node_height" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_node_separation"
-                        >Node Separation (<span id="tl_node_separation_value"></span>)</label
-                    >
+                    <label for="tl_node_separation" title="Separation between adjacent nodes in the same rank." data-i18n="[title]Separation between adjacent nodes in the same rank.">Node Separation (<span id="tl_node_separation_value"></span>)</label>
                     <input id="tl_node_separation" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_edge_separation"
-                        >Edge Separation (<span id="tl_edge_separation_value"></span>)</label
-                    >
+                    <label for="tl_edge_separation" title="Separation between adjacent edges in the same rank." data-i18n="[title]Separation between adjacent edges in the same rank.">Edge Separation (<span id="tl_edge_separation_value"></span>)</label>
                     <input id="tl_edge_separation" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_rank_separation"
-                        >Rank Separation (<span id="tl_rank_separation_value"></span>)</label
-                    >
+                    <label for="tl_rank_separation" title="Separation between each rank in the layout." data-i18n="[title]Separation between each rank in the layout.">Rank Separation (<span id="tl_rank_separation_value"></span>)</label>
                     <input id="tl_rank_separation" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_spacing_factor">Spacing Factor (<span id="tl_spacing_factor_value"></span>)</label>
+                    <label for="tl_spacing_factor" title="A multiplicative factor to expand the overall area that the nodes take up." data-i18n="[title]A multiplicative factor to expand the overall area that the nodes take up.">Spacing Factor (<span id="tl_spacing_factor_value"></span>)</label>
                     <input id="tl_spacing_factor" type="range" min="1" max="100" />
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_node_shape">Node Shape</label>
+                    <label for="tl_node_ranker" title="How the automatic graph builder assigns a rank (layout depth) to graph nodes." data-i18n="[title]How the automatic graph builder assigns a rank (layout depth) to graph nodes.">Node Ranking Algorithm</label>
+                    <select id="tl_node_ranker">
+                        <option value="tight-tree">Tight Tree</option>
+                        <option value="network-simplex">Network Simplex</option>
+                        <option value="longest-path">Longest Path</option>
+                    </select>
+                </div>
+                <div class="timeline-view-settings_block flex-container">
+                    <label for="tl_node_shape" title="The visual appearance of a node in the graph." data-i18n="[title]The visual appearance of a node in the graph.">Node Shape</label>
                     <select id="tl_node_shape">
                         <option value="ellipse">Ellipse</option>
                         <option value="triangle">Triangle</option>
@@ -126,7 +128,7 @@
                 </div>
 
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_curve_style">Curve Style</label>
+                    <label for="tl_curve_style" title="Style and routing of graph edges." data-i18n="[title]Style and routing of graph edges.">Curve Style</label>
                     <select id="tl_curve_style">
                         <option value="haystack">Haystack</option>
                         <option value="straight">Straight</option>
@@ -138,7 +140,11 @@
                     </select>
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <label for="tl_align">Alignment</label>
+                    <!-- Whatever that means. The phrase comes from the Cytoscape-Dagre README:
+                           https://github.com/cytoscape/cytoscape.js-dagre
+                           https://js.cytoscape.org/#layouts
+                    -->
+                    <label for="tl_align" title="Alignment for rank nodes." data-i18n="[title]Alignment for rank nodes.">Alignment</label>
                     <select id="tl_align">
                         <option value="UL">Upper Left</option>
                         <option value="UR">Upper Right</option>
@@ -147,7 +153,7 @@
                     </select>
                 </div>
                 <div class="timeline-view-settings_block flex-container">
-                    <input value="Reset Settings" class="menu_button" type="submit" id="resetSettingsBtn">
+                    <input value="Reset Settings" class="menu_button" type="submit" id="resetSettingsBtn" title="Reset all Timelines settings to their default values." data-i18n="[title]Reset all Timelines settings to their default values.">
                 </div>
             </div>
             <div class="timeline-view-settings_block flex-container">
@@ -156,7 +162,7 @@
             <div id="colorSettingsArea" class="hidden">
                 <div class="timeline-view-settings_block flex-container">
                     <toolcool-color-picker id="bookmark-color-picker" value="#ff0000"></toolcool-color-picker>
-                    <span data-i18n="Checkpoint Color">Checkpoint Color</span>
+                    <span data-i18n="Checkpoint Color">Checkpoint Node Border Color</span>
                 </div>
                 <div class="timeline-view-settings_block flex-container">
                     <toolcool-color-picker id="char-node-color-picker" value="#FFFFFF"></toolcool-color-picker>

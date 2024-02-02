@@ -37,6 +37,10 @@ For convenient one-click access, bind the `/tl` command to a custom Quick Reply 
 - *Checkpoint paths* are colored accordingly, and are shown in the legend.
   - The checkpoint color is random, but determined from the checkpoint name.
   - A checkpoint is detected only when there is an intact checkpoint link in the chat file that originated the checkpoint. Dead links are ignored.
+- The identical content auto-merge only combines messages at the same depth (sequential message number in the chat).
+  - Thus the graph is always [acyclic](https://en.wikipedia.org/wiki/Directed_acyclic_graph), even if you use the same canned *Quick Reply* at multiple points in the same chat.
+  - But chats that use the same *Quick Reply* at the same depth will all be routed through the node that represents that quick reply at that depth.
+
 
 Actions:
 

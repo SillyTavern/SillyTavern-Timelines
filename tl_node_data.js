@@ -50,7 +50,7 @@ function preprocessChatSessions(channelHistory) {
  * 4. Handles special nodes, such as swipes, and ensures they are properly added.
  * 5. Returns the full list of constructed nodes and edges.
  */
-function buildNodes(allChats, allChatFileNamesAndLengths) {
+function buildGraph(allChats, allChatFileNamesAndLengths) {
     let cyElements = [];
     let keyCounter = 1;
     let previousNodes = {};
@@ -80,80 +80,87 @@ function buildNodes(allChats, allChatFileNamesAndLengths) {
         for (const [text, group] of Object.entries(groups)) {
             // Now `group` contains the messages, at this `messageId`, that have `text` as their text content.
 
-            let nodeId = `message${keyCounter}`;
+            const nodeId = `message${keyCounter}`;
+            const node = createNode(nodeId, messageId, text, group, allChatFileNamesAndLengths);
 
-            // TODO: `group[0]` seems arbitrary. It refers to the first session (chat file) that has a message with content `text` at this `messageId`.
-            //       It seems the design is that we want all messages with the same content, at the same position, to share the same parent node in the graph?
-            let parentNodeId = previousNodes[group[0].file_name];
-
-            let node = createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNamesAndLengths);
-
-            // Extract swipes and store node and edge data for the parent node.
+            // Extract all unique swipes from this message group.
             // In each chat, the AI's greeting message is at index 0.
+            // Although in the UI, the alternate AI greetings are stored as swipes, in the timeline view we show them as separate messages.
+            const allSwipes = [];
+            let uniqueSwipes = [];
             if (messageId !== 0) {
-                let allSwipes = [];
                 group.forEach(messageObj => {
                     const swipes = messageObj.message.swipes || [];
                     allSwipes.push(...swipes);
                 });
-
                 // Deduplicate swipes, and omit swipes with the same content as the message.
-                let uniqueSwipes = [...new Set(allSwipes)].filter(swipeText => swipeText !== text);
-
-                if (!parentSwipeData[parentNodeId]) {
-                    parentSwipeData[parentNodeId] = {
-                        storedSwipes: [],
-                        totalSwipes: 0,
-                        currentSwipeIndex: uniqueSwipes.indexOf(text),
-                    };
-                }
-
-                parentSwipeData[parentNodeId].totalSwipes += uniqueSwipes.length;
-
-                // Store node and edge data for each swipe in parentSwipeData
-                uniqueSwipes.forEach(swipeText => {
-                    let swipeNodeId = `swipe${keyCounter}-${parentSwipeData[parentNodeId].totalSwipes}`;
-                    let swipeIndex = allSwipes.indexOf(swipeText);  // Index of the swipe in the original swipes list
-                    let swipeNode = {
-                        ...node,
-                        id: swipeNodeId,
-                        msg: swipeText,
-                        isSwipe: true,
-                        swipeId: swipeIndex,  // Store the index as swipeId in the node data
-                    };
-                    delete swipeNode.swipes;
-
-                    let swipeEdge = {
-                        id: `edgeSwipe${keyCounter}`,
-                        source: parentNodeId,
-                        target: swipeNodeId,
-                        isSwipe: true,
-                        swipeId: swipeIndex,  // Store the index as swipeId in the edge data
-                    };
-
-                    parentSwipeData[parentNodeId].storedSwipes.push({ node: swipeNode, edge: swipeEdge });
-                    keyCounter += 1;
-                });
+                uniqueSwipes = [...new Set(allSwipes)].filter(swipeText => swipeText !== text);
             }
 
-            cyElements.push({
-                group: 'nodes',
-                data: node,
-            });
+            const uniqueParents = new Set();
+            for (const messageObj of group) {
+                const parentNodeId = previousNodes[messageObj.file_name];
 
-            // Create edge for this node
-            cyElements.push({
-                group: 'edges',
-                data: {
-                    id: `edge${keyCounter}`,
-                    source: parentNodeId,
-                    target: nodeId,
-                },
-            });
+                // Store swipe node and edge data for the each unique parent node.
+                if (messageId !== 0 && !uniqueParents.has(parentNodeId)) {
+                    uniqueParents.add(parentNodeId);
 
-            keyCounter += 1;
+                    if (!parentSwipeData[parentNodeId]) {
+                        parentSwipeData[parentNodeId] = {
+                            storedSwipes: [],
+                            totalSwipes: 0,
+                            currentSwipeIndex: uniqueSwipes.indexOf(text),
+                        };
+                    }
 
-            updatePreviousNodes(previousNodes, nodeId, group);
+                    parentSwipeData[parentNodeId].totalSwipes += uniqueSwipes.length;
+
+                    // Store node and edge data for each swipe in parentSwipeData
+                    uniqueSwipes.forEach(swipeText => {
+                        const swipeNodeId = `swipe${keyCounter}-${parentSwipeData[parentNodeId].totalSwipes}`;
+                        const swipeIndex = allSwipes.indexOf(swipeText);  // Index of the swipe in the original swipes list
+                        const swipeNode = {
+                            ...node,
+                            id: swipeNodeId,
+                            msg: swipeText,
+                            isSwipe: true,
+                            swipeId: swipeIndex,  // Store the index as swipeId in the node data
+                        };
+                        delete swipeNode.swipes;
+
+                        const swipeEdge = {
+                            id: `edgeSwipe${keyCounter}`,
+                            source: parentNodeId,
+                            target: swipeNodeId,
+                            isSwipe: true,
+                            swipeId: swipeIndex,  // Store the index as swipeId in the edge data
+                        };
+
+                        parentSwipeData[parentNodeId].storedSwipes.push({ node: swipeNode, edge: swipeEdge });
+                        keyCounter += 1;
+                    });
+                }
+
+                cyElements.push({
+                    group: 'nodes',
+                    data: node,
+                });
+
+                // Create edge for this node
+                cyElements.push({
+                    group: 'edges',
+                    data: {
+                        id: `edge${keyCounter}`,
+                        source: parentNodeId,
+                        target: nodeId,
+                    },
+                });
+
+                // Keep track of the originating node for each message in the group
+                previousNodes[messageObj.file_name] = nodeId;
+
+                keyCounter += 1;
+            }
         }
     }
 
@@ -175,7 +182,6 @@ function buildNodes(allChats, allChatFileNamesAndLengths) {
  * differentiate it within the Cytoscape graph, such as color for checkpoints.
  *
  * @param {string} nodeId - The unique ID to assign to the node.
- * @param {string} parentNodeId - The ID of the node from which this node originates (previous message).
  * @param {number} messageId - ID of the message, in the sequential message numbering of the chat session.
  *                             Note this is shared by all messages in the same message `group`.
  * @param {string} text - The message content.
@@ -189,7 +195,7 @@ function buildNodes(allChats, allChatFileNamesAndLengths) {
  * 2. Determines node properties, such as color for checkpoints, based on the message details.
  * 3. Constructs and returns the node object.
  */
-function createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNamesAndLengths) {
+function createNode(nodeId, messageId, text, group, allChatFileNamesAndLengths) {
     let bookmark = group.find(({ message }) => {
         // Check if the message is from the system and if it indicates a checkpoint.
         //
@@ -241,10 +247,11 @@ function createNode(nodeId, parentNodeId, messageId, text, group, allChatFileNam
 
     // Find chat sessions that have this message (and their lengths)
     let chat_sessions = {};
-    for (const {file_name} of group) {
+    for (const {file_name, index} of group) {
         // console.debug(`messageId (in chat) ${messageId}: graph node '${nodeId}' for chat '${file_name}' [${allChatFileNamesAndLengths[file_name]} messages]`);
         chat_sessions[file_name] = {
             messageId: messageId,
+            indexInGroup: index,
             length: allChatFileNamesAndLengths[file_name],
         };
     }
@@ -292,24 +299,10 @@ function groupMessagesByContent(messages) {
 }
 
 /**
- * Updates the record of the last node associated with each chat in a given group.
- * This function is used during node creation to keep track of the originating node for each message.
- *
- * @param {Object} previousNodes - An object where keys are file names and values are the most recent node keys.
- * @param {string} nodeKey - The unique key of the node being processed.
- * @param {Array} group - A list of message objects that share the same content across chat files.
- */
-function updatePreviousNodes(previousNodes, nodeKey, group) {
-    group.forEach(({ file_name }) => {
-        previousNodes[file_name] = nodeKey;
-    });
-}
-
-/**
  * Postprocesses the constructed nodes, allowing for potential modifications or additions.
  * Currently a placeholder; it can be expanded with additional steps if required in the future.
  *
- * @param {Array} nodeData - A list of node objects constructed by the buildNodes function.
+ * @param {Array} nodeData - A list of node objects constructed by the buildGraph function.
  * @returns {Array} nodeData - The potentially modified list of node objects.
  */
 // TODO: Could be removed. Strictly, we don't need a placeholder, unless the intention is to be able to monkey-patch a different function in at runtime (which, it seems, it isn't).
@@ -335,7 +328,7 @@ function convertToCytoscapeElements(chatHistory) {
         allChatFileNamesAndLengths[key] = val.length;
     }
 
-    let nodeData = buildNodes(allChats, allChatFileNamesAndLengths);
+    let nodeData = buildGraph(allChats, allChatFileNamesAndLengths);
     nodeData = postprocessNodes(nodeData);
     return nodeData;
 }
