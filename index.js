@@ -1033,13 +1033,14 @@ function setupEventHandlers(cy, nodeData) {
         const d2_target = dx2_target + dy2_target;
 
         // Center and zoom in to the node that is farther away from the click position
-        let farawayNode = (d2_source > d2_target) ? sourceNode : targetNode;
+        let newCenterNode = (d2_source > d2_target) ? sourceNode : targetNode;
         cy.stop().animate({
-            center: { eles: farawayNode },
+            center: { eles: newCenterNode },
             zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
             duration: 300,  // Adjust the duration as needed for a smooth transition
         });
-        flashNode(farawayNode, 4, 500);
+        flashNode(newCenterNode, 3, 250);
+        newCenterNode.emit('tap');
     });
 
     // Tap a node to open the full info panel
