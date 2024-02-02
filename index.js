@@ -825,6 +825,13 @@ function setupEventHandlers(cy, nodeData) {
         zoomToCurrentChatNode(cy);
     };
 
+    function closeActiveTapTippy() {
+        if (activeTapTippy) {
+            activeTapTippy.hide();
+            activeTapTippy = null;
+        }
+    }
+
     cy.ready(function () {
         if (extension_settings.timeline.showLegend) {
             createLegend(cy);
@@ -836,28 +843,22 @@ function setupEventHandlers(cy, nodeData) {
         closeOpenDrawers();
     });
 
+    // Optional: Hide the tooltip if user taps anywhere else
+    cy.on('tap', function (evt) {
+        if (evt.target === cy) {
+            closeActiveTapTippy();
+        }
+    });
+
     cy.on('tap', 'node', function (evt) {
         clearTimeout(showTimeout); // Clear any pending timeout for showing tooltip
         let node = evt.target;
         if (node._tippy) {
             node._tippy.hide(); // Hide the tippy instance associated with the node
         }
-        if (activeTapTippy) {
-            activeTapTippy.hide();
-        }
-        let tipInstance = makeTapTippy(node);
-
-        // Show the tooltip
-        tipInstance.show();
-
-        activeTapTippy = tipInstance;
-
-        // Optional: Hide the tooltip if user taps anywhere else
-        cy.on('tap', function (evt) {
-            if (evt.target === cy) {
-                tipInstance.hide();
-            }
-        });
+        closeActiveTapTippy();
+        activeTapTippy = makeTapTippy(node);
+        activeTapTippy.show();
     });
 
     // Handle double click on nodes for quickly navigating to the message
@@ -881,8 +882,8 @@ function setupEventHandlers(cy, nodeData) {
         } else {
             navigateToMessage(file_name, messageId);
         }
+        closeActiveTapTippy();
         closeModal();
-        activeTapTippy.hide();
     });
 
     function refreshLayout() {
