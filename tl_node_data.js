@@ -251,7 +251,7 @@ function createNode(nodeId, messageId, text, group, allChatFileNamesAndLengths) 
     for (const {file_name, index} of group) {
         // console.debug(`messageId (in chat) ${messageId}: graph node '${nodeId}' for chat '${file_name}' [${allChatFileNamesAndLengths[file_name]} messages]`);
         chat_sessions[file_name] = {
-            messageId: messageId,
+            messageId: messageId,  // we don't strictly need this per-session copy of `messageId`, but it's sometimes convenient.
             indexInGroup: index,
             length: allChatFileNamesAndLengths[file_name],
         };
@@ -260,12 +260,13 @@ function createNode(nodeId, messageId, text, group, allChatFileNamesAndLengths) 
     return {
         id: nodeId,
         msg: text,
+        chat_depth: messageId,  // same for all messages in the same message group
         isBookmark: isBookmark,
         bookmarkName: bookmarkName,
         file_name: fileNameForNode,
         is_name: is_name,
         is_user: is_user,
-        is_system: is_system,  // Added is_system to node properties
+        is_system: is_system,
         name: name,
         send_date: send_date,
         color: isBookmark ? generateUniqueColor(text) : null,

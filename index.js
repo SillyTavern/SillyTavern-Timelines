@@ -362,18 +362,76 @@ function makeTapTippy(ele) {
 
                     const sessionName = file_name.split('.jsonl')[0];
                     const messageId = session_metadata.messageId;  // sequential message number in chat
-                    // Without creating a branch, swipes are available only at the last message of a chat.
-                    const canNavigateToSwipe = (messageId === (session_metadata.length - 1));
+                    const isLastMessage = (messageId === (session_metadata.length - 1));  // in this chat session
+                    const isSwipe = Boolean(ele.data('isSwipe'));
 
-                    // 1. Create the main button
+                    // Create jump to previous/next message buttons (but not on swipe nodes)
+                    function makeNextPrevMessageSelector(file_name, depthOffset) {
+                        const selector = function (ele) {
+                            if (ele.group() !== 'nodes') {
+                                return false;
+                            }
+                            const chat_depth = ele.data('chat_depth');
+                            const chat_sessions = ele.data('chat_sessions');
+                            const isSwipe = ele.data('isSwipe');  // this only exists (and is `true`) on swipe nodes
+                            if (chat_depth === undefined || chat_sessions === undefined) {  // likely not a node
+                                return false;
+                            }
+                            if (chat_depth === (messageId + depthOffset) && !isSwipe && Object.keys(chat_sessions).includes(file_name)) {
+                                return true;
+                            }
+                            return false;
+                        }
+                        return selector;
+                    }
+                    const prevBtn = document.createElement('button');
+                    prevBtn.classList.add('menu_button');
+                    prevBtn.classList.add('widthNatural');
+                    prevBtn.textContent = '<';  // ◀ triangle to the left
+                    prevBtn.title = `Zoom to previous message in "${sessionName}".`;  // TODO: data-i18n?
+                    const prevMessageSelector = makeNextPrevMessageSelector(file_name, -1);
+                    prevBtn.addEventListener('click', function () {
+                        const newCenterNode = theCy.elements(prevMessageSelector);
+                        theCy.stop().animate({
+                            center: { eles: newCenterNode },
+                            zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
+                            duration: 300,  // Adjust the duration as needed for a smooth transition
+                        });
+                        flashNode(newCenterNode, 2, 250);
+                        newCenterNode.emit('tap');
+                    });
+                    if (isSwipe || messageId === 0) {
+                        prevBtn.disabled = true;
+                        prevBtn.classList.add('disabled');
+                    }
+                    btnContainer.appendChild(prevBtn);
+                    const nextBtn = document.createElement('button');
+                    nextBtn.classList.add('menu_button');
+                    nextBtn.classList.add('widthNatural');
+                    nextBtn.textContent = '>';  // ▶ triangle to the right
+                    nextBtn.title = `Zoom to next message in "${sessionName}".`;  // TODO: data-i18n?
+                    const nextMessageSelector = makeNextPrevMessageSelector(file_name, 1);
+                    nextBtn.addEventListener('click', function () {
+                        const newCenterNode = theCy.elements(nextMessageSelector);
+                        theCy.stop().animate({
+                            center: { eles: newCenterNode },
+                            zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
+                            duration: 300,  // Adjust the duration as needed for a smooth transition
+                        });
+                        flashNode(newCenterNode, 2, 250);
+                        newCenterNode.emit('tap');
+                    });
+                    if (isSwipe || isLastMessage) {
+                        nextBtn.disabled = true;
+                        nextBtn.classList.add('disabled');
+                    }
+                    btnContainer.appendChild(nextBtn);
+
+                    // Create the main button
                     const navigateBtn = document.createElement('button');
                     navigateBtn.classList.add('menu_button');
                     navigateBtn.textContent = sessionName;
                     navigateBtn.title = `Find and open this message in "${sessionName}".`;  // TODO: data-i18n?
-                    if (Boolean(ele.data('isSwipe')) && !canNavigateToSwipe) {
-                        navigateBtn.disabled = true;
-                        navigateBtn.classList.add('disabled');
-                    }
                     navigateBtn.addEventListener('click', function () {
                         if (ele.data('isSwipe')) {
                             navigateToMessage(file_name, messageId, ele.data('swipeId'));
@@ -383,9 +441,14 @@ function makeTapTippy(ele) {
                         closeModal();
                         tip.hide(); // Hide the Tippy tooltip
                     });
+                    // Without creating a branch, swipes are available only at the last message of a chat.
+                    if (isSwipe && !isLastMessage) {
+                        navigateBtn.disabled = true;
+                        navigateBtn.classList.add('disabled');
+                    }
                     btnContainer.appendChild(navigateBtn);
 
-                    // 2. Create the branch button (arrow to the right)
+                    // Create the branch button (arrow to the right)
                     const branchBtn = document.createElement('button');
                     branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
                     branchBtn.textContent = '→'; // Arrow to the right
