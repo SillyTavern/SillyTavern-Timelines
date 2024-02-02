@@ -844,7 +844,7 @@ function setupEventHandlers(cy, nodeData) {
         closeOpenDrawers();
     });
 
-    // Optional: Hide the tooltip if user taps anywhere else
+    // Hide the tooltip if user taps anywhere else
     cy.on('tap', function (evt) {
         if (evt.target === cy) {
             closeActiveTapTippy();
