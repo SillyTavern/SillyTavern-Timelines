@@ -354,7 +354,7 @@ function makeTapTippy(ele) {
             const menuDiv = document.createElement('div');
             menuDiv.classList.add('menu_div');
             if (ele.data('chat_sessions')) {
-                for (const [file_name, session_metadata] of Object.entries(ele.data('chat_sessions'))) {
+                for (const [file_name, session_metadata] of Object.entries(ele.data('chat_sessions')).reverse()) {
                     // Create a container for the buttons
                     const btnContainer = document.createElement('div');
                     btnContainer.style.display = 'flex';
