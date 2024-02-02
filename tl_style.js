@@ -217,8 +217,6 @@ export function setupStylesAndData(nodeData) {
             selector: '.NoticeMe',  // This gets flashed on and off upon zooming to the current chat node
             style: {
                 'background-opacity': 0.5,
-                'width': extension_settings.timeline.nodeWidth * 0.9,
-                'height': extension_settings.timeline.nodeHeight * 0.9,
             }
         }
 
