@@ -1,5 +1,5 @@
 // @Technologicat's TODOs, early 2024:
-// TODO: When a node is hovered over or clicked, highlight its chat history edges.
+// TODO: Add prev/next buttons to full info panel actions to navigate along that chat history
 // TODO: Hotkeys (Tab to jump between chat branches matching a search).
 // TODO: Icon sizes at the top right of the timeline view should match each other.
 // TODO: Maybe refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
@@ -557,7 +557,7 @@ function createLegendItem(cy, container, item, type) {
     legendItem.addEventListener('click', function () {
         const differentLegendItemClicked = Boolean(currentlyHighlighted !== selector);
 
-        resetLegendHighlight(cy);
+        resetLegendHighlight(cy);  // Reset previous legend highlight, if any
 
         if (differentLegendItemClicked) {
             highlightElements(cy, selector);
@@ -770,14 +770,98 @@ function toggleSwipes(cy, visible) {
  * @param {Array<Object>} nodeData - Array of node data objects containing information like chat sessions.
  */
 function setupEventHandlers(cy, nodeData) {
-    let showTimeout;
-    let activeTapTippy = null;
+    let hasSetOrientation = false;  // Ensure we set the graph orientation only once
+    let activeTapTippy = null;  // currently open full info panel instance
+    let showTimeout;  // for the tooltip
 
+    // Re-run the graph layout (needed whenever nodes are added/removed)
+    function refreshLayout() {
+        layout.fit = false;
+        const cyLayout = cy.elements().makeLayout(layout);  // TODO: Difference vs. `cy.layout(layout)` (see `setOrientation` in `tl_graph.js`)?
+
+        cy.nodes().forEach(node => { node.unlock(); });
+        cyLayout.run();  // apply the layout
+        cy.nodes().forEach(node => { node.lock(); });
+    }
+
+    // Close the node full info panel, if it is open.
+    function closeActiveTapTippy() {
+        if (activeTapTippy) {
+            activeTapTippy.hide();
+            activeTapTippy = null;
+        }
+    }
+
+    // Return a truncated version of `msg` for use in a tooltip.
+    const truncateMessage = (msg, length = 100) => {
+        if (msg === undefined) {
+            return '';
+        }
+        return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
+    };
+
+    // Helper functions for edge highlight system
+
+    // Highlight the given edge(s).
+    // `edges` - Cytoscape element, or collection of Cytoscape elements.
+    function highlightEdges(edges) {
+        edges.style({
+            'opacity': 1,
+            'underlay-color': 'white',
+            'underlay-padding': '5px',
+            'underlay-opacity': 0.5,
+            'underlay-shape': 'ellipse',
+        });
+    }
+
+    // Reset the highlight of given edge(s).
+    // `edges` - Cytoscape element, or collection of Cytoscape elements.
+    function resetEdgesHighlight(edges) {
+        edges.style({
+            'opacity': 1,
+            'underlay-color': '',
+            'underlay-padding': '',
+            'underlay-opacity': '',
+            'underlay-shape': '',
+        });
+    }
+
+    // Return a Cytoscape selector that selects edges connected to `node`.
+    // `node` - Cytoscape element.
+    function getConnectedEdgesSelector(node) {
+        const nodeId = node.id();
+        const selector = function (ele) {
+            if (ele.group() !== 'edges') {
+                return false;
+            }
+            if (ele.data('source') === nodeId || ele.data('target') === nodeId) {
+                return true;
+            }
+            return false;
+        }
+        return selector;
+    }
+
+    // Highlight all edges connected to `node`.
+    // `node` - Cytoscape element.
+    function highlightConnectedEdges(node) {
+        const edges = cy.elements(getConnectedEdgesSelector(node));
+        if (edges.length > 0) {
+            highlightEdges(edges);
+        }
+    }
+
+    // Reset the highlight of all edges connected to `node`.
+    // `node` - Cytoscape element.
+    function resetConnectedEdgesHighlight(node) {
+        const edges = cy.elements(getConnectedEdgesSelector(node));
+        if (edges.length > 0) {
+            resetEdgesHighlight(edges);
+        }
+    }
+
+    // The text search field is a garden-variety DOM element, so attach an event listener the classical way.
     document.getElementById('transparent-search').addEventListener('input', function (evt) {  // apply the search
-        // // `evt.target === mainSearch`, so this is a no-op.
-        // const mainSearch = document.getElementById('transparent-search');
-        // mainSearch.value = evt.target.value;
-
         // We will now zoom to the search results, so remove the legend highlight, if any.
         resetLegendHighlight(cy);
 
@@ -790,11 +874,11 @@ function setupEventHandlers(cy, nodeData) {
                            duration: 300});
     });
 
+    // Attach event listeners to toolbar buttons.
     let modal = document.getElementById('timelinesModal');
     let rotateBtn = modal.getElementsByClassName('rotate')[0];
     rotateBtn.onclick = function () {
         toggleGraphOrientation(cy, layout);
-        //refresh the layout
         refreshLayout();
         const [eles, padding] = filterElementsAndPad(cy, undefined);
         cy.stop().animate({fit: { eles: eles, padding: padding },
@@ -825,15 +909,10 @@ function setupEventHandlers(cy, nodeData) {
         zoomToCurrentChatNode(cy);
     };
 
-    // Close the node full info panel, if it is open.
-    function closeActiveTapTippy() {
-        if (activeTapTippy) {
-            activeTapTippy.hide();
-            activeTapTippy = null;
-        }
-    }
+    // Next, attach some Cytoscape event listeners.
 
     cy.ready(function () {
+        // Creating the legend requires scanning the graph for items to label, so do it now.
         if (extension_settings.timeline.showLegend) {
             createLegend(cy);
             document.getElementById('legendDiv').style.display = 'block';
@@ -844,13 +923,63 @@ function setupEventHandlers(cy, nodeData) {
         closeOpenDrawers();
     });
 
-    // Hide the node full info panel if user taps anywhere else
-    cy.on('tap', function (evt) {
-        if (evt.target === cy) {
-            closeActiveTapTippy();
+    cy.on('render', function () {
+        if (!hasSetOrientation) {
+            hasSetOrientation = true;
+            setGraphOrientationBasedOnViewport(cy, layout);
+            cy.nodes().forEach(node => { node.lock(); });  // nodes are always locked after running the layout anyway
         }
     });
 
+    // Hide the node full info panel and reset all highlights when tapping the graph background area
+    cy.on('tap', function (evt) {
+        if (evt.target === cy) {
+            closeActiveTapTippy();
+            resetLegendHighlight(cy);  // reset legend highlight state
+            restoreElements(cy);  // remove remaining highlights, if any (from text search, and edge highlighting)
+        }
+    });
+
+    // Highlight edge on mouseover
+    cy.on('mouseover', 'edge', function (evt) {
+        const edge = evt.target;
+        highlightEdges(edge);
+    });
+    cy.on('mouseout', 'edge', function (evt) {
+        const edge = evt.target;
+        resetEdgesHighlight(edge);
+    });
+
+    // Tap an edge to jump to the node at its far end
+    cy.on('tap', 'edge', function (evt) {
+        const clickPos = evt.renderedPosition;
+
+        // Get positions of nodes connected by this edge
+        const edge = evt.target;
+        const sourceNode = cy.elements(`node[id="${edge.data('source')}"]`)[0];
+        const targetNode = cy.elements(`node[id="${edge.data('target')}"]`)[0];
+        const sourceNodePos = sourceNode.renderedPosition();
+        const targetNodePos = targetNode.renderedPosition();
+
+        // Compute squared distances
+        const dx2_source = Math.pow(clickPos.x - sourceNodePos.x, 2);
+        const dx2_target = Math.pow(clickPos.x - targetNodePos.x, 2);
+        const dy2_source = Math.pow(clickPos.y - sourceNodePos.y, 2);
+        const dy2_target = Math.pow(clickPos.y - targetNodePos.y, 2);
+        const d2_source = dx2_source + dy2_source;
+        const d2_target = dx2_target + dy2_target;
+
+        // Center and zoom in to the node that is farther away from the click position
+        let farawayNode = (d2_source > d2_target) ? sourceNode : targetNode;
+        cy.stop().animate({
+            center: { eles: farawayNode },
+            zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
+            duration: 300,  // Adjust the duration as needed for a smooth transition
+        });
+        flashNode(farawayNode, 4, 500);
+    });
+
+    // Tap a node to open the full info panel
     cy.on('tap', 'node', function (evt) {
         clearTimeout(showTimeout);  // Clear any pending timeout for showing tooltip
         let node = evt.target;
@@ -858,11 +987,15 @@ function setupEventHandlers(cy, nodeData) {
             node._tippy.hide();  // Hide the tippy instance associated with the node
         }
         closeActiveTapTippy();
+        resetLegendHighlight(cy);  // reset legend highlight state
+        restoreElements(cy);  // remove remaining highlights, if any (from text search)
+        highlightConnectedEdges(node);  // but keep the connected edge highlights
+
         activeTapTippy = makeTapTippy(node);
         activeTapTippy.show();
     });
 
-    // Handle double click on nodes for quickly navigating to the message
+    // Double-tap a node to DWIM: find first matching message and navigate to it if possible, create a branch if absolutely necessary
     cy.on('dbltap ', 'node', function (evt) {
         const node = evt.target;
 
@@ -871,7 +1004,7 @@ function setupEventHandlers(cy, nodeData) {
         const [file_name, session_metadata] = chat_sessions[0];
         const messageId = session_metadata.messageId;
 
-        // If ambiguous, show which session was selected
+        // If ambiguous, show which chat file was selected
         if (chat_sessions.length > 1) {
             toastr.info(`Multiple matches, auto-picked "${file_name}"`);
         }
@@ -884,18 +1017,12 @@ function setupEventHandlers(cy, nodeData) {
             navigateToMessage(file_name, messageId);
         }
         closeActiveTapTippy();
+        resetLegendHighlight(cy);  // reset legend highlight state
+        restoreElements(cy);  // remove remaining highlights, if any (from text search, and edge highlighting)
         closeModal();
     });
 
-    function refreshLayout() {
-        layout.fit = false;
-        const cyLayout = cy.elements().makeLayout(layout);
-
-        cy.nodes().forEach(node => { node.unlock(); });
-        cyLayout.run();  // apply the layout
-        cy.nodes().forEach(node => { node.lock(); });
-    }
-
+    // Long-tap a node to reveal/hide related swipe nodes
     cy.on('taphold', 'node', function (evt) {
         let node = evt.target;
         let nodeId = node.id();
@@ -926,30 +1053,15 @@ function setupEventHandlers(cy, nodeData) {
         }
     });
 
-    let hasSetOrientation = false;  // A flag to ensure we set the orientation only once
-
-    cy.on('render', function () {
-        if (!hasSetOrientation) {
-            hasSetOrientation = true;
-            setGraphOrientationBasedOnViewport(cy, layout);
-            cy.nodes().forEach(node => { node.lock(); });  // nodes are always locked after running the layout anyway
-        }
-    });
-
-    const truncateMessage = (msg, length = 100) => {
-        if (msg === undefined) {
-            return '';
-        }
-        return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
-    };
-
-    // TODO: Figure out how to do the delay better later
+    // Tooltip on node mouseover
     cy.on('mouseover', 'node', function (evt) {
+        let node = evt.target;
+        highlightConnectedEdges(node);
+
         if (isTapTippyActive) {
-            return;  // Return early if tap Tippy is active
+            return;  // Return early if the full info panel is open
         }
 
-        let node = evt.target;
         let truncatedMsg = truncateMessage(node.data('msg'));
         let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
 
@@ -957,13 +1069,12 @@ function setupEventHandlers(cy, nodeData) {
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
             tippy.show();
-            node._tippy = tippy;  // Store the tippy instance on the node
+            node._tippy = tippy;  // Store the tippy instance on the node (so we can hide it later)
         }, 250);
     });
-
-
     cy.on('mouseout', 'node', function (evt) {
         let node = evt.target;
+        resetConnectedEdgesHighlight(node);
 
         // Clear the timeout if the mouse is moved out before the tooltip appears
         if (showTimeout) {
@@ -972,30 +1083,20 @@ function setupEventHandlers(cy, nodeData) {
 
         if (node._tippy) {
             node._tippy.hide();
+            node._tippy = null;
         }
     });
-    // if user_message_rendered or character_message_rendered, we null the lastContext (so that the graph refreshes at the next `updateTimelineDataIfNeeded`)
+
+    // On certain chat events, null the lastContext, so that the graph refreshes at the next `updateTimelineDataIfNeeded`.
     // TODO: Are there other events we should catch?
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => {
+    function clearLastContext() {
         lastContext = null;
-    },
-    );
-    eventSource.on(event_types.USER_MESSAGE_RENDERED, () => {
-        lastContext = null;
-    },
-    );
-    eventSource.on(event_types.CHAT_DELETED, () => {
-        lastContext = null;
-    },
-    );
-    eventSource.on(event_types.CHATLOADED, () => {  // TODO: this seems wrong, no such constant?
-        lastContext = null;
-    },
-    );
-    eventSource.on(event_types.MESSAGE_SWIPED, () => {
-        lastContext = null;
-    },
-    );
+    }
+    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, clearLastContext);
+    eventSource.on(event_types.USER_MESSAGE_RENDERED, clearLastContext);
+    eventSource.on(event_types.CHAT_DELETED, clearLastContext);
+    eventSource.on(event_types.CHATLOADED, clearLastContext);  // TODO: this seems wrong, no such constant?
+    eventSource.on(event_types.MESSAGE_SWIPED, clearLastContext);
 }
 
 /**
@@ -1063,7 +1164,7 @@ async function updateTimelineDataIfNeeded() {
             spacingFactor: extension_settings.timeline.spacingFactor,  // Multiplicative factor (>0) to expand or compress the overall area that the nodes take up
             acyclicer: 'greedy',  // 'greedy' or undefined. We shouldn't need an acyclicer, but let's be careful.
             align: extension_settings.timeline.align,  // Alignment for rank nodes. Can be 'UL', 'UR', 'DL', or 'DR', where U = up, D = down, L = left, and R = right
-            sort: function(a, b){ return a.data('id') < b.data('id') },  // Layout tie-breaker: prefer the element that our `buildGraph` created first.
+            sort: function(a, b){ return a.id() < b.id() },  // Layout tie-breaker: prefer the element that our `buildGraph` created first.
         };
         return true; // Data was updated
     }
@@ -1100,16 +1201,22 @@ function zoomToCurrentChatNode(cy) {
         duration: 300,  // Adjust the duration as needed for a smooth transition
     });
 
-    // Draw the user's attention to the node
-    function flashNode(node, howManyFlashes) {
-        const duration = 500;  // half-period
-        node.flashClass('NoticeMe', duration);  // do the first flash now
-        for (let j = 1; j < howManyFlashes; j++) {  // schedule the rest
-            setTimeout(() => { node.flashClass('NoticeMe', duration); },
-                       2 * j * duration);
-        }
+    flashNode(newCenterNode, 4, 500);
+}
+
+/**
+ * Draw the user's attention to a node by flashing it on and off a few times.
+ *
+ * @param {Object} node - A Cytoscape node.
+ * @param {number} howManyFlashes - As it says on the tin.
+ * @param {number} duration - Half-period length in ms.
+ */
+function flashNode(node, howManyFlashes, duration) {
+    node.flashClass('NoticeMe', duration);  // do the first flash now
+    for (let j = 1; j < howManyFlashes; j++) {  // schedule the rest
+        setTimeout(() => { node.flashClass('NoticeMe', duration); },
+                   2 * j * duration);
     }
-    flashNode(newCenterNode, 4);
 }
 
 /**
