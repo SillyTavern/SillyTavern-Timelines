@@ -395,7 +395,7 @@ function makeTapTippy(ele) {
                             zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
                             duration: 300,  // Adjust the duration as needed for a smooth transition
                         });
-                        flashNode(newCenterNode, 2, 250);
+                        flashNode(newCenterNode, 3, 250);
                         newCenterNode.emit('tap');
                     });
                     if (isSwipe || messageId === 0) {
@@ -416,7 +416,7 @@ function makeTapTippy(ele) {
                             zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
                             duration: 300,  // Adjust the duration as needed for a smooth transition
                         });
-                        flashNode(newCenterNode, 2, 250);
+                        flashNode(newCenterNode, 3, 250);
                         newCenterNode.emit('tap');
                     });
                     if (isSwipe || isLastMessage) {
