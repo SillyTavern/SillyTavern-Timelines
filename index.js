@@ -159,7 +159,19 @@ async function loadSettings() {
     $('#char-node-color-picker').attr('color', extension_settings.timeline.charNodeColor);
 }
 
-let isTapTippyActive = false;
+let activeTapTippy = null;  // currently open full info panel instance
+let isTapTippyVisible = false;  // and whether it's open
+
+/*
+ * Close the node full info panel, if it exists.
+ */
+function closeTapTippy() {
+    if (activeTapTippy) {
+        activeTapTippy.hide();
+        activeTapTippy = null;
+        isTapTippyVisible = false;
+    }
+}
 
 /**
  * Determines preferred and fallback placements for a Tippy tooltip.
@@ -363,7 +375,13 @@ function makeTapTippy(ele) {
                     const isLastMessage = (messageId === (session_metadata.length - 1));  // in this chat session
                     const isSwipe = Boolean(ele.data('isSwipe'));
 
-                    // Create per-chat-session jump to previous/next message buttons (but not on swipe nodes)
+                    /**
+                     * Creates a Cytoscape selector that selects another message on the same timeline.
+                     *
+                     * @param {string} file_name - chat file name
+                     * @param {number} depthOffset - offset from current chat depth
+                     * @returns {Function} A Cytoscape selector that selects the matching node.
+                     */
                     function makeNextPrevMessageSelector(file_name, depthOffset) {
                         const selector = function (ele) {
                             if (ele.group() !== 'nodes') {
@@ -382,6 +400,8 @@ function makeTapTippy(ele) {
                         }
                         return selector;
                     }
+
+                    // Previous message button
                     const prevBtn = document.createElement('button');
                     prevBtn.classList.add('menu_button');
                     prevBtn.classList.add('widthNatural');
@@ -395,14 +415,17 @@ function makeTapTippy(ele) {
                             zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
                             duration: 300,  // Adjust the duration as needed for a smooth transition
                         });
+                        tip.hide();  // Hide this full info panel
                         flashNode(newCenterNode, 3, 250);
-                        newCenterNode.emit('tap');
+                        newCenterNode.emit('tap');  // And open the info panel of the previous node
                     });
                     if (isSwipe || messageId === 0) {
                         prevBtn.disabled = true;
                         prevBtn.classList.add('disabled');
                     }
                     btnContainer.appendChild(prevBtn);
+
+                    // Next message button
                     const nextBtn = document.createElement('button');
                     nextBtn.classList.add('menu_button');
                     nextBtn.classList.add('widthNatural');
@@ -416,8 +439,9 @@ function makeTapTippy(ele) {
                             zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
                             duration: 300,  // Adjust the duration as needed for a smooth transition
                         });
+                        tip.hide();  // Hide this full info panel
                         flashNode(newCenterNode, 3, 250);
-                        newCenterNode.emit('tap');
+                        newCenterNode.emit('tap');  // And open the info panel of the next node
                     });
                     if (isSwipe || isLastMessage) {
                         nextBtn.disabled = true;
@@ -425,7 +449,7 @@ function makeTapTippy(ele) {
                     }
                     btnContainer.appendChild(nextBtn);
 
-                    // Create the main button
+                    // Main button (navigate)
                     const navigateBtn = document.createElement('button');
                     navigateBtn.classList.add('menu_button');
                     navigateBtn.textContent = sessionName;
@@ -437,7 +461,9 @@ function makeTapTippy(ele) {
                             navigateToMessage(file_name, messageId);
                         }
                         closeModal();
-                        tip.hide(); // Hide the Tippy tooltip
+                        tip.hide();  // Hide this full info panel
+                        resetLegendHighlight(theCy);  // Reset the legend highlight state
+                        restoreElements(theCy);  // Remove remaining highlights, if any (from text search)
                     });
                     // Without creating a branch, swipes are available only at the last message of a chat.
                     if (isSwipe && !isLastMessage) {
@@ -446,13 +472,12 @@ function makeTapTippy(ele) {
                     }
                     btnContainer.appendChild(navigateBtn);
 
-                    // Create the branch button (arrow to the right)
+                    // Branch button
                     const branchBtn = document.createElement('button');
                     branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
                     branchBtn.textContent = '→'; // Arrow to the right
                     branchBtn.classList.add('menu_button');
                     branchBtn.classList.add('widthNatural');
-                    // add title to branch button
                     branchBtn.title = `Create a new branch from "${sessionName}", at this message, and open it.`;  // TODO: data-i18n?
                     branchBtn.addEventListener('click', function () {
                         if(ele.data('isSwipe'))
@@ -460,7 +485,9 @@ function makeTapTippy(ele) {
                         else
                             navigateToMessage(file_name, messageId, null, true);
                         closeModal();
-                        tip.hide(); // Hide the Tippy tooltip
+                        tip.hide();  // Hide this full info panel
+                        resetLegendHighlight(theCy);  // Reset the legend highlight state
+                        restoreElements(theCy);  // Remove remaining highlights, if any (from text search)
                     });
                     btnContainer.appendChild(branchBtn);
 
@@ -489,10 +516,10 @@ function makeTapTippy(ele) {
         appendTo: document.body,
         boundary: document.querySelector('#timelinesDiagramDiv'),
         onShow() {
-            isTapTippyActive = true;
+            isTapTippyVisible = true;
         },
         onHide() {
-            isTapTippyActive = false;
+            isTapTippyVisible = false;
             console.debug('Tap Tippy hidden');
         },
         popperOptions: {
@@ -832,7 +859,6 @@ function toggleSwipes(cy, visible) {
  */
 function setupEventHandlers(cy, nodeData) {
     let hasSetOrientation = false;  // Ensure we set the graph orientation only once
-    let activeTapTippy = null;  // currently open full info panel instance
     let showTimeout;  // for the tooltip
 
     // Re-run the graph layout (needed whenever nodes are added/removed)
@@ -843,14 +869,6 @@ function setupEventHandlers(cy, nodeData) {
         cy.nodes().forEach(node => { node.unlock(); });
         cyLayout.run();  // apply the layout
         cy.nodes().forEach(node => { node.lock(); });
-    }
-
-    // Close the node full info panel, if it is open.
-    function closeActiveTapTippy() {
-        if (activeTapTippy) {
-            activeTapTippy.hide();
-            activeTapTippy = null;
-        }
     }
 
     // Return a truncated version of `msg` for use in a tooltip.
@@ -995,7 +1013,7 @@ function setupEventHandlers(cy, nodeData) {
     // Hide the node full info panel and reset all highlights when tapping the graph background area
     cy.on('tap', function (evt) {
         if (evt.target === cy) {
-            closeActiveTapTippy();
+            closeTapTippy();
             resetLegendHighlight(cy);  // reset legend highlight state
             restoreElements(cy);  // remove remaining highlights, if any (from text search, and edge highlighting)
         }
@@ -1048,9 +1066,9 @@ function setupEventHandlers(cy, nodeData) {
         if (node._tippy) {
             node._tippy.hide();  // Hide the tippy instance associated with the node
         }
-        closeActiveTapTippy();
-        resetLegendHighlight(cy);  // reset legend highlight state
-        restoreElements(cy);  // remove remaining highlights, if any (from text search)
+        closeTapTippy();  // Close the previous full info panel, if any
+        resetLegendHighlight(cy);  // Reset the legend highlight state
+        restoreElements(cy);  // Remove remaining highlights, if any (from text search)
         highlightConnectedEdges(node);  // but keep the connected edge highlights
 
         activeTapTippy = makeTapTippy(node);
@@ -1078,10 +1096,11 @@ function setupEventHandlers(cy, nodeData) {
         } else {
             navigateToMessage(file_name, messageId);
         }
-        closeActiveTapTippy();
-        resetLegendHighlight(cy);  // reset legend highlight state
-        restoreElements(cy);  // remove remaining highlights, if any (from text search, and edge highlighting)
         closeModal();
+        closeTapTippy();
+        closeTippy();
+        resetLegendHighlight(cy);  // Reset the legend highlight state
+        restoreElements(cy);  // Remove remaining highlights, if any (from text search, and edge highlighting)
     });
 
     // Long-tap a node to reveal/hide related swipe nodes
@@ -1120,8 +1139,8 @@ function setupEventHandlers(cy, nodeData) {
         let node = evt.target;
         highlightConnectedEdges(node);
 
-        if (isTapTippyActive) {
-            return;  // Return early if the full info panel is open
+        if (isTapTippyVisible) {
+            return;  // No node tooltip when the full info panel is open
         }
 
         let truncatedMsg = truncateMessage(node.data('msg'));
@@ -1130,8 +1149,8 @@ function setupEventHandlers(cy, nodeData) {
         // Delay the tooltip appearance by 250 ms
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
-            tippy.show();
             node._tippy = tippy;  // Store the tippy instance on the node (so we can hide it later)
+            tippy.show();
         }, 250);
     });
     cy.on('mouseout', 'node', function (evt) {
@@ -1540,6 +1559,9 @@ function processTimelinesHotkeys(event) {
 
     if (event.key === 'Escape') {
         closeModal();
+        closeTapTippy();
         closeTippy();
+        resetLegendHighlight(theCy);  // Reset the legend highlight state
+        restoreElements(theCy);  // Remove remaining highlights, if any (from text search, and edge highlighting)
     }
 }
