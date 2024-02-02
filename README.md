@@ -47,7 +47,7 @@ Actions:
 - *Opening the timeline view* auto-zooms to the current chat, and flashes the last node *in that chat* to clearly show it on the graph.
   - This might not be the latest node on the timeline, if there is another chat that still continues after that point.
   - There is also a button to zoom to the current chat.
-- *Hovering over a node* shows a short preview of the message text.
+- *Hovering over a node* shows a short preview of the message text, and highlights all of its incoming and outgoing edges.
 - *Long-pressing a node* with swipes reveals the swipes on the graph.
   - The timeline view allows you to see and access swipes also on previous messages, not just the last one.
   - There is also a *Toggle swipes* button to reveal/hide swipes for the whole graph.
@@ -63,6 +63,8 @@ Actions:
   - If you double-click a swipe node, what happens depends on whether it is the last node in that particular chat.
     - On the last node, double-clicking a swipe opens the original chat, goes to the last message, and switches to that swipe.
     - On a non-last node, double-clicking automatically creates a new branch, opens the new chat, goes to the (now-last) message, and switches to that swipe.
+- *Hovering over an edge* highlights that edge.
+- *Clicking an edge* navigates to its far end (as measured from the click position), and zooms into the node there.
 - *Clicking a legend entry* highlights it and zooms into it. Clicking the same entry again removes the highlight, and zooms out.
 - *Typing into fulltext search* highlights and zooms to the search results in realtime. When no match, or if you clear the search, it zooms out.
 
