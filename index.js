@@ -364,7 +364,7 @@ function makeTapTippy(ele) {
                     const isLastMessage = (messageId === (session_metadata.length - 1));  // in this chat session
                     const isSwipe = Boolean(ele.data('isSwipe'));
 
-                    // Create jump to previous/next message buttons (but not on swipe nodes)
+                    // Create per-chat-session jump to previous/next message buttons (but not on swipe nodes)
                     function makeNextPrevMessageSelector(file_name, depthOffset) {
                         const selector = function (ele) {
                             if (ele.group() !== 'nodes') {
