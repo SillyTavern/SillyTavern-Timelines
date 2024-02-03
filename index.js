@@ -285,6 +285,7 @@ function makeTippy(ele, text, pos) {
 
             if (text) {
                 const mesDiv = document.createElement('div');
+                mesDiv.classList.add('mes_text');
                 mesDiv.innerHTML = text;
                 div.appendChild(mesDiv);
 
