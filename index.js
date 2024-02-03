@@ -712,7 +712,20 @@ function filterElementsAndPad(cy, selector) {
     if (eles.length > 0) {
         const zoomToFit = calculateFitZoom(cy, eles);
         if (zoomToFit >= 1.0) {
-            padding = zoomToFit * extension_settings.timeline.nodeWidth;
+            const nodeSize = Math.max(extension_settings.timeline.nodeWidth,
+                                      extension_settings.timeline.nodeHeight);  // in model pixels
+            const nodeSizeRendered = zoomToFit * nodeSize;  // in rendered pixels
+            let padding = nodeSizeRendered;
+
+            // Limit padding so that at least one node fits into the viewport.
+            // This prevents the graph from zooming out due to an insane theoretical amount
+            // of padding at very high zoom levels.
+            const view_w = cy.width();
+            const view_h = cy.height();
+            const view_min = Math.min(view_w, view_h);
+            if (nodeSizeRendered + 2 * padding > view_min) {
+                padding = math.Round((view_min - nodeSizeRendered) / 2.0);
+            }
         }
     } else {
         eles = cy.filter();  // zoom out (select all elements) if the selector didn't match
