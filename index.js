@@ -422,7 +422,7 @@ function makeTapTippy(ele) {
                      * @param {number} depthOffset - offset from current chat depth
                      * @returns {Function} A Cytoscape selector that selects the matching node.
                      */
-                    function makeNextPrevMessageSelector(file_name, depthOffset) {
+                    function makeTimelineNavigationMessageSelector(file_name, depthOffset) {
                         const selector = function (ele) {
                             if (ele.group() !== 'nodes') {
                                 return false;
@@ -441,55 +441,57 @@ function makeTapTippy(ele) {
                         return selector;
                     }
 
-                    // Previous message button
+                    /**
+                     * Creates an event listener function that navigates to another message on the same timeline.
+                     *
+                     * @param {Function} A Cytoscape selector that selects the desired node.
+                     * @returns {Function} An event listener that can be wired up to a 'click' event
+                     *                     that, when called, jumps to the node selected by the selector,
+                     *                     and opens its full info panel.
+                     */
+                    function makeTimelineNavigationClickListener(selector) {
+                        return function () {
+                            const newCenterNode = theCy.elements(selector);
+                            theCy.stop().animate({
+                                center: { eles: newCenterNode },
+                                zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
+                                duration: 300,  // Adjust the duration as needed for a smooth transition
+                            });
+                            tip.hide();  // Hide this full info panel
+                            flashNode(newCenterNode, 3, 250);
+                            newCenterNode.emit('tap');  // And open the info panel of the jumped-to node
+                        };
+                    }
+
+                    // 1. Previous message (on this timeline) button
                     const prevBtn = document.createElement('button');
                     prevBtn.classList.add('menu_button');
                     prevBtn.classList.add('widthNatural');
                     prevBtn.textContent = '<';  // ◀ triangle to the left
                     prevBtn.title = `Zoom to previous message in "${sessionName}".`;  // TODO: data-i18n?
-                    const prevMessageSelector = makeNextPrevMessageSelector(file_name, -1);
-                    prevBtn.addEventListener('click', function () {
-                        const newCenterNode = theCy.elements(prevMessageSelector);
-                        theCy.stop().animate({
-                            center: { eles: newCenterNode },
-                            zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
-                            duration: 300,  // Adjust the duration as needed for a smooth transition
-                        });
-                        tip.hide();  // Hide this full info panel
-                        flashNode(newCenterNode, 3, 250);
-                        newCenterNode.emit('tap');  // And open the info panel of the previous node
-                    });
+                    const prevMessageSelector = makeTimelineNavigationMessageSelector(file_name, -1);
+                    prevBtn.addEventListener('click', makeTimelineNavigationClickListener(prevMessageSelector));
                     if (isSwipe || messageId === 0) {
                         prevBtn.disabled = true;
                         prevBtn.classList.add('disabled');
                     }
                     btnContainer.appendChild(prevBtn);
 
-                    // Next message button
+                    // 2. Next message (on this timeline) button
                     const nextBtn = document.createElement('button');
                     nextBtn.classList.add('menu_button');
                     nextBtn.classList.add('widthNatural');
                     nextBtn.textContent = '>';  // ▶ triangle to the right
                     nextBtn.title = `Zoom to next message in "${sessionName}".`;  // TODO: data-i18n?
-                    const nextMessageSelector = makeNextPrevMessageSelector(file_name, 1);
-                    nextBtn.addEventListener('click', function () {
-                        const newCenterNode = theCy.elements(nextMessageSelector);
-                        theCy.stop().animate({
-                            center: { eles: newCenterNode },
-                            zoom: Number(extension_settings.timeline.zoomToCurrentChatZoom),
-                            duration: 300,  // Adjust the duration as needed for a smooth transition
-                        });
-                        tip.hide();  // Hide this full info panel
-                        flashNode(newCenterNode, 3, 250);
-                        newCenterNode.emit('tap');  // And open the info panel of the next node
-                    });
+                    const nextMessageSelector = makeTimelineNavigationMessageSelector(file_name, 1);
+                    nextBtn.addEventListener('click', makeTimelineNavigationClickListener(nextMessageSelector));
                     if (isSwipe || isLastMessage) {
                         nextBtn.disabled = true;
                         nextBtn.classList.add('disabled');
                     }
                     btnContainer.appendChild(nextBtn);
 
-                    // Main button (navigate)
+                    // 3. Main button (open this chat)
                     const navigateBtn = document.createElement('button');
                     navigateBtn.classList.add('menu_button');
                     navigateBtn.textContent = sessionName;
@@ -512,7 +514,7 @@ function makeTapTippy(ele) {
                     }
                     btnContainer.appendChild(navigateBtn);
 
-                    // Branch button
+                    // 4. Branch button (branch a new chat at this node)
                     const branchBtn = document.createElement('button');
                     branchBtn.classList.add('branch_button'); // You might want to style this button differently in your CSS
                     branchBtn.textContent = '→'; // Arrow to the right
