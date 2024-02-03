@@ -738,7 +738,13 @@ function calculateFitZoom(cy, eles) {
     const view_h = cy.height();
     const zoomToFit_w = view_w / bb.w;
     const zoomToFit_h = view_h / bb.h;
-    const zoomToFit = Math.min(zoomToFit_w, zoomToFit_h);
+    let zoomToFit = Math.min(zoomToFit_w, zoomToFit_h);
+    if (extension_settings.timeline.enableMinZoom && (zoomToFit < Number(extension_settings.timeline.minZoom))) {
+        zoomToFit = Number(extension_settings.timeline.minZoom);
+    }
+    if (extension_settings.timeline.enableMaxZoom && (zoomToFit > Number(extension_settings.timeline.maxZoom))) {
+        zoomToFit = Number(extension_settings.timeline.maxZoom);
+    }
     return zoomToFit;
 }
 
