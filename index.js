@@ -952,7 +952,7 @@ function setupEventHandlers(cy, nodeData) {
         resetLegendHighlight(cy);
 
         const query = textSearchElement.value;
-        const selector = highlightNodesByQuery(cy, query);  // -> selector function, or undefined if no match
+        const selector = highlightNodesByQuery(cy, query, 'fragments');  // -> selector function, or undefined if no match
 
         // Zoom to the matched elements (or zoom out if none)
         const [eles, padding] = filterElementsAndPad(cy, selector);

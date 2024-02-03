@@ -66,27 +66,83 @@ function setOrientation(cy, orientation, layout) {
  *
  * @param {Object} cy - The Cytoscape instance representing the graph.
  * @param {string} query - The query used to match and highlight nodes.
+ * @param {string} searchMode - One of the following:
+ *                                 'fragments': do a fragment search, like Helm in Emacs:
+ *                                     The search string is split at whitespaces to produce *fragments*.
+ *                                     Each fragment is a search term. The search matches if all fragments match,
+ *                                     but their ordering does not matter.
+ *
+ *                                     E.g. the search "high que nod" will match the name of this function,
+ *                                     "highlightNodesByQuery".
+ *
+ *                                     Fragment search tends cut down on user time spent to find the desired item.
+ *
+ *                                 'substring': do a classical substring search.
+ *
  * @returns {function} The selector that was used to match and highlight nodes, built from the query,
  *                     or `undefined` if no match (so that you can e.g. pass this to `cy.filter` to select all).
  */
-export function highlightNodesByQuery(cy, query) {
+export function highlightNodesByQuery(cy, query, searchMode) {
+    // Sanity check
+    if (!(['fragments', 'substring']).includes(searchMode)) {
+        throw new RangeError(`Timelines: unknown search mode '${searchMode}'; valid: 'fragments', 'substring'.`);
+    }
+
     // If there's no query, restore elements to their original state.
+    query = query.trim();  // A query consisting of only whitespace doesn't count.
     if (!query || query === '') {
         restoreElements(cy);
         return;
     }
 
-    // Create a selector for nodes where the 'msg' property contains the query
-    // const selector = `node[msg @*= "${query}"]`;
-    const selector = function (ele) {  // safe against special characters in `query`
-        if (ele.group() !== 'nodes') {
+    const queryLowerCase = query.toLowerCase();
+    let fragments;
+    if (searchMode === 'fragments') {
+        // A fragment is any whitespace-delimited part of `query`.
+        fragments = query.split(/\s+/).map( function (str) { return str.trim(); } );
+        // fragments = fragments.filter( function(str) { return str.length >= 3; } );
+        fragments = fragments.map( function (str) { return str.toLowerCase(); } );  // lowercase them just once to speed up searching
+    }
+
+    // https://github.com/Technologicat/js-for-pythonistas
+    function all (predicate, iterable) {  // Same semantics as in Python.
+        for (const x of iterable) {
+            if (!predicate(x)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // const selector = `node[msg @*= "${query}"]`;  // classical substring search
+    let selector;
+    if (searchMode === 'fragments') {
+        selector = function (ele) {  // use a function even in substring mode to be safe against special characters in `query`
+            if (ele.group() !== 'nodes') {
+                return false;
+            }
+            const msg = ele.data('msg');
+            if (!msg) {
+                return false;
+            }
+            const msgLowerCase = msg.toLowerCase();
+            if (all(function (str) { return msgLowerCase.includes(str); },
+                  fragments)) {
+                return true;
+            }
             return false;
-        }
-        const msg = ele.data('msg');
-        if (msg && msg.toLowerCase().includes(query.toLowerCase())) {
-            return true;
-        }
-        return false;
+        };
+    } else {  // (searchMode === 'substring')
+        selector = function (ele) {  // use a function even in substring mode to be safe against special characters in `query`
+            if (ele.group() !== 'nodes') {
+                return false;
+            }
+            const msg = ele.data('msg');
+            if (msg && msg.toLowerCase().includes(queryLowerCase)) {
+                return true;
+            }
+            return false;
+        };
     }
 
     // If no nodes match the selector, restore elements.
