@@ -945,18 +945,27 @@ function setupEventHandlers(cy, nodeData) {
         }
     }
 
-    // The text search field is a garden-variety DOM element, so attach an event listener the classical way.
-    document.getElementById('transparent-search').addEventListener('input', function (evt) {  // apply the search
+    // Apply the search currently in the text search field.
+    const textSearchElement = document.getElementById('transparent-search');
+    function performTextSearch() {
         // We will now zoom to the search results, so remove the legend highlight, if any.
         resetLegendHighlight(cy);
 
-        const query = evt.target.value.toLowerCase();
+        const query = textSearchElement.value;
         const selector = highlightNodesByQuery(cy, query);  // -> selector function, or undefined if no match
 
         // Zoom to the matched elements (or zoom out if none)
         const [eles, padding] = filterElementsAndPad(cy, selector);
         cy.stop().animate({fit: { eles: eles, padding: padding },
                            duration: 300});
+    }
+
+    // The text search field is a garden-variety DOM element, so attach an event listener the classical way.
+    textSearchElement.addEventListener('input', function (evt) {
+        performTextSearch();
+    });
+    textSearchElement.addEventListener('focus', function (evt) {
+        performTextSearch();
     });
 
     // Attach event listeners to toolbar buttons.
@@ -1328,11 +1337,10 @@ async function onTimelineButtonClick() {
     // Let the window layout settle itself for 500 ms before trying to zoom
     // (this avoids some failed pans/zooms).
     setTimeout(() => {
-        zoomToCurrentChatNode(theCy);
-
         let searchElement = document.getElementById('transparent-search');
         searchElement.focus();
         searchElement.select();  // select content for easy erasing
+        zoomToCurrentChatNode(theCy);  // override the zoom-to-search
         // searchElement.dispatchEvent(new Event('input'));  // apply the search (maybe not - we're already zooming to the current chat)
     }, 500);
 }
