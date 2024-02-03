@@ -263,6 +263,7 @@ function makeTippy(ele, text) {
     const isSwipe = Boolean(ele.data('isSwipe'));
     const placements = getTippyPlacements(isSwipe);
 
+    // We position the tooltip manually so it doesn't have a real target element.
     const dummyDomEle = document.createElement('div');
 
     const tip = tippy(dummyDomEle, {
@@ -363,6 +364,7 @@ function makeTapTippy(ele) {
     const isSwipe = Boolean(ele.data('isSwipe'));
     const placements = getTippyPlacements(isSwipe);
 
+    // We position the tooltip manually so it doesn't have a real target element.
     const dummyDomEle = document.createElement('div');
 
     const tip = tippy(dummyDomEle, {
