@@ -750,11 +750,12 @@ function filterElementsAndPad(cy, selector) {
     if (eles.length > 0) {
         const zoomToFit = calculateFitZoom(cy, eles);
         if (zoomToFit >= 1.0) {
+            // Compute the size of one node, in rendered pixels, at the zoom level that would be required to fit the selected content exactly.
             const nodeWidthRendered = zoomToFit * extension_settings.timeline.nodeWidth;
             const nodeHeightRendered = zoomToFit * extension_settings.timeline.nodeHeight;
             padding = Math.min(nodeWidthRendered, nodeHeightRendered);  // arbitrary, but maybe better than max
 
-            // Limit padding so that at least one node fits into the viewport, regardless of how far in we zoom.
+            // Limit padding so that at least one node always fits into the viewport, regardless of how far in we zoom.
             // This prevents the graph from zooming out due to an insane theoretical amount of padding (more than viewport size)
             // when the auto-zoom zooms in really close.
             //
