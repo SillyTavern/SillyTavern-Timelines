@@ -64,7 +64,7 @@ import { event_types, eventSource, saveSettingsDebounced } from '../../../../scr
 import { navigateToMessage, closeModal, closeTippy, handleModalDisplay, closeOpenDrawers } from './tl_utils.js';
 import { setupStylesAndData, highlightElements, restoreElements } from './tl_style.js';
 import { fetchData, prepareData } from './tl_node_data.js';
-import { toggleGraphOrientation, highlightNodesByQuery, setGraphOrientationBasedOnViewport, getGraphOrientation } from './tl_graph.js';
+import { toggleGraphOrientation, highlightNodesByQuery, makeQueryFragments, setGraphOrientationBasedOnViewport, getGraphOrientation } from './tl_graph.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
 import { fixMarkdown } from '../../../power-user.js';
 
@@ -212,6 +212,43 @@ function getTippyPlacements(isSwipe) {
         }
     }
     return placements;
+}
+
+/**
+ * If a text search is active (the query in the UI is not blank), highlights matches in `text`
+ * by adding HTML formatting. Uses the `timelines-text-search-match` class from the CSS.
+ *
+ * If no text search is active, returns `text` as-is.
+ *
+ * Designed for plain text input. Your mileage may vary, especially with HTML input
+ * where the tags may trigger spurious matches.
+ *
+ * @param {string} text - The text to highlight matches in.
+ * @returns {string} The same text, with search matches highlighted.
+ */
+function highlightTextSearchMatches(text) {
+    const textSearchElement = document.getElementById('transparent-search');
+    const query = textSearchElement.value.trim();
+    if (query) {
+        // Our text search uses the 'fragments' search mode.
+        //
+        // We match the fragments from longest to shortest. This prefers
+        // the longest match when the fragments have common substrings.
+        // For example, "laser las".
+        //
+        // Also we must match all fragments simultaneously, to avoid e.g. "las" matching
+        // the "<font class=...>" inserted by this highlighter when it first highlights "laser".
+        //
+        const fragments = makeQueryFragments(query, false);
+        fragments.sort(function (a, b) { return b.length - a.length });
+        const regEx = new RegExp(`(${fragments.join('|')})`, "ig");
+
+        // // This would be what to do in 'substring' search mode:
+        // const regEx = new RegExp(query, "ig");
+
+        text = text.replaceAll(regEx, '<font class="timelines-text-search-match">$1</font>');
+    }
+    return text;
 }
 
 /**
@@ -502,7 +539,9 @@ function makeTapTippy(ele) {
             // Add the message content.
             const mesDiv = document.createElement('div');
             mesDiv.classList.add('mes_text');
-            mesDiv.innerHTML = formatNodeMessage(ele.data('msg'));
+            let formattedMsg = formatNodeMessage(ele.data('msg'));
+            formattedMsg = highlightTextSearchMatches(formattedMsg);
+            mesDiv.innerHTML = formattedMsg;
             div.appendChild(mesDiv);
 
             return div;
@@ -1172,6 +1211,10 @@ function setupEventHandlers(cy, nodeData) {
 
         const truncatedMsg = truncateMessage(node.data('msg'));
         let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
+
+        // TODO: This does not highlight matches across the truncation boundary.
+        // To do that, we would have to highlight first, but then avoid breaking the highlighting HTML when we truncate.
+        content = highlightTextSearchMatches(content);
 
         // Delay the tooltip appearance by 250 ms
         showTimeout = setTimeout(() => {

@@ -213,6 +213,11 @@
     z-index: 10;
 }
 
+.timelines-text-search-match {
+    font-weight: bold;
+    color: red;
+}
+
 .tippy-box {  /* Pretty much everything rendered by Cytoscape or Tippy */
     background-color: rgba(255, 255, 255, 0.7);  /* TODO: Overridden by Cytoscape theme, so we don't actually need this here? (same for some other `background-color` items) */
     backdrop-filter: blur(var(--SmartThemeBlurStrength));
