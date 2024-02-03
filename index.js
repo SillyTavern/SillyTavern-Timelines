@@ -173,7 +173,7 @@ function closeTapTippy() {
 }
 
 /**
- * Determines preferred and fallback placements for a Tippy tooltip.
+ * Determines preferred and fallback placements for a Tippy tooltip on a graph node.
  *
  * Accounts for graph orientation, and avoids covering those nearby nodes that are
  * most likely to be important.
@@ -186,7 +186,7 @@ function closeTapTippy() {
  *                       https://atomiks.github.io/tippyjs/v6/all-props/#placement
  *                       https://popper.js.org/docs/v2/modifiers/flip/
  */
-function getTippyPlacements(isSwipe) {
+function getNodeTippyPlacements(isSwipe) {
     const graphOrientation = getGraphOrientation();
     let placements = {};
     if (graphOrientation === 'LR') {  // graph LR -> regular nodes left-to-right, swipes top-to-bottom
@@ -255,13 +255,23 @@ function highlightTextSearchMatches(text) {
  * Creates a Tippy tooltip for a given Cytoscape element with specified content.
  *
  * @param {Object} ele - The Cytoscape element (node/edge) to attach the tooltip to.
- * @param {string} text - The content to be displayed inside the tooltip.
+ * @param {string} text - Optional. The content to be displayed inside the tooltip.
+ *                        Beside this text, if any, instructions of what can be done
+ *                        with the element are always displayed.
+ * @param {Object} pos - Optional. Manual position for tooltip, in screen coordinates.
+ *                       If not given, default is to position it near `ele`.
  * @returns {Object} - Returns the Tippy tooltip instance.
  */
-function makeTippy(ele, text) {
-    const ref = getTooltipReference(ele, 'hover');
-    const isSwipe = Boolean(ele.data('isSwipe'));
-    const placements = getTippyPlacements(isSwipe);
+function makeTippy(ele, text, pos) {
+    const ref = getTooltipReference(ele, 'hover', pos);
+    const isNode = (ele.group() === 'nodes');
+    const isSwipe = Boolean(ele.data('isSwipe'));  // only used for nodes
+    let placements;
+    if (isNode) {
+        placements = getNodeTippyPlacements(isSwipe);
+    } else {
+        placements = { preferred: 'top' };  // to avoid covering nodes on the same timeline
+    }
 
     // We position the tooltip manually so it doesn't have a real target element.
     const dummyDomEle = document.createElement('div');
@@ -271,11 +281,37 @@ function makeTippy(ele, text) {
         trigger: 'manual',
         duration: 0,  // No animation duration
         content: function () {
-            var div = document.createElement('div');
-            div.innerHTML = text;
+            const div = document.createElement('div');
+
+            if (text) {
+                const mesDiv = document.createElement('div');
+                mesDiv.innerHTML = text;
+                div.appendChild(mesDiv);
+
+                div.appendChild(document.createElement('hr'));
+            }
+
+            const instructionDiv = document.createElement('div');
+            let instructionText = '<small><i>';
+            if (isNode) {
+                if (isSwipe) {
+                    instructionText += '<b>This node is a swipe.</b><br>';
+                }
+                if (ele.data('totalSwipes') > 0) {
+                    instructionText += '<b>This node has swipes.</b> Click and hold to toggle.<br>';
+                }
+                instructionText += 'Click to open full info and actions.<br>';
+                instructionText += 'Double-click to quick-open first matching chat.';
+            } else {  // edge
+                instructionText += 'Click to follow edge.';
+            }
+            instructionText += '</i></small>';
+            instructionDiv.innerHTML = instructionText;
+            div.appendChild(instructionDiv);
+
             return div;
         },
-        arrow: true,
+        arrow: isNode,  // The tooltip arrow pointing to the graph element only makes sense for a node.
         placement: extension_settings.timeline.fixedHoverTooltip ? 'top-start' : placements.preferred,
         hideOnClick: true,
         sticky: 'reference',
@@ -362,7 +398,7 @@ function formatNodeMessage(mes) {
 function makeTapTippy(ele) {
     const ref = getTooltipReference(ele, 'full_info_panel');
     const isSwipe = Boolean(ele.data('isSwipe'));
-    const placements = getTippyPlacements(isSwipe);
+    const placements = getNodeTippyPlacements(isSwipe);
 
     // We position the tooltip manually so it doesn't have a real target element.
     const dummyDomEle = document.createElement('div');
@@ -859,19 +895,31 @@ function getFixedReferenceClientRect() {
  *
  * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip reference is being determined.
  * @param {string} kind - Tooltip kind: one of "hover", "full_info_panel".
+ * @param {Object} pos - Optional. Manual position for tooltip, in screen coordinates.
+ *                       If not given, default is to position it near `ele`.
  * @returns {Function} - A function returning the client bounding rectangle of the reference element.
  *
  * If the fixedTooltip setting is enabled, the reference is the bottom-left corner of the screen;
  * otherwise, it is the position of the provided Cytoscape element.
  */
-function getTooltipReference(ele, kind) {
+function getTooltipReference(ele, kind, pos) {
     const fixedPosition = (kind === "hover") ? extension_settings.timeline.fixedHoverTooltip : extension_settings.timeline.fixedTooltip;
     if (fixedPosition) {
         // TODO: No idea why we need to wrap this into a function instead of just returning the bound method itself
         //       (maybe the query selector instance gets GC'd too early?), but there you have it.
         return getFixedReferenceClientRect;  // Reference: zero-size div fixed at the bottom-left corner (see `timeline.html`)
-    } else {
-        return ele.popperRef().getBoundingClientRect;  // Node's position
+    } else if (pos) {  // Manually specified position
+        return () => ({
+            width: 0,
+            height: 0,
+            left: pos.x,
+            right: pos.x,
+            top: pos.y,
+            bottom: pos.y,
+        });
+    }
+    else {
+        return ele.popperRef().getBoundingClientRect;  // The graph element's position
     }
 }
 
@@ -1101,10 +1149,34 @@ function setupEventHandlers(cy, nodeData) {
     cy.on('mouseover', 'edge', function (evt) {
         const edge = evt.target;
         highlightEdges(edge);
+
+        if (isTapTippyVisible) {
+            return;  // No node tooltip when the full info panel is open
+        }
+
+        // Edges can be long and sometimes only partly visible in the viewport,
+        // so use manual positioning for the tooltip.
+        const mousePos = {x: evt.originalEvent.clientX,
+                          y: evt.originalEvent.clientY};
+        showTimeout = setTimeout(() => {
+            let tippy = makeTippy(edge, undefined, mousePos);  // no text content other than the automatic instruction
+            edge._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
+            tippy.show();
+        }, 250);  // Delay the tooltip appearance by 250 ms
     });
     cy.on('mouseout', 'edge', function (evt) {
         const edge = evt.target;
         resetEdgesHighlight(edge);
+
+        // Clear the timeout if the mouse is moved out before the tooltip appears
+        if (showTimeout) {
+            clearTimeout(showTimeout);
+        }
+
+        if (edge._tippy) {
+            edge._tippy.hide();
+            edge._tippy = null;
+        }
     });
 
     // Tap an edge to jump to the node at its far end
@@ -1230,7 +1302,7 @@ function setupEventHandlers(cy, nodeData) {
 
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
-            node._tippy = tippy;  // Store the tippy instance on the node (so we can hide it later)
+            node._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
             tippy.show();
         }, 250);  // Delay the tooltip appearance by 250 ms
     });
