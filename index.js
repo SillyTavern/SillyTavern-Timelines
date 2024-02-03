@@ -750,19 +750,20 @@ function filterElementsAndPad(cy, selector) {
     if (eles.length > 0) {
         const zoomToFit = calculateFitZoom(cy, eles);
         if (zoomToFit >= 1.0) {
-            const nodeSize = Math.max(extension_settings.timeline.nodeWidth,
-                                      extension_settings.timeline.nodeHeight);  // in model pixels
-            const nodeSizeRendered = zoomToFit * nodeSize;  // in rendered pixels
-            let padding = nodeSizeRendered;
+            const nodeWidthRendered = zoomToFit * extension_settings.timeline.nodeWidth;
+            const nodeHeightRendered = zoomToFit * extension_settings.timeline.nodeHeight;
+            padding = Math.min(nodeWidthRendered, nodeHeightRendered);  // arbitrary, but maybe better than max
 
-            // Limit padding so that at least one node fits into the viewport.
-            // This prevents the graph from zooming out due to an insane theoretical amount
-            // of padding at very high zoom levels.
+            // Limit padding so that at least one node fits into the viewport, regardless of how far in we zoom.
+            // This prevents the graph from zooming out due to an insane theoretical amount of padding (more than viewport size)
+            // when the auto-zoom zooms in really close.
+            //
+            // In practice: if one node would take >= 50% of horizontal or vertical viewport space, reserve 25% of the smaller
+            // viewport dimension for padding on each side, to clamp the size of one node along that dimension to at most 50%.
             const view_w = cy.width();
             const view_h = cy.height();
-            const view_min = Math.min(view_w, view_h);
-            if (nodeSizeRendered + 2 * padding > view_min) {
-                padding = math.Round((view_min - nodeSizeRendered) / 2.0);
+            if ((nodeWidthRendered >= 0.5 * view_w) || (nodeHeightRendered >= 0.5 * view_h)) {
+                padding = Math.min(0.25 * view_w, 0.25 * view_h);
             }
         }
     } else {
