@@ -963,7 +963,7 @@ function setupEventHandlers(cy, nodeData) {
         // We will now zoom to the search results, so remove the legend highlight, if any.
         resetLegendHighlight(cy);
 
-        const query = textSearchElement.value;
+        const query = textSearchElement.value.trim();  // A query consisting of only whitespace doesn't count.
         const selector = highlightNodesByQuery(cy, query, 'fragments');  // -> selector function, or undefined if no match
 
         // Zoom to the matched elements (or zoom out if none)
