@@ -1240,6 +1240,9 @@ async function updateTimelineDataIfNeeded() {
 
         lastContext = context; // Update `lastContext` to the current context
         console.info('Timeline data updated');
+
+        // https://github.com/cytoscape/cytoscape.js-dagre
+        // https://js.cytoscape.org/#layouts
         layout = {
             name: 'dagre',
             nodeDimensionsIncludeLabels: true,
