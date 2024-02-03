@@ -1170,7 +1170,7 @@ function setupEventHandlers(cy, nodeData) {
             return;  // No node tooltip when the full info panel is open
         }
 
-        let truncatedMsg = truncateMessage(node.data('msg'));
+        const truncatedMsg = truncateMessage(node.data('msg'));
         let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
 
         // Delay the tooltip appearance by 250 ms
