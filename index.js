@@ -1232,7 +1232,7 @@ function setupEventHandlers(cy, nodeData) {
         }, 250);  // Delay the tooltip appearance by 250 ms
     });
     cy.on('mouseout', 'node', function (evt) {
-        let node = evt.target;
+        const node = evt.target;
         resetConnectedEdgesHighlight(node);
 
         // Clear the timeout if the mouse is moved out before the tooltip appears
