@@ -267,9 +267,8 @@ function makeTippy(ele, text) {
 
     const tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref,
-        trigger: 'mouseenter',
-        delay: [1000, 1000], // 0ms delay for both show and hide
-        duration: 0, // No animation duration
+        trigger: 'manual',
+        duration: 0,  // No animation duration
         content: function () {
             var div = document.createElement('div');
             div.innerHTML = text;
@@ -369,7 +368,7 @@ function makeTapTippy(ele) {
     const tip = tippy(dummyDomEle, {
         getReferenceClientRect: ref,
         trigger: 'manual',
-        duration: 0,
+        duration: 0,  // No animation duration
         content: function () {
             const div = document.createElement('div');
             div.classList.add('tap_tippy_content');
