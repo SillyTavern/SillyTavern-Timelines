@@ -945,7 +945,6 @@ function setupEventHandlers(cy, nodeData) {
     // `edges` - Cytoscape element, or collection of Cytoscape elements.
     function highlightEdges(edges) {
         edges.style({
-            'opacity': 1,
             'underlay-color': 'white',
             'underlay-padding': '5px',
             'underlay-opacity': 0.5,
@@ -957,7 +956,6 @@ function setupEventHandlers(cy, nodeData) {
     // `edges` - Cytoscape element, or collection of Cytoscape elements.
     function resetEdgesHighlight(edges) {
         edges.style({
-            'opacity': 1,
             'underlay-color': '',
             'underlay-padding': '',
             'underlay-opacity': '',
