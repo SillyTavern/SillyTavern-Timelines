@@ -735,7 +735,7 @@ function resetLegendHighlight(cy)
 }
 
 /**
- * Selects elements for zooming to fit, and calculates padding.
+ * Selects elements for zooming to fit, and calculates the `padding` parameter for Cytoscape.
  * This is the higher-level function that uses `calculateFitZoom`, which see.
  *
  * Leaves one node size of padding if zoomed in (= 100% or closer), and 20px otherwise.
