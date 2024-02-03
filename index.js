@@ -790,6 +790,7 @@ function calculateFitZoom(cy, eles) {
     const zoomToFit_w = view_w / bb.w;
     const zoomToFit_h = view_h / bb.h;
     let zoomToFit = Math.min(zoomToFit_w, zoomToFit_h);
+    // If we are applying min/max zoom (via `cy.minZoom`/`cy.maxZoom`), Cytoscape will respect that, so we should too.
     if (extension_settings.timeline.enableMinZoom && (zoomToFit < Number(extension_settings.timeline.minZoom))) {
         zoomToFit = Number(extension_settings.timeline.minZoom);
     }
