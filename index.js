@@ -1349,11 +1349,11 @@ async function onTimelineButtonClick() {
     // Let the window layout settle itself for 500 ms before trying to zoom
     // (this avoids some failed pans/zooms).
     setTimeout(() => {
-        let searchElement = document.getElementById('transparent-search');
-        searchElement.focus();
-        searchElement.select();  // select content for easy erasing
+        let textSearchElement = document.getElementById('transparent-search');
+        textSearchElement.focus();
+        textSearchElement.select();  // select content for easy erasing
         zoomToCurrentChatNode(theCy);  // override the zoom-to-search
-        // searchElement.dispatchEvent(new Event('input'));  // apply the search (maybe not - we're already zooming to the current chat)
+        // textSearchElement.dispatchEvent(new Event('input'));  // no need to trigger input event to perform search, since now focusing the element already searches
     }, 500);
 }
 
@@ -1581,9 +1581,9 @@ function processTimelinesHotkeys(event) {
     // console.log(event);  // debug/development
 
     if (event.ctrlKey && event.shiftKey && event.key === 'F') {  // A bare "Ctrl+F" would also trigger the browser's search field
-        const searchElement = document.getElementById('transparent-search');
-        searchElement.focus();
-        searchElement.select();  // select content for easy erasing
+        const textSearchElement = document.getElementById('transparent-search');
+        textSearchElement.focus();
+        textSearchElement.select();  // select content for easy erasing
     }
 
     if (event.key === 'Escape') {
