@@ -60,6 +60,28 @@ function setOrientation(cy, orientation, layout) {
 }
 
 /**
+ * Extracts unique fragments for fragment search from the query string.
+ * A fragment is any whitespace-delimited part of `query`.
+ *
+ * If you only call `highlightNodesByQuery`, you don't need this function.
+ * This is only needed when you want to do something else with the fragments,
+ * e.g. if you want to use them to highlight matching parts in the results.
+ *
+ * @param {string} query - The text search query string.
+ * @param {Boolesn} doLowerCase - Whether to lowercase the fragments.
+ * @returns {Array} The fragment strings, in an array.
+ */
+export function makeQueryFragments(query, doLowerCase) {
+    let fragments = query.trim().split(/\s+/).map( function (str) { return str.trim(); } );
+    fragments = [...new Set(fragments)];  // uniques only
+    // fragments = fragments.filter( function(str) { return str.length >= 3; } );  // Helm in Emacs does this, but perhaps better if we don't.
+    if (doLowerCase) {
+        fragments = fragments.map( function (str) { return str.toLowerCase(); } );
+    }
+    return fragments;
+}
+
+/**
  * Highlights nodes in the graph based on a provided query.
  * Nodes where the 'msg' property contains the query will be highlighted, while others will be dimmed.
  * If no nodes match the query or if the query is empty, all nodes will be restored to their original state.
@@ -89,7 +111,6 @@ export function highlightNodesByQuery(cy, query, searchMode) {
     }
 
     // If there's no query, restore elements to their original state.
-    query = query.trim();  // A query consisting of only whitespace doesn't count.
     if (!query || query === '') {
         restoreElements(cy);
         return;
@@ -98,10 +119,7 @@ export function highlightNodesByQuery(cy, query, searchMode) {
     const queryLowerCase = query.toLowerCase();
     let fragments;
     if (searchMode === 'fragments') {
-        // A fragment is any whitespace-delimited part of `query`.
-        fragments = query.split(/\s+/).map( function (str) { return str.trim(); } );
-        // fragments = fragments.filter( function(str) { return str.length >= 3; } );
-        fragments = fragments.map( function (str) { return str.toLowerCase(); } );  // lowercase them just once to speed up searching
+        fragments = makeQueryFragments(query, true);  // Lowercase the fragments just once, to speed up searching.
     }
 
     // https://github.com/Technologicat/js-for-pythonistas
