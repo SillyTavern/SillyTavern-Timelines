@@ -1,6 +1,5 @@
 // @Technologicat's TODOs, early 2024:
 // TODO: Hotkeys (Tab to jump between chat branches matching a search).
-// TODO: Maybe refactor the closing of the Tippy tooltips into a one-size-fits-all solution. (Search for `closeModal` - the tooltips are closed when the modal is.)
 
 // @city-unit's original TODOs:
 // TODO Edge labels?
