@@ -1005,6 +1005,10 @@ function setupEventHandlers(cy, nodeData) {
         // We will now zoom to the search results, so remove the legend highlight, if any.
         resetLegendHighlight(cy);
 
+        // Also close the tooltip and the full info panel.
+        closeTippy();
+        closeTapTippy();
+
         const query = textSearchElement.value.trim();  // A query consisting of only whitespace doesn't count.
         const selector = highlightNodesByQuery(cy, query, 'fragments');  // -> selector function, or undefined if no match
 
