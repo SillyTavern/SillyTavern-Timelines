@@ -1151,7 +1151,7 @@ function setupEventHandlers(cy, nodeData) {
     });
 
     // Double-tap a node to DWIM: find first matching message and navigate to it if possible, create a branch if absolutely necessary
-    cy.on('dbltap ', 'node', function (evt) {
+    cy.on('dbltap', 'node', function (evt) {
         const node = evt.target;
 
         // Auto-pick first chat file that has this message
