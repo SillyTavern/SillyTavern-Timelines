@@ -1225,12 +1225,11 @@ function setupEventHandlers(cy, nodeData) {
         // To do that, we would have to highlight first, but then avoid breaking the highlighting HTML when we truncate.
         content = highlightTextSearchMatches(content);
 
-        // Delay the tooltip appearance by 250 ms
         showTimeout = setTimeout(() => {
             let tippy = makeTippy(node, content);
             node._tippy = tippy;  // Store the tippy instance on the node (so we can hide it later)
             tippy.show();
-        }, 250);
+        }, 250);  // Delay the tooltip appearance by 250 ms
     });
     cy.on('mouseout', 'node', function (evt) {
         let node = evt.target;
