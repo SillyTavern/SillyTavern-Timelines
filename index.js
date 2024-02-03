@@ -404,7 +404,10 @@ function makeTapTippy(ele) {
                     // Create a container for the buttons
                     const btnContainer = document.createElement('div');
                     btnContainer.style.display = 'flex';
-                    btnContainer.style.alignItems = 'center'; // To vertically center the buttons
+
+                    // // Enable this if you want vertically centered buttons, where each button is sized separately to just accommodate its text content.
+                    // // If disabled, the buttons in each row auto-size vertically to have the same height with each other (tallest one wins).
+                    // btnContainer.style.alignItems = 'center';
 
                     const sessionName = file_name.split('.jsonl')[0];
                     const messageId = session_metadata.messageId;  // sequential message number in chat
