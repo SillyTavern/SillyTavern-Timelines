@@ -298,11 +298,18 @@ function makeTippy(ele, text, pos) {
                 if (isSwipe) {
                     instructionText += '<b>This node is a swipe.</b><br>';
                 }
+                if (ele.data('isBookmark')) {
+                    instructionText += `<b>There is a checkpoint at this node:</b><br>${ele.data('bookmarkName')}<br>`;
+                }
                 if (ele.data('totalSwipes') > 0) {
                     instructionText += '<b>This node has swipes.</b> Click and hold to toggle.<br>';
                 }
                 instructionText += 'Click to open full info and actions.<br>';
                 instructionText += 'Double-click to quick-open first matching chat.';
+                if (isSwipe) {
+                    instructionText += ('<br>If this swipe is not on the last message in the first matching chat, ' +
+                                        'quick-open will create a new branch.');
+                }
             } else {  // edge
                 instructionText += 'Click to follow edge.';
             }
