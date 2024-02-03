@@ -345,9 +345,9 @@ function formatNodeMessage(mes) {
 }
 
 /**
- * Creates a Tippy tooltip for a given Cytoscape element (node/edge) upon tapping.
+ * Creates a Tippy tooltip for a given Cytoscape node upon tapping.
  *
- * @param {Object} ele - The Cytoscape element (node/edge) for which the tooltip is being created.
+ * @param {Object} ele - The Cytoscape node for which the tooltip is being created.
  * @returns {Object} - The Tippy tooltip instance.
  *
  * The tooltip displays:
