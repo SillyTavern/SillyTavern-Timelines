@@ -999,7 +999,20 @@ function setupEventHandlers(cy, nodeData) {
         if (msg === undefined) {
             return '';
         }
-        return msg.length > length ? msg.substr(0, length - 3) + '...' : msg;
+        msg = msg.trim();
+        if (msg.length <= length) {
+            return msg;
+        }
+        // Truncate at a whole-word boundary, to show search highlights accurately (a single swoop fragment cannot span several words).
+        // Also, trim extra whitespace while at it.
+        const words = msg.split(/\s+/).map( function (str) { return str.trim(); } );
+        let out = words[0];
+        let j = 1;
+        while (out.length < length - 3) {
+            out = `${out} ${words[j]}`;
+            j++;
+        }
+        return out + '...';
     };
 
     // Helper functions for edge highlight system
@@ -1301,11 +1314,8 @@ function setupEventHandlers(cy, nodeData) {
             return;  // No node tooltip when the full info panel is open
         }
 
-        const truncatedMsg = truncateMessage(node.data('msg'));
-        let content = node.data('name') ? `${node.data('name')}: ${truncatedMsg}` : truncatedMsg;
-
-        // TODO: This does not highlight matches across the truncation boundary.
-        // To do that, we would have to highlight first, but then avoid breaking the highlighting HTML when we truncate.
+        let truncatedMsg = formatNodeMessage(truncateMessage(node.data('msg')));
+        let content = node.data('name') ? `<b>${node.data('name')}</b> ${truncatedMsg}` : truncatedMsg;
         content = highlightTextSearchMatches(content);
 
         showTimeout = setTimeout(() => {

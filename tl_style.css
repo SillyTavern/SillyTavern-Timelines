@@ -253,6 +253,10 @@
     width: 100%;
 }
 
+.tippy-box .name_text {
+    font-weight: bold;
+}
+
 .tippy-box .mes_text {  /* Message content section in the full info panel */
     max-height: 50vh;
     max-width: 70vw;
