@@ -1089,7 +1089,7 @@ function setupEventHandlers(cy, nodeData) {
     // Tap a node to open the full info panel
     cy.on('tap', 'node', function (evt) {
         clearTimeout(showTimeout);  // Clear any pending timeout for showing tooltip
-        let node = evt.target;
+        const node = evt.target;
         if (node._tippy) {
             node._tippy.hide();  // Hide the tippy instance associated with the node
         }
@@ -1132,8 +1132,8 @@ function setupEventHandlers(cy, nodeData) {
 
     // Long-tap a node to reveal/hide related swipe nodes
     cy.on('taphold', 'node', function (evt) {
-        let node = evt.target;
-        let nodeId = node.id();
+        const node = evt.target;
+        // const nodeId = node.id();
 
         // Check if the node has the storedSwipes attribute
         if (node.data('storedSwipes')) {
@@ -1163,7 +1163,7 @@ function setupEventHandlers(cy, nodeData) {
 
     // Tooltip on node mouseover
     cy.on('mouseover', 'node', function (evt) {
-        let node = evt.target;
+        const node = evt.target;
         highlightConnectedEdges(node);
 
         if (isTapTippyVisible) {
