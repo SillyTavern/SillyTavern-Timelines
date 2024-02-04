@@ -287,7 +287,11 @@ function makeTippy(ele, text, pos) {
 
             if (text) {
                 const mesDiv = document.createElement('div');
-                mesDiv.classList.add('mes_text');
+                // The root node doesn't have a message, but only the AI character name(s), so it shouldn't have the `mes_text` class.
+                // This is needed to make the layouts of the Tippy and TapTippy for the root node identical.
+                if (ele.data('msg')) {
+                    mesDiv.classList.add('mes_text');
+                }
                 mesDiv.innerHTML = text;
                 div.appendChild(mesDiv);
 
@@ -297,6 +301,9 @@ function makeTippy(ele, text, pos) {
             const instructionDiv = document.createElement('div');
             let instructionText = '<small><i>';
             if (isNode) {
+                if (ele.data('id') === 'root') {
+                    instructionText += `This node represents the AI character${ele.data('name').includes(', ') ? 's' : ''} in this set of timelines.`;
+                }
                 if (isSwipe) {
                     instructionText += '<b>This node is a swipe.</b><br>';
                 }
@@ -306,8 +313,10 @@ function makeTippy(ele, text, pos) {
                 if (ele.data('totalSwipes') > 0) {
                     instructionText += '<b>This node has swipes.</b> Click and hold to toggle.<br>';
                 }
-                instructionText += 'Click to open full info and actions.<br>';
-                instructionText += 'Double-click to quick-open first matching chat.';
+                if (ele.data('msg')) {
+                    instructionText += 'Click to open full info and actions.<br>';
+                    instructionText += 'Double-click to quick-open first matching chat.';
+                }
                 if (isSwipe) {
                     instructionText += ('<br>If this swipe is not on the last message in the first matching chat, ' +
                                         'quick-open will create a new branch.');
@@ -479,12 +488,14 @@ function makeTapTippy(ele) {
             });
 
             // --------------------------------------------------------------------------------
-            div.appendChild(document.createElement('hr'));
 
             // Add buttons: navigate to the message, create a new branch at the message
-            const menuDiv = document.createElement('div');
-            menuDiv.classList.add('menu_div');
             if (ele.data('chat_sessions')) {
+                div.appendChild(document.createElement('hr'));
+
+                const menuDiv = document.createElement('div');
+                menuDiv.classList.add('menu_div');
+
                 for (const [file_name, session_metadata] of Object.entries(ele.data('chat_sessions')).reverse()) {
                     // Create a container for the buttons
                     const btnContainer = document.createElement('div');
@@ -620,17 +631,25 @@ function makeTapTippy(ele) {
                     // Append the container to the menuDiv
                     menuDiv.appendChild(btnContainer);
                 }
+
+                div.appendChild(menuDiv);
             }
-            div.appendChild(menuDiv);
 
             // --------------------------------------------------------------------------------
             div.appendChild(document.createElement('hr'));
 
             // Add the message content.
             const mesDiv = document.createElement('div');
-            mesDiv.classList.add('mes_text');
-            let formattedMsg = formatNodeMessage(ele.data('msg'));
-            formattedMsg = highlightTextSearchMatches(formattedMsg);
+            let formattedMsg;
+            if (ele.data('msg')) {
+                mesDiv.classList.add('mes_text');
+                formattedMsg = formatNodeMessage(ele.data('msg'));
+                formattedMsg = highlightTextSearchMatches(formattedMsg);
+            } else if (ele.data('id') === 'root') {
+                // The root node doesn't have a message, but only the AI character name(s), so it shouldn't have the `mes_text` class.
+                // This is needed to make the layouts of the Tippy and TapTippy for the root node identical.
+                formattedMsg = `<small><i>This node represents the AI character${ele.data('name').includes(', ') ? 's' : ''} in this set of timelines.</i></small>`;
+            }
             mesDiv.innerHTML = formattedMsg;
             div.appendChild(mesDiv);
 
@@ -1280,7 +1299,12 @@ function setupEventHandlers(cy, nodeData) {
         const node = evt.target;
 
         // Auto-pick first chat file that has this message
-        const chat_sessions = Object.entries(node.data('chat_sessions'));
+        let chat_sessions = node.data('chat_sessions');
+        if (!chat_sessions) {  // The root node has no chat sessions. It just represents the AI character(s).
+            return;
+        }
+
+        chat_sessions = Object.entries(chat_sessions);
         const [file_name, session_metadata] = chat_sessions[0];
         const messageId = session_metadata.messageId;
 
