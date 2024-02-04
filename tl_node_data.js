@@ -56,12 +56,27 @@ function buildGraph(allChats, allChatFileNamesAndLengths) {
     let previousNodes = {};
     let parentSwipeData = {};
 
+    // Gather name(s) of AI characters from chat history, for root node
+    let characterNames = new Set();
+    for (let messageId = 0; messageId < allChats.length; messageId++) {
+        const messages = allChats[messageId];
+        messages.forEach((messageObj, index) => {
+            const { message } = messageObj;
+            if (!message.is_user && !message.is_system) {
+                characterNames.add(message.name);
+            }
+        });
+    }
+    const rootNodeName = [...characterNames].sort().join(', ');
+
     // Initialize root node
     cyElements.push({
         group: 'nodes',
         data: {
             id: 'root',
             label: 'root',
+            name: rootNodeName,
+            send_date: '',  // not a message
             x: 0,
             y: 0,
         },
