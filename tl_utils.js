@@ -167,8 +167,9 @@ export function closeTippy() {
     let tippyBoxes = document.querySelectorAll('.tippy-box');
     tippyBoxes.forEach(box => {
         let parent = box.parentElement;
-        if (parent && parent._tippy) {  // `_tippy` is stored on the graph node
+        if (parent && parent._tippy) {  // `_tippy` is stored on the graph element
             parent._tippy.hide();
+            parent._tippy = null;
         }
     });
 }
