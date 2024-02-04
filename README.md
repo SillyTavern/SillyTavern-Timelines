@@ -40,6 +40,7 @@ For convenient one-click access, bind the `/tl` command to a custom Quick Reply 
 - The identical content auto-merge only combines messages at the same depth (sequential message number in the chat).
   - Thus the graph is always [acyclic](https://en.wikipedia.org/wiki/Directed_acyclic_graph), even if you use the same canned *Quick Reply* at multiple points in the same chat.
   - But chats that use the same *Quick Reply* at the same depth will all be routed through the node that represents that quick reply at that depth.
+  - The same occurs if you send e.g. just "Thanks!", and that happens to be at the same chat depth as an earlier "Thanks!" in some other timeline.
 
 Actions:
 
