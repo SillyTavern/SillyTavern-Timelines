@@ -1413,6 +1413,7 @@ async function updateTimelineDataIfNeeded() {
                 // Send the group where the ID within the dict is equal to groupID
                 let group = context.groups.find(group => group.id === groupID);
                 // For each `group.chats`, we add to a dict with the key being the index and the value being the chat
+                // (`prepareData` ignores the keys, it needs the values only)
                 for(let i = 0; i < group.chats.length; i++){
                     console.debug(group.chats[i]);
                     data[i] = { 'file_name': group.chats[i] };
