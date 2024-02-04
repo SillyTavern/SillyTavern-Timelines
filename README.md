@@ -41,7 +41,6 @@ For convenient one-click access, bind the `/tl` command to a custom Quick Reply 
   - Thus the graph is always [acyclic](https://en.wikipedia.org/wiki/Directed_acyclic_graph), even if you use the same canned *Quick Reply* at multiple points in the same chat.
   - But chats that use the same *Quick Reply* at the same depth will all be routed through the node that represents that quick reply at that depth.
 
-
 Actions:
 
 - *Opening the timeline view* auto-zooms to the current chat, and flashes the last node *in that chat* to clearly show it on the graph.
@@ -57,7 +56,7 @@ Actions:
   - On a swipe node, if the swipe is not on the last message in that particular chat timeline, it is not possible to go to the swipe without creating a new branch.
     - In this situation, the button to go to the message is grayed out, but the button to create a branch is available.
 - *Double-clicking a node* goes straight to the message.
-  - If the same message appears in multiple chat files, the first one (as shown in the full info panel) is picked automatically.
+  - If the same message appears in multiple chat files, one of them is picked automatically. Usually this picks the most recent chat.
     - When this happens, a notification is shown with the chat file name.
     - If it's not the chat file you wanted, just open the timelines view again, click on the node, and pick the correct chat file explicitly from the full info panel.
   - If you double-click a swipe node, what happens depends on whether it is the last node in that particular chat.
@@ -66,13 +65,19 @@ Actions:
 - *Hovering over an edge* highlights that edge.
 - *Clicking an edge* navigates to its far end (as measured from the click position), and zooms into the node there.
 - *Clicking a legend entry* highlights it and zooms into it. Clicking the same entry again removes the highlight, and zooms out.
-- *Typing into fulltext search* highlights and zooms to the search results in realtime. When no match, or if you clear the search, it zooms out.
+- *Focusing the fulltext search* or *typing into the fulltext search* highlights and zooms to the search results in realtime. When no match, or if you clear the search, it zooms out.
+- The fulltext search is an *incremental fragment search* a.k.a. *swoop*. For example, the query `ear xam oop` would match this line (and in this document, only this line).
+  - A *swoop* is an AND search using whitespace-delimited *fragments*. Their ordering in the query does not matter.
+  - Swoop is a highly efficient way to quickly navigate large collections of text, inspired by the *HELM Swoop* function of the *Helm* package in *Emacs*.
+  - You can still use the Timelines search like you would a classical substring search (but that's not taking advantage of swoop's full potential).
+
+Hover tooltips describe available actions at any node or edge.
 
 ### Checkpoints
 
 While checkpoints are a core ST feature, *Timelines* takes them to center stage, so we explain them briefly here.
 
-A checkpoint is just a named chat branch. Branches, including checkpoints, are essentially separate chat files.
+A checkpoint is just a named chat branch. Branches, including checkpoints, are essentially separate chat files. You may sometimes see the old term *bookmark*, which means *checkpoint*.
 
 *Timelines* itself only creates (unnamed) branches.
 
@@ -97,6 +102,7 @@ However, checkpoint tracking complicates things slightly:
   - A renamed checkpoint chat file appears as an independent chat file in the timeline view (in the full info panel for nodes containing its messages), not connected to any checkpoint.
 - If you overwrite a checkpoint, only the **new** checkpoint is tracked as a checkpoint path.
   - The checkpoint chat file for the old checkpoint then appears as an independent chat file in the timeline view.
+- The *checkpoint node* in the graph is at the message where the *originating* chat file has the checkpoint link.
 
 
 ## Prerequisites
