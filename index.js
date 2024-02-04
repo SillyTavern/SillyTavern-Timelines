@@ -331,6 +331,44 @@ function makeTippy(ele, text, pos) {
 }
 
 /**
+ * Makes a Tippy tooltip for the given Cytoscape graph node.
+ *
+ * Side effect: stashes the tooltip instance as `node._tippy`, so it can be hidden later.
+ *
+ * @param {Object} node - The Cytoscape node.
+ * @returns {Object} The Tippy tooltip.
+ */
+function makeNodeTippy(node) {
+    // Return a truncated version of `msg` for use in a tooltip.
+    const truncateMessage = (msg, length = 100) => {
+        if (msg === undefined) {
+            return '';
+        }
+        msg = msg.trim();
+        if (msg.length <= length) {
+            return msg;
+        }
+        // Truncate at a whole-word boundary, to show search highlights accurately (a single swoop fragment cannot span several words).
+        // Also, trim extra whitespace while at it.
+        const words = msg.split(/\s+/).map( function (str) { return str.trim(); } );
+        let out = words[0];
+        let j = 1;
+        while (out.length < length - 3) {
+            out = `${out} ${words[j]}`;
+            j++;
+        }
+        return out + '...';
+    };
+
+    const truncatedMsg = formatNodeMessage(truncateMessage(node.data('msg')));
+    let content = node.data('name') ? `<b>${node.data('name')}</b> ${truncatedMsg}` : truncatedMsg;
+    content = highlightTextSearchMatches(content);
+    const tippy = makeTippy(node, content);
+    node._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
+    return tippy;
+}
+
+/**
  * Formats a message for display within a node, handling special characters and Markdown conversion.
  *
  * @param {string} mes - The message to be formatted.
@@ -994,27 +1032,6 @@ function setupEventHandlers(cy, nodeData) {
         cy.nodes().forEach(node => { node.lock(); });
     }
 
-    // Return a truncated version of `msg` for use in a tooltip.
-    const truncateMessage = (msg, length = 100) => {
-        if (msg === undefined) {
-            return '';
-        }
-        msg = msg.trim();
-        if (msg.length <= length) {
-            return msg;
-        }
-        // Truncate at a whole-word boundary, to show search highlights accurately (a single swoop fragment cannot span several words).
-        // Also, trim extra whitespace while at it.
-        const words = msg.split(/\s+/).map( function (str) { return str.trim(); } );
-        let out = words[0];
-        let j = 1;
-        while (out.length < length - 3) {
-            out = `${out} ${words[j]}`;
-            j++;
-        }
-        return out + '...';
-    };
-
     // Helper functions for edge highlight system
 
     // Highlight the given edge(s).
@@ -1179,11 +1196,10 @@ function setupEventHandlers(cy, nodeData) {
         // so use manual positioning for the tooltip.
         const mousePos = {x: evt.originalEvent.clientX,
                           y: evt.originalEvent.clientY};
-        showTimeout = setTimeout(() => {
-            let tippy = makeTippy(edge, undefined, mousePos);  // no text content other than the automatic instruction
-            edge._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
-            tippy.show();
-        }, 250);  // Delay the tooltip appearance by 250 ms
+        let tippy = makeTippy(edge, undefined, mousePos);  // no text content other than the automatic instruction
+        edge._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
+
+        showTimeout = setTimeout(() => { tippy.show(); }, 250);  // Delay the tooltip appearance by 250 ms
     });
     cy.on('mouseout', 'edge', function (evt) {
         const edge = evt.target;
@@ -1237,13 +1253,24 @@ function setupEventHandlers(cy, nodeData) {
         if (node._tippy) {
             node._tippy.hide();  // Hide the tippy instance associated with the node
         }
+        const thisNodeWasOpen = (node._tippy === activeTapTippy);
+        node._tippy = null;
+
         closeTapTippy();  // Close the previous full info panel, if any
         resetLegendHighlight(cy);  // Reset the legend highlight state
         restoreElements(cy);  // Remove remaining highlights, if any (from text search)
         highlightConnectedEdges(node);  // but keep the connected edge highlights
 
-        activeTapTippy = makeTapTippy(node);
-        activeTapTippy.show();
+        // If the same node was already open, close the full info panel, and restore the hover tooltip.
+        if (thisNodeWasOpen) {
+            const tippy = makeNodeTippy(node);
+            node._tippy = tippy;
+            tippy.show();
+        } else {  // Otherwise open the full info panel.
+            activeTapTippy = makeTapTippy(node);
+            node._tippy = activeTapTippy;
+            activeTapTippy.show();
+        }
     });
 
     // Double-tap a node to DWIM: find first matching message and navigate to it if possible, create a branch if absolutely necessary
@@ -1314,15 +1341,8 @@ function setupEventHandlers(cy, nodeData) {
             return;  // No node tooltip when the full info panel is open
         }
 
-        let truncatedMsg = formatNodeMessage(truncateMessage(node.data('msg')));
-        let content = node.data('name') ? `<b>${node.data('name')}</b> ${truncatedMsg}` : truncatedMsg;
-        content = highlightTextSearchMatches(content);
-
-        showTimeout = setTimeout(() => {
-            let tippy = makeTippy(node, content);
-            node._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
-            tippy.show();
-        }, 250);  // Delay the tooltip appearance by 250 ms
+        const tippy = makeNodeTippy(node);
+        showTimeout = setTimeout(() => { tippy.show(); }, 250);  // Delay the tooltip appearance by 250 ms
     });
     cy.on('mouseout', 'node', function (evt) {
         const node = evt.target;
