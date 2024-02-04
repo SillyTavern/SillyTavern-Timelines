@@ -159,6 +159,7 @@ async function loadSettings() {
 }
 
 let activeTapTippy = null;  // currently open full info panel instance
+let currentlyOpenNode = null;  // node whose full info panel instance it is
 let isTapTippyVisible = false;  // and whether it's open
 
 /*
@@ -169,6 +170,7 @@ function closeTapTippy() {
         activeTapTippy.hide();
         activeTapTippy = null;
         isTapTippyVisible = false;
+        currentlyOpenNode = null;
     }
 }
 
@@ -1250,11 +1252,11 @@ function setupEventHandlers(cy, nodeData) {
     cy.on('tap', 'node', function (evt) {
         clearTimeout(showTimeout);  // Clear any pending timeout for showing tooltip
         const node = evt.target;
-        if (node._tippy) {
-            node._tippy.hide();  // Hide the tippy instance associated with the node
+        if (node._tippy) {  // Hide tooltip if it is open
+            node._tippy.hide();
+            node._tippy = null;
         }
-        const thisNodeWasOpen = (node._tippy === activeTapTippy);
-        node._tippy = null;
+        const thisNodeWasOpen = (node === currentlyOpenNode);
 
         closeTapTippy();  // Close the previous full info panel, if any
         resetLegendHighlight(cy);  // Reset the legend highlight state
@@ -1268,7 +1270,7 @@ function setupEventHandlers(cy, nodeData) {
             tippy.show();
         } else {  // Otherwise open the full info panel.
             activeTapTippy = makeTapTippy(node);
-            node._tippy = activeTapTippy;
+            currentlyOpenNode = node;
             activeTapTippy.show();
         }
     });
