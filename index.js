@@ -1781,7 +1781,9 @@ function processTimelinesHotkeys(event) {
         closeModal();
         closeTapTippy();
         closeTippy();
-        resetLegendHighlight(theCy);  // Reset the legend highlight state
-        restoreElements(theCy);  // Remove remaining highlights, if any (from text search, and edge highlighting)
+        if (theCy) {
+            resetLegendHighlight(theCy);  // Reset the legend highlight state
+            restoreElements(theCy);  // Remove remaining highlights, if any (from text search, and edge highlighting)
+        }
     }
 }
