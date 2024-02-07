@@ -113,7 +113,7 @@ export function highlightNodesByQuery(cy, query, searchMode) {
     // If there's no query, restore elements to their original state.
     if (!query || query === '') {
         restoreElements(cy);
-        return;
+        return undefined;
     }
 
     const queryLowerCase = query.toLowerCase();
