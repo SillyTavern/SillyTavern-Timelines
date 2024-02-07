@@ -1036,6 +1036,45 @@ function toggleSwipes(cy, visible) {
 }
 
 /**
+ * Fixes the graph root node ending up in the stratosphere when there are lots of chats.
+ *
+ * @param {Object} cy - The Cytoscape instance.
+ */
+function fixRootNodePosition(cy) {
+    console.debug('Timelines: fixing root node position.');
+    const rootNode = cy.elements('node[id="root"]')[0];  // array of matches -> take first one (there is only one!)
+    const outgoingEdgesFromRoot = cy.elements('edge[source="root"]');
+    let greetingNodes = new Set(outgoingEdgesFromRoot.map(function (edge) {
+        const nodeId = edge.data('target');
+        const matchingNodes = cy.elements(`node[id="${nodeId}"]`);
+        const node = matchingNodes[0];
+        return node;
+    }));
+    greetingNodes = [...greetingNodes];  // set -> array
+
+    function argMin(a) {
+        return a.reduce((iBest, x, i, arr) => x < arr[iBest] ? i : iBest, 0);
+    }
+
+    const graphOrientation = getGraphOrientation();
+    if (graphOrientation === 'LR') {
+        const greetingNodeYCoords = greetingNodes.map(node => node.position('y'));
+        const topmostGreetingNodeIndex = argMin(greetingNodeYCoords);
+        const topmostGreetingNode = greetingNodes[topmostGreetingNodeIndex];
+        rootNode.unlock();
+        rootNode.position('y', topmostGreetingNode.position('y'));
+        rootNode.lock();
+    } else {  // graphOrientation === 'TB'
+        const greetingNodeXCoords = greetingNodes.map(node => node.position('x'));
+        const leftmostGreetingNodeIndex = argMin(greetingNodeXCoords);
+        const leftmostGreetingNode = greetingNodes[leftmostGreetingNodeIndex];
+        rootNode.unlock();
+        rootNode.position('x', leftmostGreetingNode.position('x'));
+        rootNode.lock();
+    }
+}
+
+/**
  * Sets up event handlers for the given Cytoscape instance and node data.
  *
  * This function does the following:
@@ -1059,6 +1098,7 @@ function setupEventHandlers(cy, nodeData) {
         cy.nodes().forEach(node => { node.unlock(); });
         cyLayout.run();  // apply the layout
         cy.nodes().forEach(node => { node.lock(); });
+        fixRootNodePosition(cy);
     }
 
     // Helper functions for edge highlight system
@@ -1200,6 +1240,7 @@ function setupEventHandlers(cy, nodeData) {
             hasSetOrientation = true;
             setGraphOrientationBasedOnViewport(cy, layout);
             cy.nodes().forEach(node => { node.lock(); });  // nodes are always locked after running the layout anyway
+            fixRootNodePosition(cy);
         }
     });
 
