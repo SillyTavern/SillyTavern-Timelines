@@ -860,29 +860,30 @@ function filterElementsAndPad(cy, selector) {
         eles = cy.filter();  // zoom out (select all elements) if no selector (empty query)
     } else {
         eles = cy.filter(selector);
-        if (eles.length > 0) {
-            const zoomToFit = calculateFitZoom(cy, eles);
-            if (zoomToFit >= 1.0) {
-                // Compute the size of one node, in rendered pixels, at the zoom level that would be required to fit the selected content exactly.
-                const nodeWidthRendered = zoomToFit * extension_settings.timeline.nodeWidth;
-                const nodeHeightRendered = zoomToFit * extension_settings.timeline.nodeHeight;
-                padding = Math.min(nodeWidthRendered, nodeHeightRendered);  // arbitrary, but maybe better than max
-
-                // Limit padding so that at least one node always fits into the viewport, regardless of how far in we try to zoom.
-                // This prevents the graph from zooming out due to an insane theoretical amount of padding (more than viewport size)
-                // when the auto-zoom zooms in really close.
-                //
-                // In practice: if one node would take >= 34% of horizontal or vertical viewport space, reserve 33% of the smaller
-                // viewport dimension for padding on each side, to clamp the size of one node along that dimension to at most 34%.
-                // This limits the size of one node to ~one third of the viewport size.
-                const view_w = cy.width();
-                const view_h = cy.height();
-                if ((nodeWidthRendered >= 0.34 * view_w) || (nodeHeightRendered >= 0.34 * view_h)) {
-                    padding = Math.min(0.33 * view_w, 0.33 * view_h);
-                }
-            }
-        } else {
+        if (eles.length === 0) {
             eles = cy.filter();  // zoom out (select all elements) if the selector didn't match
+        }
+    }
+    if (eles.length > 0) {  // if the graph is not empty
+        const zoomToFit = calculateFitZoom(cy, eles);
+        if (zoomToFit >= 1.0) {
+            // Compute the size of one node, in rendered pixels, at the zoom level that would be required to fit the selected content exactly.
+            const nodeWidthRendered = zoomToFit * extension_settings.timeline.nodeWidth;
+            const nodeHeightRendered = zoomToFit * extension_settings.timeline.nodeHeight;
+            padding = Math.min(nodeWidthRendered, nodeHeightRendered);  // arbitrary, but maybe better than max
+
+            // Limit padding so that at least one node always fits into the viewport, regardless of how far in we try to zoom.
+            // This prevents the graph from zooming out due to an insane theoretical amount of padding (more than viewport size)
+            // when the auto-zoom zooms in really close.
+            //
+            // In practice: if one node would take >= 34% of horizontal or vertical viewport space, reserve 33% of the smaller
+            // viewport dimension for padding on each side, to clamp the size of one node along that dimension to at most 34%.
+            // This limits the size of one node to ~one third of the viewport size.
+            const view_w = cy.width();
+            const view_h = cy.height();
+            if ((nodeWidthRendered >= 0.34 * view_w) || (nodeHeightRendered >= 0.34 * view_h)) {
+                padding = Math.min(0.33 * view_w, 0.33 * view_h);
+            }
         }
     }
     return [eles, padding]
