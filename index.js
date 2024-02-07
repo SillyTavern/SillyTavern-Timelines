@@ -1578,30 +1578,32 @@ function flashNode(node, howManyFlashes, duration) {
  * @returns {Promise<void>}
  */
 async function onTimelineButtonClick() {
-    showLoader();
+    let dataUpdated = false;
     try {
-        const dataUpdated = await updateTimelineDataIfNeeded();
-        handleModalDisplay();  // Show the timeline view, and wire the close button to close it.
-        if (dataUpdated) {
-            renderCytoscapeDiagram(lastTimelineData);  // after this, the Cytoscape instance `theCy` is alive
-            toggleSwipes(theCy, extension_settings.timeline.autoExpandSwipes);
-        }
-        closeOpenDrawers();
-
-        // Let the window layout settle itself for 500 ms before trying to zoom
-        // (this avoids some failed pans/zooms).
-        setTimeout(() => {
-            let textSearchElement = document.getElementById('transparent-search');
-            textSearchElement.focus();
-            textSearchElement.select();  // select content for easy erasing
-            zoomToCurrentChatNode(theCy);  // override the zoom-to-search
-            // textSearchElement.dispatchEvent(new Event('input'));  // no need to trigger input event to perform search, since now focusing the element already searches
-        }, 500);
+        showLoader();
+        dataUpdated = await updateTimelineDataIfNeeded();
     }
     finally {
         await delay(1);  // This avoids the loading screen getting stuck when there is no need to update the data.
         hideLoader();
     }
+
+    handleModalDisplay();  // Show the timeline view, and wire the close button to close it.
+    if (dataUpdated) {
+        renderCytoscapeDiagram(lastTimelineData);  // after this, the Cytoscape instance `theCy` is alive
+        toggleSwipes(theCy, extension_settings.timeline.autoExpandSwipes);
+    }
+    closeOpenDrawers();
+
+    // Let the window layout settle itself for 500 ms before trying to zoom
+    // (this avoids some failed pans/zooms).
+    setTimeout(() => {
+        let textSearchElement = document.getElementById('transparent-search');
+        textSearchElement.focus();
+        textSearchElement.select();  // select content for easy erasing
+        zoomToCurrentChatNode(theCy);  // override the zoom-to-search
+        // textSearchElement.dispatchEvent(new Event('input'));  // no need to trigger input event to perform search, since now focusing the element already searches
+    }, 500);
 }
 
 /**
