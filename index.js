@@ -67,6 +67,8 @@ import { fetchData, prepareData } from './tl_node_data.js';
 import { toggleGraphOrientation, highlightNodesByQuery, makeQueryFragments, setGraphOrientationBasedOnViewport, getGraphOrientation } from './tl_graph.js';
 import { registerSlashCommand } from '../../../slash-commands.js';
 import { fixMarkdown } from '../../../power-user.js';
+import { hideLoader, showLoader } from '../../../loader.js';
+import { delay } from '../../../utils.js';
 
 let defaultSettings = {
     nodeWidth: 25,
@@ -855,8 +857,16 @@ function resetLegendHighlight(cy)
  */
 function filterElementsAndPad(cy, selector) {
     let padding = 20;
-    let eles = cy.filter(selector);
-    if (eles.length > 0) {
+    let eles;
+    if (!selector) {
+        eles = cy.filter();  // zoom out (select all elements) if no selector (empty query)
+    } else {
+        eles = cy.filter(selector);
+        if (eles.length === 0) {
+            eles = cy.filter();  // zoom out (select all elements) if the selector didn't match
+        }
+    }
+    if (eles.length > 0) {  // if the graph is not empty
         const zoomToFit = calculateFitZoom(cy, eles);
         if (zoomToFit >= 1.0) {
             // Compute the size of one node, in rendered pixels, at the zoom level that would be required to fit the selected content exactly.
@@ -877,8 +887,6 @@ function filterElementsAndPad(cy, selector) {
                 padding = Math.min(0.33 * view_w, 0.33 * view_h);
             }
         }
-    } else {
-        eles = cy.filter();  // zoom out (select all elements) if the selector didn't match
     }
     return [eles, padding]
 }
@@ -1028,6 +1036,45 @@ function toggleSwipes(cy, visible) {
 }
 
 /**
+ * Fixes the graph root node ending up in the stratosphere when there are lots of chats.
+ *
+ * @param {Object} cy - The Cytoscape instance.
+ */
+function fixRootNodePosition(cy) {
+    console.debug('Timelines: fixing root node position.');
+    const rootNode = cy.elements('node[id="root"]')[0];  // array of matches -> take first one (there is only one!)
+    const outgoingEdgesFromRoot = cy.elements('edge[source="root"]');
+    let greetingNodes = new Set(outgoingEdgesFromRoot.map(function (edge) {
+        const nodeId = edge.data('target');
+        const matchingNodes = cy.elements(`node[id="${nodeId}"]`);
+        const node = matchingNodes[0];
+        return node;
+    }));
+    greetingNodes = [...greetingNodes];  // set -> array
+
+    function argMin(a) {
+        return a.reduce((iBest, x, i, arr) => x < arr[iBest] ? i : iBest, 0);
+    }
+
+    const graphOrientation = getGraphOrientation();
+    if (graphOrientation === 'LR') {
+        const greetingNodeYCoords = greetingNodes.map(node => node.position('y'));
+        const topmostGreetingNodeIndex = argMin(greetingNodeYCoords);
+        const topmostGreetingNode = greetingNodes[topmostGreetingNodeIndex];
+        rootNode.unlock();
+        rootNode.position('y', topmostGreetingNode.position('y'));
+        rootNode.lock();
+    } else {  // graphOrientation === 'TB'
+        const greetingNodeXCoords = greetingNodes.map(node => node.position('x'));
+        const leftmostGreetingNodeIndex = argMin(greetingNodeXCoords);
+        const leftmostGreetingNode = greetingNodes[leftmostGreetingNodeIndex];
+        rootNode.unlock();
+        rootNode.position('x', leftmostGreetingNode.position('x'));
+        rootNode.lock();
+    }
+}
+
+/**
  * Sets up event handlers for the given Cytoscape instance and node data.
  *
  * This function does the following:
@@ -1051,6 +1098,7 @@ function setupEventHandlers(cy, nodeData) {
         cy.nodes().forEach(node => { node.unlock(); });
         cyLayout.run();  // apply the layout
         cy.nodes().forEach(node => { node.lock(); });
+        fixRootNodePosition(cy);
     }
 
     // Helper functions for edge highlight system
@@ -1192,6 +1240,7 @@ function setupEventHandlers(cy, nodeData) {
             hasSetOrientation = true;
             setGraphOrientationBasedOnViewport(cy, layout);
             cy.nodes().forEach(node => { node.lock(); });  // nodes are always locked after running the layout anyway
+            fixRootNodePosition(cy);
         }
     });
 
@@ -1529,7 +1578,16 @@ function flashNode(node, howManyFlashes, duration) {
  * @returns {Promise<void>}
  */
 async function onTimelineButtonClick() {
-    const dataUpdated = await updateTimelineDataIfNeeded();
+    let dataUpdated = false;
+    try {
+        showLoader();
+        dataUpdated = await updateTimelineDataIfNeeded();
+    }
+    finally {
+        await delay(1);  // This avoids the loading screen getting stuck when there is no need to update the data.
+        hideLoader();
+    }
+
     handleModalDisplay();  // Show the timeline view, and wire the close button to close it.
     if (dataUpdated) {
         renderCytoscapeDiagram(lastTimelineData);  // after this, the Cytoscape instance `theCy` is alive
@@ -1780,7 +1838,9 @@ function processTimelinesHotkeys(event) {
         closeModal();
         closeTapTippy();
         closeTippy();
-        resetLegendHighlight(theCy);  // Reset the legend highlight state
-        restoreElements(theCy);  // Remove remaining highlights, if any (from text search, and edge highlighting)
+        if (theCy) {
+            resetLegendHighlight(theCy);  // Reset the legend highlight state
+            restoreElements(theCy);  // Remove remaining highlights, if any (from text search, and edge highlighting)
+        }
     }
 }

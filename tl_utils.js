@@ -35,6 +35,11 @@ const saveChatDebounced = debounce(() => getContext().saveChat(), 2000);
  */
 export async function navigateToMessage(chatSessionName, messageId, swipeId = -1, branch = false) {
 
+    // Sanity check (a message might have a null `swipeId`)
+    if (swipeId === null || swipeId === undefined) {
+        swipeId = -1;
+    }
+
     // Remove extension from file name
     chatSessionName = chatSessionName.replace('.jsonl', '');
 
@@ -235,12 +240,18 @@ export function handleModalDisplay() {
  * 5. Emits a 'MESSAGE_SWIPED' event and saves the chat data.
  */
 async function goToSwipe(targetSwipeId) {  // TODO: To avoid duplication, this function could be moved to the main ST frontend?
+    if (targetSwipeId === null || targetSwipeId === undefined) {
+        console.error('Timelines: goToSwipe: Swipe ID not given, cannot go to swipe.');
+        return;
+    }
+
     const context = getContext();
     const chat = context.chat;
     const lastMessageId = chat.length - 1;
     const lastMessageObj = chat[lastMessageId];
 
     // Reset with wraparound if exceeding bounds
+    console.debug(`Timelines: goToSwipe: Asked to switch last message to swipe ${targetSwipeId + 1}.`);
     if (targetSwipeId < 0) {
         targetSwipeId = lastMessageObj['swipes'].length - 1;
     } else if (targetSwipeId >= lastMessageObj['swipes'].length) {
@@ -248,6 +259,7 @@ async function goToSwipe(targetSwipeId) {  // TODO: To avoid duplication, this f
     }
 
     // Set the swipe ID
+    console.debug(`Timelines: goToSwipe: After bounds checking, switching last message to swipe ${targetSwipeId + 1}.`);
     lastMessageObj['swipe_id'] = targetSwipeId;
     console.debug(lastMessageObj);
 
