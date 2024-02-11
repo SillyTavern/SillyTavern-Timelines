@@ -1753,8 +1753,7 @@ function onInputChange(element, settingName, rgbaValue = null) {
  */
 function processTimelinesHotkeys(event) {
     // Only handle hotkeys when the timeline view is open
-    let modal = document.getElementById('timelinesModal');
-    if (modal.style.display === 'none') {
+    if (!$('#timelinesModal').is(':visible')) {
         return;
     }
 
@@ -1767,7 +1766,7 @@ function processTimelinesHotkeys(event) {
     // fails to register keypresses.
     //
     // What this does is prevent the event from falling through any further while the modal is open.
-    event.stopImmediatePropagation();
+    event.stopPropagation();
 
     // console.log(event);  // debug/development
 
