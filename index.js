@@ -77,8 +77,8 @@ let defaultSettings = {
     edgeSeparation: 10,
     rankSeparation: 50,
     spacingFactor: 1,
-    fixedTooltip : false,
-    fixedHoverTooltip : false,
+    fixedTooltip: false,
+    fixedHoverTooltip: false,
     align: 'UL',
     nodeRanker: 'tight-tree',
     nodeShape: 'ellipse',
@@ -321,7 +321,7 @@ function makeTippy(ele, text, pos) {
                 }
                 if (isSwipe) {
                     instructionText += ('<br>If this swipe is not on the last message in the first matching chat, ' +
-                                        'quick-open will create a new branch.');
+                        'quick-open will create a new branch.');
                 }
             } else {  // edge
                 instructionText += 'Click to follow edge.';
@@ -363,7 +363,7 @@ function makeNodeTippy(node) {
         }
         // Truncate at a whole-word boundary, to show search highlights accurately (a single swoop fragment cannot span several words).
         // Also, trim extra whitespace while at it.
-        const words = msg.split(/\s+/).map( function (str) { return str.trim(); } );
+        const words = msg.split(/\s+/).map(function (str) { return str.trim(); });
         let out = words[0];
         let j = 1;
         while (out.length < length - 3) {
@@ -619,7 +619,7 @@ function makeTapTippy(ele) {
                     branchBtn.classList.add('widthNatural');
                     branchBtn.title = `Create a new branch from "${sessionName}", at this message, and open it.`;  // TODO: data-i18n?
                     branchBtn.addEventListener('click', function () {
-                        if(ele.data('isSwipe'))
+                        if (ele.data('isSwipe'))
                             navigateToMessage(file_name, messageId, ele.data('swipeId'), true);
                         else
                             navigateToMessage(file_name, messageId, null, true);
@@ -804,8 +804,10 @@ function createLegendItem(cy, container, item, type) {
 
         // Zoom to the highlighted elements (or zoom out if none)
         const [eles, padding] = filterElementsAndPad(cy, currentlyHighlighted);
-        cy.stop().animate({fit: { eles: eles, padding: padding },
-                           duration: 300});
+        cy.stop().animate({
+            fit: { eles: eles, padding: padding },
+            duration: 300
+        });
     });
 
     if (type === 'circle') {
@@ -835,8 +837,7 @@ function createLegendItem(cy, container, item, type) {
  *
  * @param {Object} cy - The Cytoscape instance where graph operations are performed.
  */
-function resetLegendHighlight(cy)
-{
+function resetLegendHighlight(cy) {
     if (currentlyHighlighted) {
         restoreElements(cy);
         const activeItems = document.querySelectorAll('.active-legend');
@@ -1174,8 +1175,10 @@ function setupEventHandlers(cy, nodeData) {
 
         // Zoom to the matched elements (or zoom out if none)
         const [eles, padding] = filterElementsAndPad(cy, selector);
-        cy.stop().animate({fit: { eles: eles, padding: padding },
-                           duration: 300});
+        cy.stop().animate({
+            fit: { eles: eles, padding: padding },
+            duration: 300
+        });
     }
 
     // The text search field is a garden-variety DOM element, so attach an event listener the classical way.
@@ -1193,8 +1196,10 @@ function setupEventHandlers(cy, nodeData) {
         toggleGraphOrientation(cy, layout);
         refreshLayout();
         const [eles, padding] = filterElementsAndPad(cy, undefined);
-        cy.stop().animate({fit: { eles: eles, padding: padding },
-                           duration: 300});
+        cy.stop().animate({
+            fit: { eles: eles, padding: padding },
+            duration: 300
+        });
     };
 
     let expandBtn = modal.getElementsByClassName('expand')[0];
@@ -1212,8 +1217,10 @@ function setupEventHandlers(cy, nodeData) {
     let zoomtofitBtn = modal.getElementsByClassName('zoomtofit')[0];
     zoomtofitBtn.onclick = function () {
         const [eles, padding] = filterElementsAndPad(cy, undefined);
-        cy.stop().animate({fit: { eles: eles, padding: padding },
-                           duration: 300});
+        cy.stop().animate({
+            fit: { eles: eles, padding: padding },
+            duration: 300
+        });
     };
 
     let zoomtocurrentBtn = modal.getElementsByClassName('zoomtocurrent')[0];
@@ -1264,8 +1271,10 @@ function setupEventHandlers(cy, nodeData) {
 
         // Edges can be long and sometimes only partly visible in the viewport,
         // so use manual positioning for the tooltip.
-        const mousePos = {x: evt.originalEvent.clientX,
-                          y: evt.originalEvent.clientY};
+        const mousePos = {
+            x: evt.originalEvent.clientX,
+            y: evt.originalEvent.clientY
+        };
         let tippy = makeTippy(edge, undefined, mousePos);  // no text content other than the automatic instruction
         edge._tippy = tippy;  // Store the tippy instance on the graph element (so we can hide it later)
 
@@ -1487,7 +1496,7 @@ async function updateTimelineDataIfNeeded() {
                 let group = context.groups.find(group => group.id === groupID);
                 // For each `group.chats`, we add to a dict with the key being the index and the value being the chat
                 // (`prepareData` ignores the keys, it needs the values only)
-                for(let i = 0; i < group.chats.length; i++){
+                for (let i = 0; i < group.chats.length; i++) {
                     console.debug(group.chats[i]);
                     data[i] = { 'file_name': group.chats[i] };
                 }
@@ -1515,7 +1524,7 @@ async function updateTimelineDataIfNeeded() {
             spacingFactor: extension_settings.timeline.spacingFactor,  // Multiplicative factor (>0) to expand or compress the overall area that the nodes take up
             acyclicer: 'greedy',  // 'greedy' or undefined. We shouldn't need an acyclicer, but let's be careful.
             align: extension_settings.timeline.align,  // Alignment for rank nodes. Can be 'UL', 'UR', 'DL', or 'DR', where U = up, D = down, L = left, and R = right
-            sort: function(a, b){ return a.id() < b.id() },  // Layout tie-breaker: prefer the element that our `buildGraph` created first.
+            sort: function (a, b) { return a.id() < b.id() },  // Layout tie-breaker: prefer the element that our `buildGraph` created first.
         };
         return true; // Data was updated
     }
@@ -1566,7 +1575,7 @@ function flashNode(node, howManyFlashes, duration) {
     node.flashClass('NoticeMe', duration);  // do the first flash now
     for (let j = 1; j < howManyFlashes; j++) {  // schedule the rest
         setTimeout(() => { node.flashClass('NoticeMe', duration); },
-                   2 * j * duration);
+            2 * j * duration);
     }
 }
 
@@ -1616,7 +1625,7 @@ async function onTimelineButtonClick() {
  * @returns {Promise<void>}
  */
 function slashCommandHandler(_, reload) {
-    if (reload == 'r'){
+    if (reload == 'r') {
         lastContext = null;
     }
     onTimelineButtonClick();
@@ -1629,7 +1638,8 @@ function slashCommandHandler(_, reload) {
  */
 jQuery(async () => {
     const settingsHtml = await $.get(`${extensionFolderPath}/timeline.html`);
-    $('#extensions_settings').append(settingsHtml);
+    const getContainer = () => $(document.getElementById('timelines_container') ?? document.getElementById('extensions_settings'));
+    getContainer().append(settingsHtml);
     $('#show_timeline_view').on('click', onTimelineButtonClick);
     registerSlashCommand('tl', slashCommandHandler, [], '/tl Show the timeline, "/tl r" to reload the graph', false, true);
 
